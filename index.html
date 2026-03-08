@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>스티커 보드</title>
+
+<style>
+
+body{
+font-family:sans-serif;
+background:#f2f2f2;
+margin:0;
+}
+
+.top{
+background:#333;
+color:white;
+padding:10px;
+}
+
+button{
+margin-left:10px;
+padding:6px 12px;
+}
+
+#board{
+position:relative;
+height:90vh;
+background:white;
+}
+
+.note{
+position:absolute;
+width:140px;
+height:140px;
+background:#ffeb3b;
+padding:10px;
+box-shadow:3px 3px 6px rgba(0,0,0,0.3);
+border-radius:6px;
+cursor:move;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="top">
+스티커 보드
+<button onclick="addNote()">스티커 추가</button>
+</div>
+
+<div id="board"></div>
+
+<script>
+
+const board=document.getElementById("board");
+
+let notes=JSON.parse(localStorage.getItem("notes"))||[];
+
+function save(){
+localStorage.setItem("notes",JSON.stringify(notes));
+}
+
+function draw(){
+
+board.innerHTML="";
+
+notes.forEach((n,i)=>{
+
+const note=document.createElement("div");
+note.className="note";
+note.style.left=n.x+"px";
+note.style.top=n.y+"px";
+note.contentEditable=true;
+note.innerText=n.text;
+
+note.oninput=()=>{
+notes[i].text=note.innerText;
+save();
+};
+
+let offsetX,offsetY;
+
+note.onmousedown=(e)=>{
+
+offsetX=e.offsetX;
+offsetY=e.offsetY;
+
+document.onmousemove=(e)=>{
+
+note.style.left=(e.pageX-offsetX)+"px";
+note.style.top=(e.pageY-offsetY)+"px";
+
+};
+
+document.onmouseup=()=>{
+
+notes[i].x=parseInt(note.style.left);
+notes[i].y=parseInt(note.style.top);
+
+save();
+
+document.onmousemove=null;
+
+};
+
+};
+
+board.appendChild(note);
+
+});
+
+}
+
+function addNote(){
+
+notes.push({
+text:"아이디어",
+x:100,
+y:100
+});
+
+save();
+draw();
+
+}
+
+draw();
+
+</script>
+
+</body>
+</html>
