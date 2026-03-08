@@ -2,53 +2,77 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>스티커 보드</title>
+<title>워크숍 스티커 보드</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 
 body{
 font-family:sans-serif;
-background:#f2f2f2;
 margin:0;
+background:#f2f2f2;
 }
 
 .top{
 background:#333;
 color:white;
 padding:10px;
+display:flex;
+flex-wrap:wrap;
+gap:10px;
+align-items:center;
 }
 
-button{
-margin-left:10px;
-padding:6px 12px;
+select,button{
+padding:6px;
+font-size:14px;
 }
 
 #board{
 position:relative;
 height:90vh;
 background:white;
+overflow:hidden;
 }
 
 .note{
 position:absolute;
-width:140px;
-height:140px;
+width:120px;
+min-height:120px;
 background:#ffeb3b;
-padding:10px;
-box-shadow:3px 3px 6px rgba(0,0,0,0.3);
+padding:8px;
 border-radius:6px;
+box-shadow:2px 2px 6px rgba(0,0,0,0.3);
 cursor:move;
+font-size:14px;
+}
+
+@media (max-width:600px){
+
+.note{
+width:100px;
+min-height:100px;
+font-size:13px;
+}
+
 }
 
 </style>
-
 </head>
 
 <body>
 
 <div class="top">
-스티커 보드
+
+사용자
+
+<select id="userSelect"></select>
+
 <button onclick="addNote()">스티커 추가</button>
+
+<button onclick="clearBoard()">전체삭제</button>
+
 </div>
 
 <div id="board"></div>
@@ -56,6 +80,25 @@ cursor:move;
 <script>
 
 const board=document.getElementById("board");
+const userSelect=document.getElementById("userSelect");
+
+const users=[];
+for(let i=1;i<=30;i++){
+users.push("사용자"+i);
+}
+
+users.forEach(u=>{
+const option=document.createElement("option");
+option.value=u;
+option.text=u;
+userSelect.appendChild(option);
+});
+
+const colors=[
+"#ffeb3b","#ffb74d","#81c784","#4fc3f7",
+"#ba68c8","#f06292","#aed581","#90caf9",
+"#ffd54f","#ce93d8"
+];
 
 let notes=JSON.parse(localStorage.getItem("notes"))||[];
 
@@ -70,32 +113,49 @@ board.innerHTML="";
 notes.forEach((n,i)=>{
 
 const note=document.createElement("div");
+
 note.className="note";
+
 note.style.left=n.x+"px";
 note.style.top=n.y+"px";
+
+note.style.background=n.color;
+
+note.innerHTML="<b>"+n.user+"</b><br>"+n.text;
+
 note.contentEditable=true;
-note.innerText=n.text;
 
 note.oninput=()=>{
-notes[i].text=note.innerText;
+notes[i].text=note.innerText.replace(n.user,"").trim();
 save();
 };
 
 let offsetX,offsetY;
 
-note.onmousedown=(e)=>{
+const startDrag=(e)=>{
 
-offsetX=e.offsetX;
-offsetY=e.offsetY;
+offsetX=e.offsetX||e.touches?.[0].clientX-note.offsetLeft;
+offsetY=e.offsetY||e.touches?.[0].clientY-note.offsetTop;
 
-document.onmousemove=(e)=>{
+document.onmousemove=drag;
+document.ontouchmove=drag;
 
-note.style.left=(e.pageX-offsetX)+"px";
-note.style.top=(e.pageY-offsetY)+"px";
+document.onmouseup=endDrag;
+document.ontouchend=endDrag;
 
 };
 
-document.onmouseup=()=>{
+const drag=(e)=>{
+
+let x=e.pageX||e.touches?.[0].pageX;
+let y=e.pageY||e.touches?.[0].pageY;
+
+note.style.left=(x-offsetX)+"px";
+note.style.top=(y-offsetY)+"px";
+
+};
+
+const endDrag=()=>{
 
 notes[i].x=parseInt(note.style.left);
 notes[i].y=parseInt(note.style.top);
@@ -103,10 +163,12 @@ notes[i].y=parseInt(note.style.top);
 save();
 
 document.onmousemove=null;
+document.ontouchmove=null;
 
 };
 
-};
+note.onmousedown=startDrag;
+note.ontouchstart=startDrag;
 
 board.appendChild(note);
 
@@ -116,14 +178,32 @@ board.appendChild(note);
 
 function addNote(){
 
+const user=userSelect.value;
+
 notes.push({
+
+user:user,
 text:"아이디어",
-x:100,
-y:100
+x:Math.random()*500,
+y:Math.random()*300,
+color:colors[Math.floor(Math.random()*colors.length)]
+
 });
 
 save();
 draw();
+
+}
+
+function clearBoard(){
+
+if(confirm("전체 삭제하시겠습니까?")){
+
+notes=[];
+save();
+draw();
+
+}
 
 }
 
