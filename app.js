@@ -1,74 +1,42 @@
-// 사용자 이름
-let user = localStorage.getItem("user")
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-document.getElementById("user").innerText = user
-
-// Firebase 설정
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-}
+  apiKey: "여기에키",
+  authDomain: "여기에",
+  databaseURL: "여기에",
+  projectId: "여기에",
+};
 
-// Firebase v8 CDN 사용
-firebase.initializeApp(firebaseConfig)
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-const db = firebase.database()
+const board = document.getElementById("board");
+const addBtn = document.getElementById("addBtn");
 
-// 스티커 추가
-function addNote(){
+const notesRef = ref(db, "notes");
 
-let text = prompt("의견을 입력하세요")
+addBtn.onclick = () => {
+  push(notesRef, {
+    text: "새 스티커",
+    x: Math.random()*500,
+    y: Math.random()*300
+  });
+};
 
-if(!text) return
+onValue(notesRef, (snapshot) => {
+  board.innerHTML = "";
 
-db.ref("notes").push({
-  user:user,
-  text:text,
-  likes:0
-})
+  snapshot.forEach((child)=>{
+    const data = child.val();
 
-}
+    const note = document.createElement("div");
+    note.className="note";
+    note.style.left=data.x+"px";
+    note.style.top=data.y+"px";
+    note.innerText=data.text;
 
-// 실시간 표시
-db.ref("notes").on("value", function(snapshot){
+    board.appendChild(note);
+  });
 
-let board = document.getElementById("board")
-
-board.innerHTML=""
-
-snapshot.forEach(function(data){
-
-let n=data.val()
-let key=data.key
-
-let div=document.createElement("div")
-
-div.className="note"
-
-div.innerHTML=
-"<b>"+n.user+"</b><br>"+
-n.text+
-"<br><button onclick='likeNote(\""+key+"\")'>👍 "+n.likes+"</button>"
-
-board.appendChild(div)
-
-})
-
-})
-
-// 좋아요
-function likeNote(key){
-
-let ref=db.ref("notes/"+key)
-
-ref.once("value",function(snap){
-
-let likes=snap.val().likes+1
-
-ref.update({likes:likes})
-
-})
-
-}
+});
