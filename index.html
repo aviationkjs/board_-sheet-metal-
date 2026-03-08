@@ -1,9 +1,9 @@
 <!DOCTYPE html>
+
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>워크숍 스티커 보드</title>
-
+<title>성능기골 스티커 보드</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -48,6 +48,10 @@ cursor:move;
 font-size:14px;
 }
 
+.selected{
+outline:4px solid red;
+}
+
 @media (max-width:600px){
 
 .note{
@@ -59,19 +63,18 @@ font-size:13px;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <div class="top">
 
-사용자
-
-<select id="userSelect"></select>
+사용자 <select id="userSelect"></select>
 
 <button onclick="addNote()">스티커 추가</button>
 
-<button onclick="clearBoard()">전체삭제</button>
+<button onclick="deleteSelected()">선택삭제</button>
 
 </div>
 
@@ -81,6 +84,10 @@ font-size:13px;
 
 const board=document.getElementById("board");
 const userSelect=document.getElementById("userSelect");
+
+const adminPassword="1234";
+
+let selectedNotes=[];
 
 const users=[];
 for(let i=1;i<=30;i++){
@@ -106,6 +113,43 @@ function save(){
 localStorage.setItem("notes",JSON.stringify(notes));
 }
 
+function getFreePosition(){
+
+const noteSize=140;
+const padding=10;
+
+for(let y=10;y<600;y+=noteSize+padding){
+
+for(let x=10;x<800;x+=noteSize+padding){
+
+let overlap=false;
+
+for(let n of notes){
+
+if(
+x < n.x + noteSize &&
+x + noteSize > n.x &&
+y < n.y + noteSize &&
+y + noteSize > n.y
+){
+overlap=true;
+break;
+}
+
+}
+
+if(!overlap){
+return {x,y};
+}
+
+}
+
+}
+
+return {x:50,y:50};
+
+}
+
 function draw(){
 
 board.innerHTML="";
@@ -124,6 +168,20 @@ note.style.background=n.color;
 note.innerHTML="<b>"+n.user+"</b><br>"+n.text;
 
 note.contentEditable=true;
+
+note.onclick=(e)=>{
+
+e.stopPropagation();
+
+if(note.classList.contains("selected")){
+note.classList.remove("selected");
+selectedNotes=selectedNotes.filter(id=>id!==i);
+}else{
+note.classList.add("selected");
+selectedNotes.push(i);
+}
+
+};
 
 note.oninput=()=>{
 notes[i].text=note.innerText.replace(n.user,"").trim();
@@ -180,12 +238,14 @@ function addNote(){
 
 const user=userSelect.value;
 
+const pos=getFreePosition();
+
 notes.push({
 
 user:user,
 text:"아이디어",
-x:Math.random()*500,
-y:Math.random()*300,
+x:pos.x,
+y:pos.y,
 color:colors[Math.floor(Math.random()*colors.length)]
 
 });
@@ -195,15 +255,26 @@ draw();
 
 }
 
-function clearBoard(){
+function deleteSelected(){
 
-if(confirm("전체 삭제하시겠습니까?")){
+if(selectedNotes.length===0){
+alert("선택된 스티커 없음");
+return;
+}
 
-notes=[];
+const pw=prompt("1122");
+
+if(pw!==adminPassword){
+alert("비밀번호 틀림");
+return;
+}
+
+notes=notes.filter((n,i)=>!selectedNotes.includes(i));
+
+selectedNotes=[];
+
 save();
 draw();
-
-}
 
 }
 
