@@ -26,30 +26,42 @@ const app=initializeApp(firebaseConfig);
 const db=getDatabase(app);
 
 const notesRef=ref(db,"notes");
-const eventsRef=ref(db,"events");
 
 const board=document.getElementById("board");
-const calendar=document.getElementById("calendar");
-const userSelect=document.getElementById("user");
+const usernameDiv=document.getElementById("username");
 
-for(let i=1;i<=30;i++){
-const opt=document.createElement("option");
-opt.value="user"+i;
-opt.text="user"+i;
-userSelect.appendChild(opt);
+
+// 사용자 이름 저장/불러오기
+
+let username=localStorage.getItem("username");
+
+if(!username){
+
+username=prompt("이름을 입력하세요");
+
+localStorage.setItem("username",username);
+
 }
+
+usernameDiv.innerText="👤 "+username;
+
+
+// 스티커 추가
 
 window.addNote=()=>{
 
 push(notesRef,{
-user:userSelect.value,
+user:username,
 text:"아이디어",
 x:Math.random()*300,
-y:Math.random()*200,
+y:Math.random()*300,
 vote:0
 });
 
 };
+
+
+// 실시간 로딩
 
 onValue(notesRef,(snap)=>{
 
@@ -63,23 +75,39 @@ const n=data[key];
 
 const note=document.createElement("div");
 note.className="note";
+
 note.style.left=n.x+"px";
 note.style.top=n.y+"px";
 
 note.innerHTML=`
-${n.user}<br>
+
+<b>${n.user}</b>
+
 <textarea>${n.text}</textarea>
+
 <div class="vote">👍 ${n.vote}</div>
-<button>삭제</button>
+
+<button class="delete">삭제</button>
+
 `;
 
 board.appendChild(note);
 
+
+// 텍스트 수정
+
 const textarea=note.querySelector("textarea");
 
 textarea.onchange=()=>{
-update(ref(db,"notes/"+key),{text:textarea.value});
+
+update(ref(db,"notes/"+key),{
+text:textarea.value
+});
+
 };
+
+
+// 투표
 
 note.querySelector(".vote").onclick=()=>{
 
@@ -89,7 +117,10 @@ vote:n.vote+1
 
 };
 
-note.querySelector("button").onclick=()=>{
+
+// 삭제 (관리자 비밀번호)
+
+note.querySelector(".delete").onclick=()=>{
 
 const pw=prompt("관리자 비밀번호");
 
@@ -99,11 +130,17 @@ remove(ref(db,"notes/"+key));
 
 };
 
+
+// 드래그 이동
+
 drag(note,key);
 
 }
 
 });
+
+
+// 드래그 기능
 
 function drag(el,key){
 
@@ -135,85 +172,3 @@ document.onmousemove=null;
 };
 
 }
-
-function buildCalendar(){
-
-calendar.innerHTML="";
-
-for(let d=1;d<=31;d++){
-
-const day=document.createElement("div");
-day.className="day";
-day.dataset.day=d;
-day.innerHTML="<b>"+d+"</b>";
-
-day.onclick=()=>{
-
-const text=prompt("일정");
-
-if(text){
-
-push(eventsRef,{
-day:d,
-user:userSelect.value,
-text:text
-});
-
-}
-
-};
-
-calendar.appendChild(day);
-
-}
-
-}
-
-buildCalendar();
-
-onValue(eventsRef,(snap)=>{
-
-buildCalendar();
-
-const data=snap.val();
-
-for(const key in data){
-
-const e=data[key];
-
-const day=document.querySelector(`[data-day='${e.day}']`);
-
-const div=document.createElement("div");
-
-div.className="event";
-div.innerText=e.user+" : "+e.text;
-
-div.onclick=()=>{
-
-const newText=prompt("수정",e.text);
-
-if(newText){
-update(ref(db,"events/"+key),{text:newText});
-}
-
-};
-
-div.oncontextmenu=(ev)=>{
-
-ev.preventDefault();
-
-if(confirm("삭제?")){
-remove(ref(db,"events/"+key));
-}
-
-};
-
-day.appendChild(div);
-
-}
-
-});
-
-window.addEvent=()=>{
-alert("날짜를 클릭하세요");
-};
