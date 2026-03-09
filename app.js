@@ -61,6 +61,30 @@ vote:0
 };
 
 
+// 전체 삭제 기능
+
+window.deleteAll = ()=>{
+
+const pw = prompt("관리자 비밀번호");
+
+if(pw === "1234"){
+
+if(confirm("모든 스티커를 삭제하시겠습니까?")){
+
+remove(notesRef);
+
+}
+
+}else{
+
+alert("비밀번호가 틀렸습니다");
+
+}
+
+};
+
+
+
 // 실시간 로딩
 
 onValue(notesRef,(snap)=>{
