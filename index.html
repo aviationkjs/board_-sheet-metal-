@@ -1,42 +1,31 @@
 <!DOCTYPE html>
 <html lang="ko">
-
 <head>
 
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>워크숍 의견 보드</title>
+<title>성능기골 스티커 보드</title>
 
 <link rel="stylesheet" href="style.css">
+
+<script type="module" src="app.js"></script>
 
 </head>
 
 <body>
 
-<div class="login">
+<header>
 
-<h2>워크숍 의견 보드</h2>
+<div id="username"></div>
 
-<input id="name" placeholder="이름 입력">
+<button onclick="addNote()">🟨 스티커 추가</button>
 
-<button onclick="login()">입장</button>
+<button onclick="deleteAll()">🗑 전체삭제</button>
 
-</div>
+</header>
 
-<script>
-
-function login(){
-
-let name=document.getElementById("name").value
-
-localStorage.setItem("user",name)
-
-location.href="board.html"
-
-}
-
-</script>
+<div id="board"></div>
 
 </body>
-
 </html>
