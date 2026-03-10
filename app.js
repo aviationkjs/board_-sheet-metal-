@@ -25,7 +25,6 @@ appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
-
 const notesRef = ref(db,"notes");
 
 const board = document.getElementById("board");
@@ -36,35 +35,62 @@ let username = localStorage.getItem("username");
 
 if(!username){
 
-username = prompt("이름을 입력하세요");
+username = prompt("이름 입력");
 localStorage.setItem("username",username);
 
 }
 
-usernameDiv.innerText = "👤 "+username;
+usernameDiv.innerText="👤 "+username;
 
 
 
-window.addNote = ()=>{
+/* 이름별 색상 */
+
+function colorFromName(name){
+
+let hash=0;
+
+for(let i=0;i<name.length;i++){
+
+hash=name.charCodeAt(i)+((hash<<5)-hash);
+
+}
+
+const color=Math.abs(hash)%360;
+
+return `hsl(${color},80%,75%)`;
+
+}
+
+
+
+/* 스티커 추가 */
+
+window.addNote=()=>{
 
 push(notesRef,{
+
 user:username,
 text:"아이디어",
 vote:0,
-voters:{}
+voters:{},
+pin:false
+
 });
 
 };
 
 
 
-window.deleteAll = ()=>{
+/* 전체 삭제 */
 
-const pw = prompt("관리자 비밀번호");
+window.deleteAll=()=>{
 
-if(pw==="1234"){
+const pw=prompt("관리자 비밀번호");
 
-if(confirm("모든 스티커 삭제?")){
+if(pw==="1111"){
+
+if(confirm("전체 삭제?")){
 
 remove(notesRef);
 
@@ -76,6 +102,8 @@ remove(notesRef);
 
 
 
+/* 로딩 */
+
 onValue(notesRef,(snap)=>{
 
 board.innerHTML="";
@@ -84,12 +112,38 @@ const data=snap.val();
 
 if(!data) return;
 
+let notes=[];
+
 for(const key in data){
 
-const n=data[key];
+notes.push({
+id:key,
+...data[key]
+});
+
+}
+
+
+
+/* 중요 → 투표순 정렬 */
+
+notes.sort((a,b)=>{
+
+if(a.pin && !b.pin) return -1;
+if(!a.pin && b.pin) return 1;
+
+return b.vote-a.vote;
+
+});
+
+
+
+notes.forEach(n=>{
 
 const note=document.createElement("div");
 note.className="note";
+
+note.style.background=colorFromName(n.user);
 
 note.innerHTML=`
 
@@ -98,6 +152,8 @@ note.innerHTML=`
 <textarea>${n.text}</textarea>
 
 <div class="vote">👍 ${n.vote}</div>
+
+<button class="pin">${n.pin?"📌해제":"📌고정"}</button>
 
 <button class="delete">삭제</button>
 
@@ -111,17 +167,22 @@ const textarea=note.querySelector("textarea");
 
 autoResize(textarea);
 
-textarea.oninput=()=>{
 
-autoResize(textarea);
+/* 모바일 키보드 해결 */
 
-update(ref(db,"notes/"+key),{
+textarea.onblur=()=>{
+
+update(ref(db,"notes/"+n.id),{
+
 text:textarea.value
+
 });
 
 };
 
 
+
+/* 투표 1인1회 */
 
 note.querySelector(".vote").onclick=()=>{
 
@@ -132,11 +193,11 @@ return;
 
 }
 
-let voters=n.voters || {};
+let voters=n.voters||{};
 
 voters[username]=true;
 
-update(ref(db,"notes/"+key),{
+update(ref(db,"notes/"+n.id),{
 
 vote:n.vote+1,
 voters:voters
@@ -147,19 +208,35 @@ voters:voters
 
 
 
+/* 중요 스티커 */
+
+note.querySelector(".pin").onclick=()=>{
+
+update(ref(db,"notes/"+n.id),{
+
+pin:!n.pin
+
+});
+
+};
+
+
+
+/* 삭제 */
+
 note.querySelector(".delete").onclick=()=>{
 
 const pw=prompt("관리자 비밀번호");
 
-if(pw==="1234"){
+if(pw==="1111"){
 
-remove(ref(db,"notes/"+key));
+remove(ref(db,"notes/"+n.id));
 
 }
 
 };
 
-}
+});
 
 });
 
