@@ -71,7 +71,7 @@ window.addNote=()=>{
 push(notesRef,{
 
 user:username,
-text:"아이디어",
+text:"하고싶은말",
 vote:0,
 voters:{},
 pin:false
@@ -226,9 +226,6 @@ pin:!n.pin
 
 note.querySelector(".delete").onclick=()=>{
 
-const pw=prompt("관리자 비밀번호");
-
-if(pw==="1111"){
 
 remove(ref(db,"notes/"+n.id));
 
