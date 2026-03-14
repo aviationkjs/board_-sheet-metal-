@@ -1,72 +1,157 @@
-body{
-margin:0;
-font-family:sans-serif;
-background:#f4f4f4;
+body {
+  margin: 0;
+  font-family: 'Pretendard', sans-serif;
+  background: #f8f9fa;
+  color: #333;
 }
 
-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-padding:12px;
-background:#333;
-color:white;
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #2c3e50;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-button{
-padding:8px 12px;
-border:none;
-background:#2196f3;
-color:white;
-border-radius:6px;
-font-size:14px;
-margin-left:5px;
+#username {
+  font-weight: 600;
+  font-size: 16px;
 }
 
-#board{
-display:grid;
-grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
-gap:10px;
-padding:10px;
+.header-buttons button {
+  padding: 8px 15px;
+  border: none;
+  background: #3498db;
+  color: white;
+  border-radius: 20px;
+  font-size: 14px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
-.note{
-background:#ffeb3b;
-padding:10px;
-border-radius:8px;
-box-shadow:0 3px 8px rgba(0,0,0,0.2);
-display:flex;
-flex-direction:column;
+.header-buttons button:hover {
+  background: #2980b9;
 }
 
-.note textarea{
-width:100%;
-border:none;
-background:transparent;
-resize:none;
-font-size:14px;
-min-height:60px;
-overflow:hidden;
+#board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 15px;
+  padding: 20px;
 }
 
-.vote{
-margin-top:8px;
-cursor:pointer;
-font-size:14px;
+.note {
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 2px solid transparent;
 }
 
-.delete{
-margin-top:5px;
-background:#f44336;
-font-size:12px;
+.note:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
 }
 
-/* 모바일 2열 */
-
-@media (max-width:600px){
-
-#board{
-grid-template-columns:repeat(2,1fr);
+/* 본인 스티커 강조 표시 */
+.note.mine {
+  border: 2px solid #2c3e50;
 }
 
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+
+.note-header b {
+  font-size: 13px;
+  color: #555;
+  background: rgba(255,255,255,0.5);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.note-actions {
+  display: flex;
+  gap: 5px;
+}
+
+/* 액션 버튼 (고정, 삭제) 디자인 개선 */
+.action-btn {
+  background: rgba(255,255,255,0.7);
+  border: none;
+  border-radius: 50%;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  transition: background 0.2s;
+}
+
+.action-btn:hover {
+  background: white;
+}
+
+.delete-btn:hover {
+  color: #e74c3c;
+}
+
+.note textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-size: 15px;
+  min-height: 80px;
+  line-height: 1.5;
+  outline: none;
+  color: #333;
+}
+
+.note-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.vote-badge {
+  background: rgba(255,255,255,0.6);
+  padding: 4px 10px;
+  border-radius: 15px;
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: transform 0.1s;
+}
+
+.vote-badge:active {
+  transform: scale(0.9);
+}
+
+/* 모바일 2열 유지 */
+@media (max-width: 600px) {
+  #board {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 10px;
+  }
+  
+  .note {
+    padding: 12px;
+  }
 }
