@@ -5,7 +5,8 @@ import {
   push,
   onValue,
   update,
-  remove
+  remove,
+  set
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -33,13 +34,12 @@ if (!username) {
 }
 usernameDiv.innerText = "👤 " + username;
 
-/* 이름별 고유 색상 생성 (HSL 사용으로 부드러운 색상 유지) */
+/* 이름별 고유 색상 생성 */
 function colorFromName(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  // 채도 70%, 명도 80%로 파스텔톤 유지하며 색상값만 변경
   const hue = Math.abs(hash) % 360;
   return `hsl(${hue}, 70%, 80%)`;
 }
@@ -56,22 +56,40 @@ window.addNote = () => {
   });
 };
 
-/* 전체 삭제 */
-window.deleteAll = () => {
+/* 전체 삭제 (안정화 버전) */
+window.deleteAll = async () => {
   const pw = prompt("관리자 비밀번호");
   if (pw === "1111") {
-    if (confirm("전체 삭제하시겠습니까?")) {
-      remove(notesRef);
+    if (confirm("정말로 모든 스티커를 삭제하시겠습니까?")) {
+      try {
+        // UI를 즉시 비우고 로딩 상태 표시 (깜빡임 방지 및 즉각 반응)
+        board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
+        
+        // Firebase 데이터 완전 삭제 (set null 사용으로 확실하게 제거)
+        await set(notesRef, null);
+        
+        alert("모든 스티커가 삭제되었습니다.");
+      } catch (error) {
+        console.error("삭제 실패:", error);
+        alert("삭제 중 오류가 발생했습니다.");
+      }
     }
+  } else if (pw !== null) {
+    alert("비밀번호가 틀렸습니다.");
   }
 };
 
 /* 데이터 로딩 및 표시 */
 onValue(notesRef, (snap) => {
-  board.innerHTML = "";
   const data = snap.val();
-  if (!data) return;
+  
+  // 데이터가 없으면 보드를 비우고 종료
+  if (!data) {
+    board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px; color: #888;'>스티커가 없습니다.</div>";
+    return;
+  }
 
+  board.innerHTML = "";
   let notes = [];
   for (const key in data) {
     notes.push({
@@ -80,23 +98,14 @@ onValue(notesRef, (snap) => {
     });
   }
 
-  /* 정렬 로직: 
-     1. 본인 작성 스티커 최상단
-     2. 고정(pin)된 스티커 다음
-     3. 투표순 정렬
-  */
+  /* 정렬 로직 */
   notes.sort((a, b) => {
-    // 1. 본인 작성 여부 확인
     const isMineA = a.user === username;
     const isMineB = b.user === username;
     if (isMineA && !isMineB) return -1;
     if (!isMineA && isMineB) return 1;
-
-    // 2. 고정 여부 확인
     if (a.pin && !b.pin) return -1;
     if (!a.pin && b.pin) return 1;
-
-    // 3. 투표수 확인
     return (b.vote || 0) - (a.vote || 0);
   });
 
@@ -104,7 +113,6 @@ onValue(notesRef, (snap) => {
     const note = document.createElement("div");
     note.className = "note";
     if (n.user === username) note.classList.add("mine");
-    
     note.style.backgroundColor = colorFromName(n.user);
     
     note.innerHTML = `
@@ -125,7 +133,6 @@ onValue(notesRef, (snap) => {
     const textarea = note.querySelector("textarea");
     autoResize(textarea);
 
-    // 내용 수정 시 자동 저장 (포커스 아웃 시)
     textarea.onblur = () => {
       if (n.text !== textarea.value) {
         update(ref(db, "notes/" + n.id), {
@@ -134,7 +141,6 @@ onValue(notesRef, (snap) => {
       }
     };
 
-    // 투표 기능
     note.querySelector(".vote-badge").onclick = () => {
       if (n.voters && n.voters[username]) {
         alert("이미 투표했습니다!");
@@ -148,14 +154,12 @@ onValue(notesRef, (snap) => {
       });
     };
 
-    // 고정 기능
     note.querySelector(".pin-btn").onclick = () => {
       update(ref(db, "notes/" + n.id), {
         pin: !n.pin
       });
     };
 
-    // 삭제 기능
     note.querySelector(".delete-btn").onclick = () => {
       if (confirm("이 스티커를 삭제할까요?")) {
         remove(ref(db, "notes/" + n.id));
@@ -169,11 +173,16 @@ function autoResize(el) {
   el.style.height = el.scrollHeight + "px";
 }
 
-// 버튼 이벤트 리스너 등록
 document.addEventListener("DOMContentLoaded", () => {
   const addNoteBtn = document.getElementById("addNoteBtn");
   const deleteAllBtn = document.getElementById("deleteAllBtn");
+  const view3dBtn = document.getElementById("view3dBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
+  if (view3dBtn) {
+    view3dBtn.onclick = () => {
+      window.location.href = "viewer.html";
+    };
+  }
 });
