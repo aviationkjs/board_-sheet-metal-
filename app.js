@@ -6,7 +6,8 @@ import {
   onValue,
   update,
   remove,
-  set
+  set,
+  get
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
 const firebaseConfig = {
@@ -56,25 +57,51 @@ window.addNote = () => {
   });
 };
 
-/* 전체 삭제 (방법 3: 페이지 새로고침) */
+/* 전체 삭제 (고정된 스티커 제외) */
 window.deleteAll = async () => {
   const pw = prompt("관리자 비밀번호");
   if (pw === "1111") {
-    if (confirm("정말로 모든 스티커를 삭제하시겠습니까?")) {
+    if (confirm("정말로 모든 스티커를 삭제하시겠습니까?\n(고정된 스티커는 삭제되지 않습니다)")) {
       try {
         board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
         
-        // Firebase에서 모든 데이터 삭제
-        await set(notesRef, null);
+        // 현재 데이터 조회
+        const snapshot = await get(notesRef);
+        const data = snapshot.val();
         
-        // 삭제 완료 후 약간의 지연을 두고 페이지 새로고침
-        setTimeout(() => {
-          alert("모든 스티커가 삭제되었습니다.");
+        if (!data) {
+          alert("삭제할 스티커가 없습니다.");
           location.reload();
-        }, 500);
+          return;
+        }
+        
+        // 고정되지 않은 스티커만 삭제
+        const updates = {};
+        let deleteCount = 0;
+        
+        for (const key in data) {
+          if (!data[key].pin) {
+            updates[key] = null;
+            deleteCount++;
+          }
+        }
+        
+        // 삭제할 항목이 있으면 업데이트 수행
+        if (deleteCount > 0) {
+          await update(notesRef, updates);
+          alert(`${deleteCount}개의 스티커가 삭제되었습니다.`);
+        } else {
+          alert("삭제할 스티커가 없습니다. (모든 스티커가 고정되어 있습니다)");
+        }
+        
+        // 페이지 새로고침
+        setTimeout(() => {
+          location.reload();
+        }, 300);
       } catch (error) {
         console.error("삭제 실패:", error);
-        alert("삭제 중 오류가 발생했습니다.");
+        alert("삭제 중 오류가 발생했습니다: " + error.message);
+        location.reload();
       }
     }
   } else if (pw !== null) {
@@ -163,6 +190,10 @@ onValue(notesRef, (snap) => {
     };
 
     note.querySelector(".delete-btn").onclick = () => {
+      if (n.pin) {
+        alert("고정된 스티커는 삭제할 수 없습니다.\n먼저 고정을 풀어주세요.");
+        return;
+      }
       if (confirm("이 스티커를 삭제할까요?")) {
         remove(ref(db, "notes/" + n.id));
       }
