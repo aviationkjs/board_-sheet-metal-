@@ -280,12 +280,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const deleteAllBtn = document.getElementById("deleteAllBtn");
   const infoBtn = document.getElementById("infoBtn");
   const logsBtn = document.getElementById("logsBtn");
+  const huckViewBtn = document.getElementById("huckViewBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
   if (infoBtn) {
     infoBtn.onclick = () => {
       window.location.href = "info.html";
+    };
+  }
+  if (huckViewBtn) {
+    huckViewBtn.onclick = () => {
+      window.location.href = "pdf_viewer.html";
     };
   }
   

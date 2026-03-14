@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HUCK Operator Playbook - PDF 뷰어</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .back-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .back-btn:hover {
+            background: #2980b9;
+        }
+        
+        .title {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .controls button {
+            padding: 8px 12px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        
+        .controls button:hover {
+            background: #2980b9;
+        }
+        
+        .controls button:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .page-input-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .page-input-group input {
+            width: 60px;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+            text-align: center;
+        }
+        
+        .page-info {
+            color: white;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 10px;
+        }
+        
+        #pdfContainer {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        #pdfCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            margin: 0 auto;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .controls {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .title {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">🏠 보드로 돌아가기</a>
+        <div class="title">📖 HUCK Operator Playbook</div>
+        <div class="controls">
+            <button id="prevBtn" onclick="previousPage()">⬅ 이전</button>
+            <div class="page-input-group">
+                <input type="number" id="pageInput" min="1" placeholder="페이지">
+                <button onclick="goToPage()">이동</button>
+            </div>
+            <button id="nextBtn" onclick="nextPage()">다음 ➡</button>
+            <div class="page-info">
+                <span id="pageInfo">페이지 로딩 중...</span>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div id="pdfContainer">
+            <canvas id="pdfCanvas"></canvas>
+        </div>
+        <div id="errorContainer"></div>
+    </div>
+    
+    <script>
+        // PDF.js 워커 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+        
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        const pageInput = document.getElementById('pageInput');
+        const pageInfo = document.getElementById('pageInfo');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const errorContainer = document.getElementById('errorContainer');
+        
+        // PDF 로드
+        async function loadPDF() {
+            try {
+                const pdfUrl = 'HUCK_Operator_Playbook.pdf';
+                pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
+                totalPages = pdfDoc.numPages;
+                pageInput.max = totalPages;
+                renderPage(currentPage);
+                updatePageInfo();
+            } catch (error) {
+                console.error('PDF 로드 오류:', error);
+                errorContainer.innerHTML = '<div class="error">PDF 파일을 로드할 수 없습니다. 파일이 존재하는지 확인해 주세요.</div>';
+            }
+        }
+        
+        // 페이지 렌더링
+        async function renderPage(pageNum) {
+            try {
+                if (pageNum < 1 || pageNum > totalPages) {
+                    return;
+                }
+                
+                currentPage = pageNum;
+                const page = await pdfDoc.getPage(pageNum);
+                
+                // 캔버스 크기 설정
+                const viewport = page.getViewport({ scale: 2 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                // 페이지 렌더링
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                await page.render(renderContext).promise;
+                updatePageInfo();
+                updateButtonStates();
+            } catch (error) {
+                console.error('페이지 렌더링 오류:', error);
+            }
+        }
+        
+        // 페이지 정보 업데이트
+        function updatePageInfo() {
+            pageInfo.textContent = `${currentPage} / ${totalPages}`;
+            pageInput.value = currentPage;
+        }
+        
+        // 버튼 상태 업데이트
+        function updateButtonStates() {
+            prevBtn.disabled = currentPage <= 1;
+            nextBtn.disabled = currentPage >= totalPages;
+        }
+        
+        // 이전 페이지
+        window.previousPage = () => {
+            if (currentPage > 1) {
+                renderPage(currentPage - 1);
+            }
+        };
+        
+        // 다음 페이지
+        window.nextPage = () => {
+            if (currentPage < totalPages) {
+                renderPage(currentPage + 1);
+            }
+        };
+        
+        // 특정 페이지로 이동
+        window.goToPage = () => {
+            const pageNum = parseInt(pageInput.value);
+            if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+                renderPage(pageNum);
+            } else {
+                alert(`1부터 ${totalPages}까지의 페이지 번호를 입력하세요.`);
+                pageInput.value = currentPage;
+            }
+        };
+        
+        // Enter 키로 페이지 이동
+        pageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                window.goToPage();
+            }
+        });
+        
+        // 페이지 로드 시 PDF 로드
+        window.addEventListener('load', loadPDF);
+    </script>
+</body>
+</html>
