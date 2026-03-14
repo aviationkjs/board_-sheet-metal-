@@ -56,18 +56,14 @@ window.addNote = () => {
   });
 };
 
-/* 전체 삭제 (안정화 버전) */
+/* 전체 삭제 */
 window.deleteAll = async () => {
   const pw = prompt("관리자 비밀번호");
   if (pw === "1111") {
     if (confirm("정말로 모든 스티커를 삭제하시겠습니까?")) {
       try {
-        // UI를 즉시 비우고 로딩 상태 표시 (깜빡임 방지 및 즉각 반응)
         board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
-        
-        // Firebase 데이터 완전 삭제 (set null 사용으로 확실하게 제거)
         await set(notesRef, null);
-        
         alert("모든 스티커가 삭제되었습니다.");
       } catch (error) {
         console.error("삭제 실패:", error);
@@ -83,7 +79,6 @@ window.deleteAll = async () => {
 onValue(notesRef, (snap) => {
   const data = snap.val();
   
-  // 데이터가 없으면 보드를 비우고 종료
   if (!data) {
     board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px; color: #888;'>스티커가 없습니다.</div>";
     return;
@@ -176,13 +171,7 @@ function autoResize(el) {
 document.addEventListener("DOMContentLoaded", () => {
   const addNoteBtn = document.getElementById("addNoteBtn");
   const deleteAllBtn = document.getElementById("deleteAllBtn");
-  const view3dBtn = document.getElementById("view3dBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
-  if (view3dBtn) {
-    view3dBtn.onclick = () => {
-      window.location.href = "viewer.html";
-    };
-  }
 });
