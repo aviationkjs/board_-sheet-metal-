@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Huck Gun & Fastener 관계표</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 1.2rem;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+        /* 테이블 모바일 최적화: 가로 스크롤 허용 */
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px; /* 모바일에서 스크롤을 유도하기 위한 최소 너비 */
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #fcfcfc;
+        }
+        .notes {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .notes ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+        .notes li {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .notes b {
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
+        <div style="font-weight: bold;">관계표 정보</div>
+        <div style="width: 100px;"></div>
+    </header>
+
+    <div class="container">
+        <h2>Huck Gun, Nose Assembly, Fastener 관계표</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>설치 공구 (Gun)</th>
+                        <th>노즈 어셈블리 (P/N)</th>
+                        <th>패스너 종류</th>
+                        <th>패스너 직경</th>
+                        <th>주요 용도</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>202 / 2025</td><td>99-1456</td><td>Magna-Grip</td><td>3/16"</td><td>외피 패널 (Skin panel) 1, 2</td></tr>
+                    <tr><td>202 / 2025</td><td>99-1458</td><td>Magna-Grip</td><td>1/4"</td><td>날개 외피 및 패널 1</td></tr>
+                    <tr><td>202 / 2025</td><td>99-3300</td><td>Magna-Lok</td><td>3/16"</td><td>액세스 패널 블라인드 고정 1</td></tr>
+                    <tr><td>202 / 2025</td><td>99-3301</td><td>Magna-Lok</td><td>1/4"</td><td>블라인드 패스너 고정 1</td></tr>
+                    <tr><td>202 / 2025</td><td>99-1053</td><td>BOM (Blind Bolt)</td><td>3/16"</td><td>수리용 더블러 (Repair doubler) 1</td></tr>
+                    <tr><td>202 / 2025</td><td>99-830-1</td><td>BOM (Blind Bolt)</td><td>1/4"</td><td>야전 수리 (Field repair) 1</td></tr>
+                    <tr><td>2480</td><td>99-3206</td><td>Magna-Grip</td><td>3/16"</td><td>일반 구조물 2</td></tr>
+                    <tr><td>2480</td><td>99-3207</td><td>Magna-Grip</td><td>1/4"</td><td>일반 구조물 2</td></tr>
+                    <tr><td>256</td><td>99-2558</td><td>C6L Lockbolt</td><td>3/16"</td><td>일반 프레임 및 리브 2</td></tr>
+                    <tr><td>256</td><td>99-2564</td><td>C6L Lockbolt</td><td>1/4"</td><td>프레임 및 리브 (Frame / rib) 1</td></tr>
+                    <tr><td>256</td><td>99-99-245</td><td>C6L Lockbolt</td><td>5/16"</td><td>중구조물 (Heavy structure) 2</td></tr>
+                    <tr><td>256</td><td>99-100</td><td>C6L Lockbolt</td><td>3/8"</td><td>착륙 장치 구조물 2</td></tr>
+                    <tr><td>2620</td><td>99-1439</td><td>Magna-Grip</td><td>5/16"</td><td>중구조물 수리 2</td></tr>
+                    <tr><td>2620</td><td>99-1440</td><td>Magna-Grip</td><td>3/8"</td><td>날개 뿌리(Wing root) 및 벌크헤드 2</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <h2>추가 참고 사항</h2>
+        <div class="notes">
+            <ul>
+                <li><b>Magna-Grip 패스너:</b> 광범위한 Grip 범위를 가지며 진동에 강해 항공기 외피 및 날개 구조에 자주 사용됩니다.</li>
+                <li><b>C6L Lockbolt:</b> 고강도 구조물용으로 설계되었으며, F-16 판금 정비 등에서 약 70%를 차지하는 주요 부품입니다.</li>
+                <li><b>BOM (Blind Bolt):</b> 한쪽에서만 접근 가능한 곳에 사용하는 고강도 산업용 블라인드 볼트로, 주로 중구조물 수리에 사용됩니다.</li>
+                <li><b>공구 호환성:</b> 모델 256 공구는 어댑터(#593102463)를 사용하여 3/16" 및 1/4" 직경의 C6L/C120 패스너를 설치할 수도 있습니다. 모델 2580은 5/16" 및 3/8" Huck 패스너 설치에 특화되어 있습니다.</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

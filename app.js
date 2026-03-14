@@ -56,7 +56,7 @@ window.addNote = () => {
   });
 };
 
-/* 전체 삭제 */
+/* 전체 삭제 (안정화 버전) */
 window.deleteAll = async () => {
   const pw = prompt("관리자 비밀번호");
   if (pw === "1111") {
@@ -171,7 +171,13 @@ function autoResize(el) {
 document.addEventListener("DOMContentLoaded", () => {
   const addNoteBtn = document.getElementById("addNoteBtn");
   const deleteAllBtn = document.getElementById("deleteAllBtn");
+  const infoBtn = document.getElementById("infoBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
+  if (infoBtn) {
+    infoBtn.onclick = () => {
+      window.location.href = "info.html";
+    };
+  }
 });
