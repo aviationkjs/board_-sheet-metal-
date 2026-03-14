@@ -281,6 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("infoBtn");
   const logsBtn = document.getElementById("logsBtn");
   const huckViewBtn = document.getElementById("huckViewBtn");
+  const view3dBtn = document.getElementById("3dViewBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
@@ -292,6 +293,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (huckViewBtn) {
     huckViewBtn.onclick = () => {
       window.location.href = "pdf_viewer.html";
+    };
+  }
+  if (view3dBtn) {
+    view3dBtn.onclick = () => {
+      window.location.href = "3d_viewer.html";
     };
   }
   
