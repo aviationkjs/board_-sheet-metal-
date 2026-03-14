@@ -118,78 +118,52 @@ window.deleteAll = async () => {
     return;
   }
   
-  const pw = prompt("관리자 비밀번호");
-  if (pw === null) return;
-  
-  try {
-    const adminRef = ref(db, `users/admin`);
-    const snapshot = await get(adminRef);
-    
-    if (!snapshot.exists()) {
-      alert('관리자 계정이 없습니다.');
-      return;
-    }
-    
-    // 비밀번호 검증 (간단한 해시)
-    const hashedPassword = await hashPassword(pw);
-    const adminData = snapshot.val();
-    
-    if (adminData.password !== hashedPassword) {
-      alert('비밀번호가 틀렸습니다.');
-      recordLog('DELETE_ALL', { success: false, reason: 'Wrong password' });
-      return;
-    }
-    
-    if (confirm("정말로 모든 스티커를 삭제하시겠습니까?\n(고정된 스티커는 삭제되지 않습니다)")) {
-      try {
-        board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
-        
-        // 현재 데이터 조회
-        const notesSnapshot = await get(notesRef);
-        const data = notesSnapshot.val();
-        
-        if (!data) {
-          alert("삭제할 스티커가 없습니다.");
-          recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
-          location.reload();
-          return;
-        }
-        
-        // 고정되지 않은 스티커만 삭제
-        const updates = {};
-        let deleteCount = 0;
-        
-        for (const key in data) {
-          if (!data[key].pin) {
-            updates[key] = null;
-            deleteCount++;
-          }
-        }
-        
-        // 삭제할 항목이 있으면 업데이트 수행
-        if (deleteCount > 0) {
-          await update(notesRef, updates);
-          alert(`${deleteCount}개의 스티커가 삭제되었습니다.`);
-          recordLog('DELETE_ALL', { success: true, deletedCount: deleteCount });
-        } else {
-          alert("삭제할 스티커가 없습니다. (모든 스티커가 고정되어 있습니다)");
-          recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
-        }
-        
-        // 페이지 새로고침
-        setTimeout(() => {
-          location.reload();
-        }, 300);
-      } catch (error) {
-        console.error("삭제 실패:", error);
-        alert("삭제 중 오류가 발생했습니다: " + error.message);
-        recordLog('DELETE_ALL', { success: false, reason: error.message });
+  if (confirm("정말로 모든 스티커를 삭제하시겠습니까?\n(고정된 스티커는 삭제되지 않습니다)")) {
+    try {
+      board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
+      
+      // 현재 데이터 조회
+      const notesSnapshot = await get(notesRef);
+      const data = notesSnapshot.val();
+      
+      if (!data) {
+        alert("삭제할 스티커가 없습니다.");
+        recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
         location.reload();
+        return;
       }
+      
+      // 고정되지 않은 스티커만 삭제
+      const updates = {};
+      let deleteCount = 0;
+      
+      for (const key in data) {
+        if (!data[key].pin) {
+          updates[key] = null;
+          deleteCount++;
+        }
+      }
+      
+      // 삭제할 항목이 있으면 업데이트 수행
+      if (deleteCount > 0) {
+        await update(notesRef, updates);
+        alert(`${deleteCount}개의 스티커가 삭제되었습니다.`);
+        recordLog('DELETE_ALL', { success: true, deletedCount: deleteCount });
+      } else {
+        alert("삭제할 스티커가 없습니다. (모든 스티커가 고정되어 있습니다)");
+        recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
+      }
+      
+      // 페이지 새로고침
+      setTimeout(() => {
+        location.reload();
+      }, 300);
+    } catch (error) {
+      console.error("삭제 실패:", error);
+      alert("삭제 중 오류가 발생했습니다: " + error.message);
+      recordLog('DELETE_ALL', { success: false, reason: error.message });
+      location.reload();
     }
-  } catch (error) {
-    console.error('관리자 확인 오류:', error);
-    alert('오류가 발생했습니다.');
   }
 };
 
@@ -299,15 +273,6 @@ onValue(notesRef, (snap) => {
 function autoResize(el) {
   el.style.height = "auto";
   el.style.height = el.scrollHeight + "px";
-}
-
-// 간단한 해시 함수
-async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 document.addEventListener("DOMContentLoaded", () => {
