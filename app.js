@@ -23,17 +23,68 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const notesRef = ref(db, "notes");
+const usersRef = ref(db, "users");
+const logsRef = ref(db, "logs");
 
 const board = document.getElementById("board");
 const usernameDiv = document.getElementById("username");
 
 let username = localStorage.getItem("username");
+
+// 로그인 확인
 if (!username) {
-  username = prompt("이름 입력");
-  if (!username || username.trim() === "") username = "익명_" + Math.floor(Math.random() * 1000);
-  localStorage.setItem("username", username);
+  window.location.href = "auth.html";
 }
+
 usernameDiv.innerText = "👤 " + username;
+
+// 로그아웃 버튼 추가
+const logoutBtn = document.createElement("button");
+logoutBtn.textContent = "🚪 로그아웃";
+logoutBtn.style.cssText = "padding: 8px 15px; border: none; background: #e74c3c; color: white; border-radius: 20px; font-size: 14px; cursor: pointer; margin-left: 8px;";
+logoutBtn.onclick = handleLogout;
+
+const headerButtons = document.querySelector(".header-buttons");
+if (headerButtons) {
+  headerButtons.insertBefore(logoutBtn, headerButtons.firstChild);
+}
+
+/* 로그아웃 함수 */
+async function handleLogout() {
+  try {
+    // 로그아웃 로그 기록
+    const newLogRef = ref(db, `logs/${Date.now()}`);
+    await set(newLogRef, {
+      user: username,
+      action: 'LOGOUT',
+      timestamp: Date.now()
+    });
+    
+    localStorage.removeItem('username');
+    window.location.href = 'auth.html';
+  } catch (error) {
+    console.error('로그아웃 오류:', error);
+    localStorage.removeItem('username');
+    window.location.href = 'auth.html';
+  }
+}
+
+window.handleLogout = handleLogout;
+
+/* 로그 기록 함수 */
+async function recordLog(action, details = {}) {
+  try {
+    const newLogRef = ref(db, `logs/${Date.now()}`);
+    await set(newLogRef, {
+      user: username,
+      action: action,
+      details: details,
+      timestamp: Date.now()
+    });
+  } catch (error) {
+    console.error('로그 기록 오류:', error);
+  }
+}
 
 /* 이름별 고유 색상 생성 */
 function colorFromName(name) {
@@ -54,23 +105,52 @@ window.addNote = () => {
     voters: {},
     pin: false,
     createdAt: Date.now()
+  }).then((newNoteRef) => {
+    recordLog('CREATE_NOTE', { noteId: newNoteRef.key });
   });
 };
 
-/* 전체 삭제 (고정된 스티커 제외) */
+/* 전체 삭제 (고정된 스티커 제외, 관리자만 가능) */
 window.deleteAll = async () => {
+  // 관리자 확인
+  if (username !== 'admin') {
+    alert('이 작업은 관리자만 수행할 수 있습니다.');
+    return;
+  }
+  
   const pw = prompt("관리자 비밀번호");
-  if (pw === "1111") {
+  if (pw === null) return;
+  
+  try {
+    const adminRef = ref(db, `users/admin`);
+    const snapshot = await get(adminRef);
+    
+    if (!snapshot.exists()) {
+      alert('관리자 계정이 없습니다.');
+      return;
+    }
+    
+    // 비밀번호 검증 (간단한 해시)
+    const hashedPassword = await hashPassword(pw);
+    const adminData = snapshot.val();
+    
+    if (adminData.password !== hashedPassword) {
+      alert('비밀번호가 틀렸습니다.');
+      recordLog('DELETE_ALL', { success: false, reason: 'Wrong password' });
+      return;
+    }
+    
     if (confirm("정말로 모든 스티커를 삭제하시겠습니까?\n(고정된 스티커는 삭제되지 않습니다)")) {
       try {
         board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px;'>삭제 중...</div>";
         
         // 현재 데이터 조회
-        const snapshot = await get(notesRef);
-        const data = snapshot.val();
+        const notesSnapshot = await get(notesRef);
+        const data = notesSnapshot.val();
         
         if (!data) {
           alert("삭제할 스티커가 없습니다.");
+          recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
           location.reload();
           return;
         }
@@ -90,8 +170,10 @@ window.deleteAll = async () => {
         if (deleteCount > 0) {
           await update(notesRef, updates);
           alert(`${deleteCount}개의 스티커가 삭제되었습니다.`);
+          recordLog('DELETE_ALL', { success: true, deletedCount: deleteCount });
         } else {
           alert("삭제할 스티커가 없습니다. (모든 스티커가 고정되어 있습니다)");
+          recordLog('DELETE_ALL', { success: true, deletedCount: 0 });
         }
         
         // 페이지 새로고침
@@ -101,11 +183,13 @@ window.deleteAll = async () => {
       } catch (error) {
         console.error("삭제 실패:", error);
         alert("삭제 중 오류가 발생했습니다: " + error.message);
+        recordLog('DELETE_ALL', { success: false, reason: error.message });
         location.reload();
       }
     }
-  } else if (pw !== null) {
-    alert("비밀번호가 틀렸습니다.");
+  } catch (error) {
+    console.error('관리자 확인 오류:', error);
+    alert('오류가 발생했습니다.');
   }
 };
 
@@ -167,6 +251,7 @@ onValue(notesRef, (snap) => {
         update(ref(db, "notes/" + n.id), {
           text: textarea.value
         });
+        recordLog('UPDATE_NOTE', { noteId: n.id, oldText: n.text, newText: textarea.value });
       }
     };
 
@@ -181,12 +266,14 @@ onValue(notesRef, (snap) => {
         vote: (n.vote || 0) + 1,
         voters: voters
       });
+      recordLog('VOTE', { noteId: n.id });
     };
 
     note.querySelector(".pin-btn").onclick = () => {
       update(ref(db, "notes/" + n.id), {
         pin: !n.pin
       });
+      recordLog('PIN_NOTE', { noteId: n.id, pinned: !n.pin });
     };
 
     note.querySelector(".delete-btn").onclick = () => {
@@ -194,8 +281,16 @@ onValue(notesRef, (snap) => {
         alert("고정된 스티커는 삭제할 수 없습니다.\n먼저 고정을 풀어주세요.");
         return;
       }
+      
+      // 작성자 또는 관리자만 삭제 가능
+      if (n.user !== username && username !== 'admin') {
+        alert("본인이 작성한 스티커만 삭제할 수 있습니다.");
+        return;
+      }
+      
       if (confirm("이 스티커를 삭제할까요?")) {
         remove(ref(db, "notes/" + n.id));
+        recordLog('DELETE_NOTE', { noteId: n.id, author: n.user, text: n.text });
       }
     };
   });
@@ -206,16 +301,34 @@ function autoResize(el) {
   el.style.height = el.scrollHeight + "px";
 }
 
+// 간단한 해시 함수
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const addNoteBtn = document.getElementById("addNoteBtn");
   const deleteAllBtn = document.getElementById("deleteAllBtn");
   const infoBtn = document.getElementById("infoBtn");
+  const logsBtn = document.getElementById("logsBtn");
   
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
   if (infoBtn) {
     infoBtn.onclick = () => {
       window.location.href = "info.html";
+    };
+  }
+  
+  // 관리자(admin)만 로그 조회 버튼 표시
+  if (logsBtn && username === 'admin') {
+    logsBtn.style.display = 'block';
+    logsBtn.onclick = () => {
+      window.location.href = "logs.html";
     };
   }
 });

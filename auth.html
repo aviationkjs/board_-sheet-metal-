@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>성능기골 스티커 보드 - 인증</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .auth-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+        }
+        
+        .auth-container h1 {
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .auth-container p {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group input::placeholder {
+            color: #ccc;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        
+        .button-group button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        
+        .toggle-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #888;
+        }
+        
+        .toggle-link a {
+            color: #667eea;
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .toggle-link a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .success-message {
+            color: #27ae60;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        #signupForm {
+            display: none;
+        }
+        
+        .form-group.password-confirm {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- 로그인 폼 -->
+        <div id="loginForm">
+            <h1>로그인</h1>
+            <p>스티커 보드에 접속하세요</p>
+            
+            <div class="form-group">
+                <label for="loginUsername">사용자 이름</label>
+                <input type="text" id="loginUsername" placeholder="사용자 이름 입력">
+                <div class="error-message" id="loginUsernameError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="loginPassword">비밀번호</label>
+                <input type="password" id="loginPassword" placeholder="비밀번호 입력">
+                <div class="error-message" id="loginPasswordError"></div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="handleLogin()">로그인</button>
+                <button class="btn-secondary" onclick="handleReset()">초기화</button>
+            </div>
+            
+            <div class="toggle-link">
+                처음이신가요? <a onclick="toggleForm()">회원가입</a>
+            </div>
+        </div>
+        
+        <!-- 회원가입 폼 -->
+        <div id="signupForm">
+            <h1>회원가입</h1>
+            <p>새 계정을 만드세요</p>
+            
+            <div class="form-group">
+                <label for="signupUsername">사용자 이름</label>
+                <input type="text" id="signupUsername" placeholder="사용자 이름 입력">
+                <div class="error-message" id="signupUsernameError"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="signupPassword">비밀번호</label>
+                <input type="password" id="signupPassword" placeholder="비밀번호 입력">
+                <div class="error-message" id="signupPasswordError"></div>
+            </div>
+            
+            <div class="form-group password-confirm">
+                <label for="signupPasswordConfirm">비밀번호 확인</label>
+                <input type="password" id="signupPasswordConfirm" placeholder="비밀번호 다시 입력">
+                <div class="error-message" id="signupPasswordConfirmError"></div>
+            </div>
+            
+            <div class="button-group">
+                <button class="btn-primary" onclick="handleSignup()">회원가입</button>
+                <button class="btn-secondary" onclick="toggleForm()">취소</button>
+            </div>
+            
+            <div class="toggle-link">
+                이미 계정이 있으신가요? <a onclick="toggleForm()">로그인</a>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            get,
+            set
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+            authDomain: "board-sheet-metal.firebaseapp.com",
+            databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+            projectId: "board-sheet-metal",
+            storageBucket: "board-sheet-metal.firebasestorage.app",
+            messagingSenderId: "300454183349",
+            appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        // 간단한 해시 함수 (실제 운영 환경에서는 bcrypt 등 사용 권장)
+        async function hashPassword(password) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+        
+        window.toggleForm = () => {
+            const loginForm = document.getElementById('loginForm');
+            const signupForm = document.getElementById('signupForm');
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+            
+            // 폼 초기화
+            document.getElementById('loginUsername').value = '';
+            document.getElementById('loginPassword').value = '';
+            document.getElementById('signupUsername').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupPasswordConfirm').value = '';
+            clearErrors();
+        };
+        
+        function clearErrors() {
+            document.querySelectorAll('.error-message').forEach(el => {
+                el.style.display = 'none';
+                el.textContent = '';
+            });
+        }
+        
+        function showError(elementId, message) {
+            const errorEl = document.getElementById(elementId);
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+        }
+        
+        window.handleLogin = async () => {
+            clearErrors();
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!username) {
+                showError('loginUsernameError', '사용자 이름을 입력하세요');
+                return;
+            }
+            
+            if (!password) {
+                showError('loginPasswordError', '비밀번호를 입력하세요');
+                return;
+            }
+            
+            try {
+                const userRef = ref(db, `users/${username}`);
+                const snapshot = await get(userRef);
+                
+                if (!snapshot.exists()) {
+                    showError('loginUsernameError', '존재하지 않는 사용자입니다');
+                    return;
+                }
+                
+                const userData = snapshot.val();
+                const hashedPassword = await hashPassword(password);
+                
+                if (userData.password !== hashedPassword) {
+                    showError('loginPasswordError', '비밀번호가 틀렸습니다');
+                    return;
+                }
+                
+                // 로그인 성공
+                localStorage.setItem('username', username);
+                
+                // 로그인 로그 기록
+                const logsRef = ref(db, 'logs');
+                const newLogRef = ref(db, `logs/${Date.now()}`);
+                await set(newLogRef, {
+                    user: username,
+                    action: 'LOGIN',
+                    timestamp: Date.now(),
+                    success: true
+                });
+                
+                // 마지막 로그인 시간 업데이트
+                await set(ref(db, `users/${username}/lastLogin`), Date.now());
+                
+                // 메인 페이지로 이동
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('로그인 오류:', error);
+                showError('loginPasswordError', '로그인 중 오류가 발생했습니다');
+            }
+        };
+        
+        window.handleSignup = async () => {
+            clearErrors();
+            const username = document.getElementById('signupUsername').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+            
+            if (!username) {
+                showError('signupUsernameError', '사용자 이름을 입력하세요');
+                return;
+            }
+            
+            if (username.length < 2) {
+                showError('signupUsernameError', '사용자 이름은 2자 이상이어야 합니다');
+                return;
+            }
+            
+            if (!password) {
+                showError('signupPasswordError', '비밀번호를 입력하세요');
+                return;
+            }
+            
+            if (password.length < 4) {
+                showError('signupPasswordError', '비밀번호는 4자 이상이어야 합니다');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                showError('signupPasswordConfirmError', '비밀번호가 일치하지 않습니다');
+                return;
+            }
+            
+            try {
+                const userRef = ref(db, `users/${username}`);
+                const snapshot = await get(userRef);
+                
+                if (snapshot.exists()) {
+                    showError('signupUsernameError', '이미 존재하는 사용자 이름입니다');
+                    return;
+                }
+                
+                const hashedPassword = await hashPassword(password);
+                
+                // 새 사용자 생성
+                await set(userRef, {
+                    password: hashedPassword,
+                    createdAt: Date.now(),
+                    lastLogin: Date.now()
+                });
+                
+                // 회원가입 로그 기록
+                const newLogRef = ref(db, `logs/${Date.now()}`);
+                await set(newLogRef, {
+                    user: username,
+                    action: 'SIGNUP',
+                    timestamp: Date.now(),
+                    success: true
+                });
+                
+                // 로컬 저장소에 사용자명 저장
+                localStorage.setItem('username', username);
+                
+                // 메인 페이지로 이동
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('회원가입 오류:', error);
+                showError('signupPasswordError', '회원가입 중 오류가 발생했습니다');
+            }
+        };
+        
+        window.handleReset = () => {
+            if (confirm('초기화하면 저장된 사용자 정보가 삭제됩니다.\n계속하시겠습니까?')) {
+                localStorage.removeItem('username');
+                document.getElementById('loginUsername').value = '';
+                document.getElementById('loginPassword').value = '';
+                clearErrors();
+            }
+        };
+        
+        // 페이지 로드 시 이미 로그인되어 있으면 메인 페이지로 이동
+        window.addEventListener('load', () => {
+            const username = localStorage.getItem('username');
+            if (username) {
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
+</body>
+</html>

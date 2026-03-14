@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>작업 로그 - 성능기골 스티커 보드</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: #f4f7f9;
+            color: #333;
+        }
+        header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 1.2rem;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+            margin-bottom: 20px;
+        }
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr:hover {
+            background: #fcfcfc;
+        }
+        .action-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .action-create {
+            background: #d4edda;
+            color: #155724;
+        }
+        .action-update {
+            background: #cce5ff;
+            color: #004085;
+        }
+        .action-delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .action-login {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .action-logout {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+        .action-other {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .timestamp {
+            color: #888;
+            font-size: 13px;
+        }
+        .filter-group {
+            margin-bottom: 20px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .filter-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 14px;
+        }
+        .filter-group input,
+        .filter-group select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .filter-group button {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .filter-group button:hover {
+            background: #2980b9;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+        .no-data {
+            text-align: center;
+            padding: 50px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
+        <div style="font-weight: bold;">📋 작업 로그</div>
+        <div style="width: 100px;"></div>
+    </header>
+
+    <div class="container">
+        <h2>작업 로그 조회</h2>
+        
+        <div class="filter-group">
+            <label>사용자: <input type="text" id="filterUser" placeholder="사용자명"></label>
+            <label>작업: 
+                <select id="filterAction">
+                    <option value="">전체</option>
+                    <option value="LOGIN">로그인</option>
+                    <option value="LOGOUT">로그아웃</option>
+                    <option value="CREATE_NOTE">스티커 생성</option>
+                    <option value="UPDATE_NOTE">스티커 수정</option>
+                    <option value="DELETE_NOTE">스티커 삭제</option>
+                    <option value="DELETE_ALL">전체 삭제</option>
+                    <option value="VOTE">투표</option>
+                    <option value="PIN_NOTE">고정</option>
+                </select>
+            </label>
+            <button onclick="applyFilters()">필터 적용</button>
+            <button onclick="clearFilters()">초기화</button>
+        </div>
+        
+        <div class="table-wrapper">
+            <div id="logsContainer" class="loading">로그를 불러오는 중...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            get,
+            query,
+            orderByChild
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+            authDomain: "board-sheet-metal.firebaseapp.com",
+            databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+            projectId: "board-sheet-metal",
+            storageBucket: "board-sheet-metal.firebasestorage.app",
+            messagingSenderId: "300454183349",
+            appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        
+        let allLogs = [];
+        
+        function getActionBadgeClass(action) {
+            if (action.includes('CREATE')) return 'action-create';
+            if (action.includes('UPDATE')) return 'action-update';
+            if (action.includes('DELETE')) return 'action-delete';
+            if (action === 'LOGIN') return 'action-login';
+            if (action === 'LOGOUT') return 'action-logout';
+            return 'action-other';
+        }
+        
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString('ko-KR');
+        }
+        
+        function renderLogs(logs) {
+            const container = document.getElementById('logsContainer');
+            
+            if (logs.length === 0) {
+                container.innerHTML = '<div class="no-data">로그가 없습니다.</div>';
+                return;
+            }
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>시간</th>
+                            <th>사용자</th>
+                            <th>작업</th>
+                            <th>상세 정보</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            logs.forEach(log => {
+                const details = log.details ? JSON.stringify(log.details) : '-';
+                html += `
+                    <tr>
+                        <td><span class="timestamp">${formatDate(log.timestamp)}</span></td>
+                        <td><strong>${log.user}</strong></td>
+                        <td><span class="action-badge ${getActionBadgeClass(log.action)}">${log.action}</span></td>
+                        <td style="font-size: 12px; color: #666;">${details}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        async function loadLogs() {
+            try {
+                const logsRef = ref(db, 'logs');
+                const snapshot = await get(logsRef);
+                
+                if (!snapshot.exists()) {
+                    renderLogs([]);
+                    return;
+                }
+                
+                const data = snapshot.val();
+                allLogs = [];
+                
+                for (const key in data) {
+                    allLogs.push({
+                        id: key,
+                        ...data[key]
+                    });
+                }
+                
+                // 시간순으로 정렬 (최신순)
+                allLogs.sort((a, b) => b.timestamp - a.timestamp);
+                
+                renderLogs(allLogs);
+            } catch (error) {
+                console.error('로그 로드 오류:', error);
+                document.getElementById('logsContainer').innerHTML = '<div class="no-data">로그를 불러올 수 없습니다.</div>';
+            }
+        }
+        
+        window.applyFilters = () => {
+            const filterUser = document.getElementById('filterUser').value.toLowerCase();
+            const filterAction = document.getElementById('filterAction').value;
+            
+            let filtered = allLogs;
+            
+            if (filterUser) {
+                filtered = filtered.filter(log => log.user.toLowerCase().includes(filterUser));
+            }
+            
+            if (filterAction) {
+                filtered = filtered.filter(log => log.action === filterAction);
+            }
+            
+            renderLogs(filtered);
+        };
+        
+        window.clearFilters = () => {
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterAction').value = '';
+            renderLogs(allLogs);
+        };
+        
+        // 페이지 로드 시 로그 로드
+        window.addEventListener('load', loadLogs);
+    </script>
+</body>
+</html>
