@@ -124,6 +124,17 @@
             font-size: 13px;
             margin-bottom: 20px;
         }
+        
+        .user-count {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -135,6 +146,8 @@
             사용자 이름을 입력하면 바로 접속됩니다.<br>
             처음이면 새로운 사용자로 생성됩니다.
         </div>
+        
+        <div class="user-count" id="userCountDisplay"></div>
         
         <div class="form-group">
             <label for="username">사용자 이름</label>
@@ -154,7 +167,8 @@
             getDatabase,
             ref,
             get,
-            set
+            set,
+            remove
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
         
         const firebaseConfig = {
@@ -170,6 +184,9 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         
+        const MAX_USERS = 31;
+        const RESET_PASSWORD = "5678";
+        
         function clearErrors() {
             document.querySelectorAll('.error-message').forEach(el => {
                 el.style.display = 'none';
@@ -181,6 +198,27 @@
             const errorEl = document.getElementById(elementId);
             errorEl.textContent = message;
             errorEl.style.display = 'block';
+        }
+        
+        // 사용자 수 표시 업데이트
+        async function updateUserCount() {
+            try {
+                const usersRef = ref(db, 'users');
+                const snapshot = await get(usersRef);
+                const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+                
+                const userCountDisplay = document.getElementById('userCountDisplay');
+                userCountDisplay.textContent = `등록된 사용자: ${userCount} / ${MAX_USERS}명`;
+                
+                if (userCount >= MAX_USERS) {
+                    userCountDisplay.style.background = '#f8d7da';
+                    userCountDisplay.style.borderColor = '#f5c6cb';
+                    userCountDisplay.style.color = '#721c24';
+                    userCountDisplay.innerHTML += '<br><strong>⚠️ 사용자 수가 가득 찼습니다. 초기화 후 새 사용자를 추가해주세요.</strong>';
+                }
+            } catch (error) {
+                console.error('사용자 수 조회 오류:', error);
+            }
         }
         
         window.handleLogin = async () => {
@@ -198,11 +236,21 @@
             }
             
             try {
+                const usersRef = ref(db, 'users');
+                const snapshot = await get(usersRef);
+                const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
+                
                 const userRef = ref(db, `users/${username}`);
-                const snapshot = await get(userRef);
+                const userSnapshot = await get(userRef);
+                
+                // 새로운 사용자 추가 시 제한 확인
+                if (!userSnapshot.exists() && userCount >= MAX_USERS) {
+                    showError('usernameError', `사용자 수 제한(${MAX_USERS}명)에 도달했습니다. 초기화 후 시도해주세요.`);
+                    return;
+                }
                 
                 // 사용자가 없으면 새로 생성
-                if (!snapshot.exists()) {
+                if (!userSnapshot.exists()) {
                     await set(userRef, {
                         createdAt: Date.now(),
                         lastLogin: Date.now()
@@ -241,12 +289,40 @@
             }
         };
         
-        window.handleReset = () => {
-            if (confirm('초기화하면 저장된 사용자 정보가 삭제됩니다.\n계속하시겠습니까?')) {
-                localStorage.removeItem('username');
-                document.getElementById('username').value = '';
-                clearErrors();
-                document.getElementById('username').focus();
+        window.handleReset = async () => {
+            const password = prompt("초기화 비밀번호를 입력하세요:");
+            if (password === null) return;
+            
+            if (password !== RESET_PASSWORD) {
+                alert('비밀번호가 틀렸습니다.');
+                return;
+            }
+            
+            if (confirm('정말로 모든 사용자 정보를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다!')) {
+                try {
+                    // 모든 사용자 정보 삭제
+                    const usersRef = ref(db, 'users');
+                    await remove(usersRef);
+                    
+                    // 초기화 로그 기록
+                    const newLogRef = ref(db, `logs/${Date.now()}`);
+                    await set(newLogRef, {
+                        user: 'SYSTEM',
+                        action: 'SYSTEM_RESET',
+                        timestamp: Date.now(),
+                        details: '모든 사용자 정보 초기화됨'
+                    });
+                    
+                    alert('모든 사용자 정보가 초기화되었습니다.');
+                    localStorage.removeItem('username');
+                    document.getElementById('username').value = '';
+                    clearErrors();
+                    updateUserCount();
+                    document.getElementById('username').focus();
+                } catch (error) {
+                    console.error('초기화 오류:', error);
+                    alert('초기화 중 오류가 발생했습니다.');
+                }
             }
         };
         
@@ -258,12 +334,15 @@
         });
         
         // 페이지 로드 시 처리
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             const username = localStorage.getItem('username');
             
             if (username) {
                 // 이미 로그인되어 있으면 메인 페이지로 이동
                 window.location.href = 'index.html';
+            } else {
+                // 사용자 수 표시 업데이트
+                await updateUserCount();
             }
         });
     </script>
