@@ -252,30 +252,19 @@
                 // Create new user if not exists
                 if (!userSnapshot.exists()) {
                     await set(userRef, {
-                        createdAt: Date.now(),
-                        lastLogin: Date.now()
+                        createdAt: Date.now()
                     });
-                    
-                    // Log signup
-                    const logRef = ref(db, 'logs/' + Date.now());
-                    await set(logRef, {
-                        user: username,
-                        action: 'SIGNUP',
-                        timestamp: Date.now(),
-                        success: true
-                    });
-                } else {
-                    // Update last login
-                    await set(ref(db, 'users/' + username + '/lastLogin'), Date.now());
                 }
                 
-                // Log login
-                const logRef = ref(db, 'logs/' + (Date.now() + 1));
-                await set(logRef, {
+                // Update last login
+                await set(ref(db, 'users/' + username + '/lastLogin'), Date.now());
+                
+                // Log login with unique timestamp to avoid collisions
+                const uniqueTimestamp = Date.now() + Math.floor(Math.random() * 100000);
+                await set(ref(db, 'logs/' + uniqueTimestamp), {
                     user: username,
                     action: 'LOGIN',
-                    timestamp: Date.now(),
-                    success: true
+                    timestamp: Date.now()
                 });
                 
                 // Save to local storage
@@ -285,7 +274,10 @@
                 window.location.href = 'index.html';
             } catch (error) {
                 console.error('Login error:', error);
-                showError('usernameError', 'Login failed. Please try again.');
+                const errorMsg = error.code === 'PERMISSION_DENIED' 
+                    ? 'Database access denied. Please contact admin.'
+                    : 'Login failed: ' + (error.message || 'Unknown error');
+                showError('usernameError', errorMsg);
             }
         };
         
