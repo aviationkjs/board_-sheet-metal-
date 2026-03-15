@@ -208,16 +208,16 @@
                 const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
                 
                 const userCountDisplay = document.getElementById('userCountDisplay');
-                userCountDisplay.textContent = `등록된 사용자: ${userCount} / ${MAX_USERS}명`;
+                userCountDisplay.textContent = 'Registered users: ' + userCount + ' / ' + MAX_USERS;
                 
                 if (userCount >= MAX_USERS) {
                     userCountDisplay.style.background = '#f8d7da';
                     userCountDisplay.style.borderColor = '#f5c6cb';
                     userCountDisplay.style.color = '#721c24';
-                    userCountDisplay.innerHTML += '<br><strong>⚠️ 사용자 수가 가득 찼습니다. 초기화 후 새 사용자를 추가해주세요.</strong>';
+                    userCountDisplay.innerHTML += '<br><strong>User limit reached. Please reset to add new users.</strong>';
                 }
             } catch (error) {
-                console.error('사용자 수 조회 오류:', error);
+                console.error('User count error:', error);
             }
         }
         
@@ -226,12 +226,12 @@
             const username = document.getElementById('username').value.trim();
             
             if (!username) {
-                showError('usernameError', '사용자 이름을 입력하세요');
+                showError('usernameError', 'Please enter a username');
                 return;
             }
             
             if (username.length < 2) {
-                showError('usernameError', '사용자 이름은 2자 이상이어야 합니다');
+                showError('usernameError', 'Username must be at least 2 characters');
                 return;
             }
             
@@ -240,108 +240,117 @@
                 const snapshot = await get(usersRef);
                 const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
                 
-                const userRef = ref(db, `users/${username}`);
+                const userRef = ref(db, 'users/' + username);
                 const userSnapshot = await get(userRef);
                 
-                // 새로운 사용자 추가 시 제한 확인
+                // Check user limit for new users
                 if (!userSnapshot.exists() && userCount >= MAX_USERS) {
-                    showError('usernameError', `사용자 수 제한(${MAX_USERS}명)에 도달했습니다. 초기화 후 시도해주세요.`);
+                    showError('usernameError', 'User limit (' + MAX_USERS + ') reached. Please reset first.');
                     return;
                 }
                 
-                // 사용자가 없으면 새로 생성
+                // Create new user if not exists
                 if (!userSnapshot.exists()) {
                     await set(userRef, {
                         createdAt: Date.now(),
                         lastLogin: Date.now()
                     });
                     
-                    // 회원가입 로그 기록
-                    const newLogRef = ref(db, `logs/${Date.now()}`);
-                    await set(newLogRef, {
+                    // Log signup
+                    const logRef = ref(db, 'logs/' + Date.now());
+                    await set(logRef, {
                         user: username,
                         action: 'SIGNUP',
                         timestamp: Date.now(),
                         success: true
                     });
                 } else {
-                    // 마지막 로그인 시간 업데이트
-                    await set(ref(db, `users/${username}/lastLogin`), Date.now());
+                    // Update last login
+                    await set(ref(db, 'users/' + username + '/lastLogin'), Date.now());
                 }
                 
-                // 로그인 로그 기록
-                const newLogRef = ref(db, `logs/${Date.now()}`);
-                await set(newLogRef, {
+                // Log login
+                const logRef = ref(db, 'logs/' + (Date.now() + 1));
+                await set(logRef, {
                     user: username,
                     action: 'LOGIN',
                     timestamp: Date.now(),
                     success: true
                 });
                 
-                // 로컬 저장소에 사용자명 저장
+                // Save to local storage
                 localStorage.setItem('username', username);
                 
-                // 메인 페이지로 이동
+                // Redirect to main page
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('접속 오류:', error);
-                showError('usernameError', '접속 중 오류가 발생했습니다');
+                console.error('Login error:', error);
+                showError('usernameError', 'Login failed. Please try again.');
             }
         };
         
         window.handleReset = async () => {
-            const password = prompt("초기화 비밀번호를 입력하세요:");
+            const password = prompt("Enter reset password:");
             if (password === null) return;
             
             if (password !== RESET_PASSWORD) {
-                alert('비밀번호가 틀렸습니다.');
+                alert('Incorrect password.');
                 return;
             }
             
-            if (confirm('정말로 모든 사용자 정보를 초기화하시겠습니까?\n이 작업은 되돌릴 수 없습니다!')) {
+            if (confirm('Reset all user data? This cannot be undone!')) {
                 try {
-                    // 모든 사용자 정보 삭제
+                    // Delete all users
                     const usersRef = ref(db, 'users');
-                    await remove(usersRef);
+                    try {
+                        await remove(usersRef);
+                    } catch (e) {
+                        console.log('User deletion (may already be empty):', e.message);
+                    }
                     
-                    // 초기화 로그 기록
-                    const newLogRef = ref(db, `logs/${Date.now()}`);
-                    await set(newLogRef, {
+                    // Record reset log
+                    const logTimestamp = Date.now() + Math.floor(Math.random() * 1000);
+                    const logRef = ref(db, 'logs/' + logTimestamp);
+                    await set(logRef, {
                         user: 'SYSTEM',
                         action: 'SYSTEM_RESET',
                         timestamp: Date.now(),
-                        details: '모든 사용자 정보 초기화됨'
+                        details: 'All user data reset'
                     });
                     
-                    alert('모든 사용자 정보가 초기화되었습니다.');
+                    // Clear local state
                     localStorage.removeItem('username');
                     document.getElementById('username').value = '';
                     clearErrors();
-                    updateUserCount();
+                    
+                    // Update UI
+                    await updateUserCount();
                     document.getElementById('username').focus();
+                    
+                    alert('All user data has been reset.');
                 } catch (error) {
-                    console.error('초기화 오류:', error);
-                    alert('초기화 중 오류가 발생했습니다.');
+                    console.error('Reset error:', error);
+                    alert('Reset failed: ' + error.message);
                 }
             }
         };
         
-        // Enter 키 처리
+        // Enter key handling
         document.getElementById('username').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 window.handleLogin();
             }
         });
         
-        // 페이지 로드 시 처리
+        // Page load
         window.addEventListener('load', async () => {
             const username = localStorage.getItem('username');
             
             if (username) {
-                // 이미 로그인되어 있으면 메인 페이지로 이동
+                // Already logged in, redirect to main
                 window.location.href = 'index.html';
             } else {
-                // 사용자 수 표시 업데이트
+                // Update user count display
                 await updateUserCount();
             }
         });
