@@ -220,14 +220,22 @@ onValue(notesRef, (snap) => {
     const textarea = note.querySelector("textarea");
     autoResize(textarea);
 
-    textarea.onblur = () => {
-      if (n.text !== textarea.value) {
-        update(ref(db, "notes/" + n.id), {
-          text: textarea.value
-        });
-        recordLog('UPDATE_NOTE', { noteId: n.id, oldText: n.text, newText: textarea.value });
-      }
-    };
+    // 작성자만 수정 가능
+    if (n.user !== username) {
+      textarea.disabled = true;
+      textarea.style.opacity = '0.6';
+      textarea.style.cursor = 'not-allowed';
+      textarea.title = '작성자만 수정할 수 있습니다.';
+    } else {
+      textarea.onblur = () => {
+        if (n.text !== textarea.value) {
+          update(ref(db, "notes/" + n.id), {
+            text: textarea.value
+          });
+          recordLog('UPDATE_NOTE', { noteId: n.id, oldText: n.text, newText: textarea.value });
+        }
+      };
+    }
 
     note.querySelector(".vote-badge").onclick = () => {
       if (n.voters && n.voters[username]) {
