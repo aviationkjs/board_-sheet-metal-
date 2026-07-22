@@ -101,6 +101,16 @@
     transition:transform .12s}
   .btn-add:hover{transform:translateY(-1px)}
 
+  .month-input{background:var(--panel);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:8px;cursor:pointer}
+  .month-input:focus{outline:none;border-color:var(--amber)}
+  .btn-clear-month{background:none;border:1px solid var(--line);color:var(--muted);
+    font-family:var(--mono);font-size:12px;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .btn-clear-month:hover{color:var(--text);border-color:var(--line-2)}
+  .btn-del-month{background:var(--danger-dim);color:var(--danger);border:1px solid transparent;
+    font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer}
+  .btn-del-month:hover{border-color:var(--danger)}
+
   .table-wrap{background:var(--panel);border:1px solid var(--line);
     border-radius:12px;overflow:hidden}
   table{width:100%;border-collapse:collapse;font-size:14px}
@@ -219,6 +229,9 @@
       <button class="back" onclick="showHome()">← 홈</button>
       <h2>자재 소모 기록</h2>
       <span class="count" id="count">0건</span>
+      <input type="month" class="month-input" id="monthFilter" title="월별 보기">
+      <button class="btn-clear-month" id="clearMonthBtn">전체</button>
+      <button class="btn-del-month" id="deleteMonthBtn">🗑 이 달 전체 삭제</button>
       <button class="btn-add" onclick="openModal()">＋ 새 기록</button>
     </div>
 
@@ -292,18 +305,33 @@
   </div>
 </div>
 
-<script>
-/* ---------- 저장소 (실제 사이트에선 localStorage, 미리보기에선 메모리) ---------- */
-const KEY = "material_consumption_records";
-let memoryStore = null;
-function loadRecords(){
-  try{ const raw = localStorage.getItem(KEY); return raw ? JSON.parse(raw) : []; }
-  catch(e){ return memoryStore || []; }
-}
-function saveRecords(list){
-  try{ localStorage.setItem(KEY, JSON.stringify(list)); }
-  catch(e){ memoryStore = list; }
-}
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  onValue,
+  update,
+  remove
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+  authDomain: "board-sheet-metal.firebaseapp.com",
+  databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+  projectId: "board-sheet-metal",
+  storageBucket: "board-sheet-metal.firebasestorage.app",
+  messagingSenderId: "300454183349",
+  appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const materialRef = ref(db, "materialConsumption");
+
+let allRecords = [];
+let currentMonth = "";
 
 /* ---------- 작업자 이름: 로그인 정보 자동 불러오기 ---------- */
 function getWorker(){
@@ -329,18 +357,17 @@ function tickClock(){
 setInterval(tickClock,1000); tickClock();
 
 /* ---------- 뷰 전환 ---------- */
-function showTable(){
+window.showTable = function(){
   document.getElementById("homeView").classList.remove("active");
   document.getElementById("tableView").classList.add("active");
-  render();
-}
-function showHome(){
+};
+window.showHome = function(){
   document.getElementById("tableView").classList.remove("active");
   document.getElementById("homeView").classList.add("active");
-}
+};
 
 /* ---------- 모달 ---------- */
-function openModal(){
+window.openModal = function(){
   document.getElementById("fDate").value = todayStr();
   document.getElementById("fWorker").value = getWorker();
   document.getElementById("fMaterial").value = "";
@@ -348,47 +375,73 @@ function openModal(){
   document.getElementById("fUnit").value = "";
   document.getElementById("fNote").value = "";
   document.getElementById("overlay").classList.add("open");
-}
-function closeModal(){ document.getElementById("overlay").classList.remove("open"); }
+};
+window.closeModal = function(){ document.getElementById("overlay").classList.remove("open"); };
 document.getElementById("overlay").addEventListener("click", e=>{
-  if(e.target.id==="overlay") closeModal();
+  if(e.target.id==="overlay") window.closeModal();
 });
 
 /* ---------- 저장 ---------- */
-function saveRecord(){
+window.saveRecord = function(){
   const material = document.getElementById("fMaterial").value;
   const qty = document.getElementById("fQty").value;
   if(!material){ alert("자재 이름을 선택하세요."); return; }
   if(!qty || qty < 1){ alert("소모 수량을 올바르게 입력하세요."); return; }
 
-  const list = loadRecords();
-  list.unshift({
-    id: Date.now(),
-    date: todayStr(),
+  const date = todayStr();
+  push(materialRef, {
+    date,
+    month: date.slice(0,7),
     worker: getWorker(),
     material,
     qty: Number(qty),
     unit: document.getElementById("fUnit").value.trim(),
-    note: document.getElementById("fNote").value.trim()
+    note: document.getElementById("fNote").value.trim(),
+    createdAt: Date.now()
   });
-  saveRecords(list);
-  closeModal();
+  window.closeModal();
+};
+
+/* ---------- 기록 삭제 ---------- */
+window.deleteRecord = function(id){
+  if(!confirm("이 기록을 삭제할까요?")) return;
+  remove(ref(db, "materialConsumption/" + id));
+};
+
+/* ---------- 월별 전체 삭제 ---------- */
+function deleteMonth(){
+  if(!currentMonth){ alert("삭제할 월을 먼저 선택하세요."); return; }
+  const targets = allRecords.filter(r => r.month === currentMonth);
+  if(!targets.length){ alert(currentMonth + "에 해당하는 기록이 없습니다."); return; }
+  if(!confirm(`${currentMonth} 기록 ${targets.length}건을 정말 삭제하시겠습니까?`)) return;
+
+  const updates = {};
+  targets.forEach(r => { updates[r.id] = null; });
+  update(materialRef, updates);
+}
+
+/* ---------- 월 필터 ---------- */
+function applyMonthFilter(value){
+  currentMonth = value;
   render();
 }
 
-/* ---------- 삭제 ---------- */
-function deleteRecord(id){
-  if(!confirm("이 기록을 삭제할까요?")) return;
-  saveRecords(loadRecords().filter(r => r.id !== id));
-  render();
-}
+document.getElementById("monthFilter").addEventListener("change", e => applyMonthFilter(e.target.value));
+document.getElementById("clearMonthBtn").addEventListener("click", () => {
+  document.getElementById("monthFilter").value = "";
+  applyMonthFilter("");
+});
+document.getElementById("deleteMonthBtn").addEventListener("click", deleteMonth);
 
 /* ---------- 그리기 ---------- */
 function esc(s){ return String(s).replace(/[&<>"]/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 function render(){
-  const list = loadRecords();
+  const list = currentMonth
+    ? allRecords.filter(r => r.month === currentMonth)
+    : allRecords;
+
   const tbody = document.getElementById("tbody");
   const empty = document.getElementById("empty");
   document.getElementById("count").textContent = list.length + "건";
@@ -405,10 +458,22 @@ function render(){
       <td class="c-qty" data-label="수량"><b>${esc(r.qty)}</b> ${esc(r.unit||"")}</td>
       <td class="c-note" data-label="비고">${esc(r.note||"—")}</td>
       <td class="c-action" data-label="작업">
-        <button class="del" onclick="deleteRecord(${r.id})" title="삭제">🗑</button>
+        <button class="del" onclick="deleteRecord('${r.id}')" title="삭제">🗑</button>
       </td>
     </tr>`).join("");
 }
+
+onValue(materialRef, (snap) => {
+  const data = snap.val();
+  allRecords = [];
+  if(data){
+    for(const key in data){
+      allRecords.push({ id: key, ...data[key] });
+    }
+    allRecords.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+  }
+  render();
+});
 
 document.getElementById("sbUser").textContent = getWorker();
 </script>
