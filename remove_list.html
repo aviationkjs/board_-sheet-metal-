@@ -111,6 +111,14 @@
     font-size:13px;font-weight:600;padding:8px 14px;border-radius:8px;cursor:pointer}
   .btn-del-month:hover{border-color:var(--danger)}
 
+  .summary-row{display:none;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px}
+  .summary-row.show{display:flex}
+  .summary-label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    color:var(--muted);text-transform:uppercase;margin-right:2px}
+  .summary-chip{background:var(--panel);border:1px solid var(--line);color:var(--text);
+    font-size:13px;padding:6px 12px;border-radius:20px}
+  .summary-chip b{color:var(--amber);font-family:var(--mono);margin-left:5px}
+
   .table-wrap{background:var(--panel);border:1px solid var(--line);
     border-radius:12px;overflow:hidden}
   table{width:100%;border-collapse:collapse;font-size:14px}
@@ -234,6 +242,8 @@
       <button class="btn-del-month" id="deleteMonthBtn">🗑 이 달 전체 삭제</button>
       <button class="btn-add" onclick="openModal()">＋ 새 기록</button>
     </div>
+
+    <div class="summary-row" id="summaryRow"></div>
 
     <div class="table-wrap">
       <table>
@@ -437,6 +447,25 @@ document.getElementById("deleteMonthBtn").addEventListener("click", deleteMonth)
 function esc(s){ return String(s).replace(/[&<>"]/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
+function renderSummary(list){
+  const row = document.getElementById("summaryRow");
+  if(!currentMonth || !list.length){
+    row.classList.remove("show");
+    row.innerHTML = "";
+    return;
+  }
+
+  const totals = new Map();
+  list.forEach(r => {
+    totals.set(r.worker, (totals.get(r.worker)||0) + (Number(r.qty)||0));
+  });
+  const sorted = [...totals.entries()].sort((a,b) => b[1]-a[1]);
+
+  row.innerHTML = `<span class="summary-label">작업자별 합산</span>` +
+    sorted.map(([worker,qty]) => `<span class="summary-chip">${esc(worker)}<b>${qty}</b></span>`).join("");
+  row.classList.add("show");
+}
+
 function render(){
   const list = currentMonth
     ? allRecords.filter(r => r.month === currentMonth)
@@ -446,6 +475,7 @@ function render(){
   const empty = document.getElementById("empty");
   document.getElementById("count").textContent = list.length + "건";
   document.getElementById("sbUser").textContent = getWorker();
+  renderSummary(list);
 
   if(!list.length){ tbody.innerHTML=""; empty.style.display="block"; return; }
   empty.style.display="none";
