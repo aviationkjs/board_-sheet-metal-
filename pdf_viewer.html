@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HUCK Operator Playbook - PDF 뷰어</title>
+    <title>FT-200 PowerPak Field Guide - PDF 뷰어</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
         * {
@@ -154,7 +154,7 @@
 <body>
     <header>
         <a href="index.html" class="back-btn">🏠 보드로 돌아가기</a>
-        <div class="title">📖 HUCK Operator Playbook</div>
+        <div class="title">📖 FT-200 PowerPak Field Guide</div>
         <div class="controls">
             <button id="prevBtn" onclick="previousPage()">⬅ 이전</button>
             <div class="page-input-group">
@@ -194,7 +194,7 @@
         // PDF 로드
         async function loadPDF() {
             try {
-                const pdfUrl = 'HUCK_Operator_Playbook.pdf';
+                const pdfUrl = 'FT-200_PowerPak_Field_Guide.pdf';
                 pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
                 totalPages = pdfDoc.numPages;
                 pageInput.max = totalPages;
