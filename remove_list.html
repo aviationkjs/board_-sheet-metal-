@@ -201,7 +201,8 @@
 
   <!-- ===== 홈 뷰 ===== -->
   <section class="view active" id="homeView">
-    <div class="eyebrow">Material Consumption · REMOVE LIST</div>
+    <button class="back" onclick="location.href='index.html'">← 스티커 보드로</button>
+    <div class="eyebrow" style="margin-top:18px">Material Consumption · REMOVE LIST</div>
     <h1 class="hero-title">자재 소모를<br><span>기록하고 관리</span>합니다</h1>
     <p class="hero-sub">현장에서 소모한 자재를 날짜·작업자·수량과 함께 남겨보세요.
       기록은 자동으로 저장되고, 언제든 다시 확인하거나 삭제할 수 있습니다.</p>
@@ -238,12 +239,16 @@
       <h2>자재 소모 기록</h2>
       <span class="count" id="count">0건</span>
       <input type="month" class="month-input" id="monthFilter" title="월별 보기">
+      <select class="month-input" id="workerFilter" title="작업자 보기">
+        <option value="">전체 작업자</option>
+      </select>
       <button class="btn-clear-month" id="clearMonthBtn">전체</button>
       <button class="btn-del-month" id="deleteMonthBtn">🗑 이 달 전체 삭제</button>
       <button class="btn-add" onclick="openModal()">＋ 새 기록</button>
     </div>
 
-    <div class="summary-row" id="summaryRow"></div>
+    <div class="summary-row" id="workerSummaryRow"></div>
+    <div class="summary-row" id="materialSummaryRow"></div>
 
     <div class="table-wrap">
       <table>
@@ -342,6 +347,7 @@ const materialRef = ref(db, "materialConsumption");
 
 let allRecords = [];
 let currentMonth = "";
+let currentWorker = "";
 
 /* ---------- 작업자 이름: 로그인 정보 자동 불러오기 ---------- */
 function getWorker(){
@@ -430,16 +436,30 @@ function deleteMonth(){
   update(materialRef, updates);
 }
 
-/* ---------- 월 필터 ---------- */
-function applyMonthFilter(value){
-  currentMonth = value;
-  render();
+/* ---------- 월 / 작업자 필터 ---------- */
+function refreshWorkerOptions(){
+  const select = document.getElementById("workerFilter");
+  const workers = [...new Set(allRecords.map(r => r.worker))].sort((a,b) => a.localeCompare(b, "ko"));
+  const prev = select.value;
+  select.innerHTML = `<option value="">전체 작업자</option>` +
+    workers.map(w => `<option value="${esc(w)}">${esc(w)}</option>`).join("");
+  select.value = workers.includes(prev) ? prev : "";
 }
 
-document.getElementById("monthFilter").addEventListener("change", e => applyMonthFilter(e.target.value));
+document.getElementById("monthFilter").addEventListener("change", e => {
+  currentMonth = e.target.value;
+  render();
+});
+document.getElementById("workerFilter").addEventListener("change", e => {
+  currentWorker = e.target.value;
+  render();
+});
 document.getElementById("clearMonthBtn").addEventListener("click", () => {
   document.getElementById("monthFilter").value = "";
-  applyMonthFilter("");
+  document.getElementById("workerFilter").value = "";
+  currentMonth = "";
+  currentWorker = "";
+  render();
 });
 document.getElementById("deleteMonthBtn").addEventListener("click", deleteMonth);
 
@@ -447,8 +467,8 @@ document.getElementById("deleteMonthBtn").addEventListener("click", deleteMonth)
 function esc(s){ return String(s).replace(/[&<>"]/g,
   c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-function renderSummary(list){
-  const row = document.getElementById("summaryRow");
+function renderSummaryRow(elId, label, list, keyFn){
+  const row = document.getElementById(elId);
   if(!currentMonth || !list.length){
     row.classList.remove("show");
     row.innerHTML = "";
@@ -457,25 +477,30 @@ function renderSummary(list){
 
   const totals = new Map();
   list.forEach(r => {
-    totals.set(r.worker, (totals.get(r.worker)||0) + (Number(r.qty)||0));
+    const key = keyFn(r);
+    totals.set(key, (totals.get(key)||0) + (Number(r.qty)||0));
   });
   const sorted = [...totals.entries()].sort((a,b) => b[1]-a[1]);
 
-  row.innerHTML = `<span class="summary-label">작업자별 합산</span>` +
-    sorted.map(([worker,qty]) => `<span class="summary-chip">${esc(worker)}<b>${qty}</b></span>`).join("");
+  row.innerHTML = `<span class="summary-label">${label}</span>` +
+    sorted.map(([key,qty]) => `<span class="summary-chip">${esc(key)}<b>${qty}</b></span>`).join("");
   row.classList.add("show");
 }
 
 function render(){
-  const list = currentMonth
+  let list = currentMonth
     ? allRecords.filter(r => r.month === currentMonth)
     : allRecords;
+  if(currentWorker){
+    list = list.filter(r => r.worker === currentWorker);
+  }
 
   const tbody = document.getElementById("tbody");
   const empty = document.getElementById("empty");
   document.getElementById("count").textContent = list.length + "건";
   document.getElementById("sbUser").textContent = getWorker();
-  renderSummary(list);
+  renderSummaryRow("workerSummaryRow", "작업자별 합산", list, r => r.worker);
+  renderSummaryRow("materialSummaryRow", "항목별 합산", list, r => r.material);
 
   if(!list.length){ tbody.innerHTML=""; empty.style.display="block"; return; }
   empty.style.display="none";
@@ -502,6 +527,7 @@ onValue(materialRef, (snap) => {
     }
     allRecords.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
   }
+  refreshWorkerOptions();
   render();
 });
 
