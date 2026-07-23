@@ -25,6 +25,7 @@ const db = getDatabase(app);
 const notesRef = ref(db, "notes");
 const usersRef = ref(db, "users");
 const logsRef = ref(db, "logs");
+const dutyRef = ref(db, "duty");
 
 const board = document.getElementById("board");
 const usernameDiv = document.getElementById("username");
@@ -37,17 +38,6 @@ if (!username) {
 }
 
 usernameDiv.innerText = "👤 " + username;
-
-// 로그아웃 버튼 추가
-const logoutBtn = document.createElement("button");
-logoutBtn.textContent = "🚪 로그아웃";
-logoutBtn.style.cssText = "padding: 8px 15px; border: none; background: #e74c3c; color: white; border-radius: 20px; font-size: 14px; cursor: pointer; margin-left: 8px;";
-logoutBtn.onclick = handleLogout;
-
-const headerButtons = document.querySelector(".header-buttons");
-if (headerButtons) {
-  headerButtons.insertBefore(logoutBtn, headerButtons.firstChild);
-}
 
 /* 로그아웃 함수 */
 async function handleLogout() {
@@ -289,9 +279,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const infoBtn = document.getElementById("infoBtn");
   const logsBtn = document.getElementById("logsBtn");
   const huckViewBtn = document.getElementById("huckViewBtn");
-  
+  const dutyViewBtn = document.getElementById("dutyViewBtn");
+  const logoutBtnEl = document.getElementById("logoutBtn");
+
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
   if (deleteAllBtn) deleteAllBtn.onclick = window.deleteAll;
+  if (logoutBtnEl) logoutBtnEl.onclick = handleLogout;
   if (infoBtn) {
     infoBtn.onclick = () => {
       window.location.href = "info.html";
@@ -302,7 +295,12 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "pdf_viewer.html";
     };
   }
-  
+  if (dutyViewBtn) {
+    dutyViewBtn.onclick = () => {
+      window.location.href = "duty_roster.html";
+    };
+  }
+
   // 관리자(admin)만 로그 조회 버튼 표시
   if (logsBtn && username === 'admin') {
     logsBtn.style.display = 'block';
@@ -310,4 +308,40 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "logs.html";
     };
   }
+
+  // 헤더 드롭다운 메뉴 토글
+  const menus = [
+    { btn: "stickerMenuBtn", menu: "stickerMenu" },
+    { btn: "dutyMenuBtn", menu: "dutyMenu" },
+    { btn: "moreMenuBtn", menu: "moreMenu" }
+  ];
+
+  menus.forEach(({ btn, menu }) => {
+    const btnEl = document.getElementById(btn);
+    const menuEl = document.getElementById(menu);
+    if (!btnEl || !menuEl) return;
+    btnEl.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = menuEl.classList.contains("open");
+      document.querySelectorAll(".dropdown").forEach(d => d.classList.remove("open"));
+      if (!isOpen) menuEl.classList.add("open");
+    };
+    menuEl.onclick = (e) => e.stopPropagation();
+  });
+
+  document.addEventListener("click", () => {
+    document.querySelectorAll(".dropdown").forEach(d => d.classList.remove("open"));
+  });
+
+  // 현재 사역 순번 표시
+  const dutyCurrentLabel = document.getElementById("dutyCurrentLabel");
+  const dutyCurrentName = document.getElementById("dutyCurrentName");
+  onValue(dutyRef, (snap) => {
+    const data = snap.val();
+    const members = (data && data.members) || [];
+    const currentIndex = (data && data.currentIndex) || 0;
+    const currentName = members[currentIndex]?.name || "미설정";
+    if (dutyCurrentLabel) dutyCurrentLabel.textContent = `: ${currentName}`;
+    if (dutyCurrentName) dutyCurrentName.textContent = currentName;
+  });
 });

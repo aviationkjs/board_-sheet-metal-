@@ -27,6 +27,11 @@ header {
   flex-shrink: 0;
 }
 
+.header-buttons {
+  display: flex;
+  align-items: center;
+}
+
 .header-buttons button {
   padding: 8px 15px;
   border: none;
@@ -43,6 +48,93 @@ header {
 
 .header-buttons button:hover {
   background: #2980b9;
+}
+
+.nav-item {
+  position: relative;
+  margin-left: 8px;
+}
+
+.nav-item .nav-btn {
+  margin-left: 0;
+}
+
+.nav-btn.accent {
+  background: #e67e22;
+}
+
+.nav-btn.accent:hover {
+  background: #d35400;
+}
+
+.nav-btn.icon-btn {
+  background: rgba(255,255,255,0.15);
+  padding: 8px 12px;
+}
+
+.nav-btn.icon-btn:hover {
+  background: rgba(255,255,255,0.28);
+}
+
+#dutyCurrentLabel {
+  font-weight: normal;
+}
+
+.dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: white;
+  color: #333;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  min-width: 190px;
+  overflow: hidden;
+  z-index: 200;
+}
+
+.dropdown.dropdown-right {
+  left: auto;
+  right: 0;
+}
+
+.dropdown.open {
+  display: block;
+}
+
+.dropdown .drop-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 0;
+  background: white;
+  color: #333;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+  border: none;
+}
+
+.dropdown .drop-item:hover {
+  background: #f4f6f8;
+}
+
+.drop-info {
+  padding: 10px 14px;
+  border-bottom: 1px solid #eee;
+}
+
+.drop-info-label {
+  font-size: 11px;
+  color: #888;
+}
+
+.drop-info-value {
+  font-weight: bold;
+  font-size: 14px;
+  color: #2c3e50;
 }
 
 #board {
@@ -173,7 +265,23 @@ header {
     font-size: 12px;
     margin-left: 0;
   }
-  
+
+  .nav-item {
+    margin-left: 0;
+  }
+
+  .dropdown {
+    min-width: 160px;
+  }
+
+  .dropdown.dropdown-right {
+    right: -10px;
+  }
+
+  #dutyCurrentLabel {
+    display: none;
+  }
+
   #board {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;

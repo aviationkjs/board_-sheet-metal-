@@ -11,12 +11,33 @@
     <header>
         <div id="username"></div>
         <div class="header-buttons">
-            <button id="logsBtn" style="display: none;">📋 로그 조회</button>
-            <button id="huckViewBtn">📖 FT-200_Guide</button>
-            <button id="infoBtn">📊 관계표 보기</button>
-            <button id="addNoteBtn">🟨 스티커 추가</button>
-            <button id="removeListBtn" onclick="location.href='remove_list.html'">📦 자재소모처리</button>
-            <button id="deleteAllBtn">🗑 전체삭제</button>
+            <div class="nav-item">
+                <button id="stickerMenuBtn" class="nav-btn">🟨 스티커 ▾</button>
+                <div class="dropdown" id="stickerMenu">
+                    <button id="addNoteBtn" class="drop-item">🟨 스티커 추가</button>
+                    <button id="huckViewBtn" class="drop-item">📖 FT-200_Guide</button>
+                    <button id="infoBtn" class="drop-item">📊 관계표 보기</button>
+                </div>
+            </div>
+            <button id="removeListBtn" class="nav-btn" onclick="location.href='remove_list.html'">📦 자재소모</button>
+            <div class="nav-item">
+                <button id="dutyMenuBtn" class="nav-btn accent">🔄 사역표<span id="dutyCurrentLabel"></span> ▾</button>
+                <div class="dropdown" id="dutyMenu">
+                    <div class="drop-info">
+                        <div class="drop-info-label">이번 순번</div>
+                        <div class="drop-info-value" id="dutyCurrentName">-</div>
+                    </div>
+                    <button id="dutyViewBtn" class="drop-item">📋 전체 사역표 보기</button>
+                </div>
+            </div>
+            <div class="nav-item">
+                <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기">⋯</button>
+                <div class="dropdown dropdown-right" id="moreMenu">
+                    <button id="logsBtn" class="drop-item" style="display: none;">📋 로그 조회</button>
+                    <button id="deleteAllBtn" class="drop-item">🗑 전체삭제</button>
+                    <button id="logoutBtn" class="drop-item">🚪 로그아웃</button>
+                </div>
+            </div>
         </div>
     </header>
     <div id="board"></div>

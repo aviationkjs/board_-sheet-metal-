@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사역표 - 성능기골 스티커 보드</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: #f4f7f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .container {
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 1.2rem;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+            margin-bottom: 15px;
+        }
+        .current-card {
+            background: #eaf3fb;
+            border: 1px solid #cfe4f7;
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .current-card .label {
+            font-size: 12px;
+            color: #5f6c76;
+        }
+        .current-card .name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .complete-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .complete-btn:hover {
+            background: #2980b9;
+        }
+        .complete-btn:disabled {
+            background: #b0bcc4;
+            cursor: not-allowed;
+        }
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 500px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        tr.current-row {
+            background: #eaf3fb;
+        }
+        .status-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 10px;
+        }
+        .status-current {
+            background: #3498db;
+            color: white;
+        }
+        .status-waiting {
+            color: #888;
+        }
+        .row-actions button {
+            border: none;
+            background: rgba(0,0,0,0.05);
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 4px;
+        }
+        .row-actions button:hover {
+            background: rgba(0,0,0,0.1);
+        }
+        .add-form {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 25px;
+        }
+        .add-form input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .add-form button {
+            padding: 10px 18px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .history-list {
+            background: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .history-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+        }
+        .history-item:last-child {
+            border-bottom: none;
+        }
+        .history-item .ts {
+            color: #999;
+        }
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
+        <div style="font-weight: bold;">🔄 사역표</div>
+        <div style="width: 100px;"></div>
+    </header>
+
+    <div class="container">
+        <div class="current-card">
+            <div>
+                <div class="label">이번 순번</div>
+                <div class="name" id="currentName">-</div>
+            </div>
+            <button class="complete-btn" id="completeBtn">✅ 완료 → 다음 순번</button>
+        </div>
+
+        <h2>전체 로테이션</h2>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>순번</th>
+                        <th>이름</th>
+                        <th>최근 수행일</th>
+                        <th>상태</th>
+                        <th id="adminColHead" style="display:none;">관리</th>
+                    </tr>
+                </thead>
+                <tbody id="rosterBody"></tbody>
+            </table>
+        </div>
+
+        <div id="adminAddForm" class="add-form" style="display:none;">
+            <input type="text" id="newMemberInput" placeholder="이름을 입력하세요">
+            <button id="addMemberBtn">+ 인원 추가</button>
+        </div>
+
+        <h2>최근 이력</h2>
+        <div class="history-list" id="historyList">
+            <div class="empty">이력이 없습니다.</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            onValue,
+            update,
+            push,
+            set,
+            get
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+            authDomain: "board-sheet-metal.firebaseapp.com",
+            databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+            projectId: "board-sheet-metal",
+            storageBucket: "board-sheet-metal.firebasestorage.app",
+            messagingSenderId: "300454183349",
+            appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const dutyRef = ref(db, "duty");
+        const dutyMembersRef = ref(db, "duty/members");
+        const dutyHistoryRef = ref(db, "duty/history");
+
+        const username = localStorage.getItem("username");
+        if (!username) {
+            window.location.href = "auth.html";
+        }
+        const isAdmin = username === "admin";
+
+        let members = [];
+        let currentIndex = 0;
+
+        function formatDate(ts) {
+            if (!ts) return "-";
+            return new Date(ts).toLocaleDateString('ko-KR');
+        }
+
+        async function recordHistory(action, target) {
+            await push(dutyHistoryRef, {
+                user: username,
+                action: action,
+                target: target,
+                timestamp: Date.now()
+            });
+        }
+
+        // 완료 처리 이력은 사람별로 최근 1건만 남기고 이전 기록은 삭제한다
+        async function recordCompletion(target, note) {
+            const newEntryRef = await push(dutyHistoryRef, {
+                user: username,
+                action: "DUTY_COMPLETE",
+                target: target,
+                note: note,
+                timestamp: Date.now()
+            });
+
+            const snap = await get(dutyHistoryRef);
+            const data = snap.val() || {};
+            const toDelete = {};
+            for (const key in data) {
+                const entry = data[key];
+                if (key !== newEntryRef.key && entry.action === "DUTY_COMPLETE" && entry.target === target) {
+                    toDelete[key] = null;
+                }
+            }
+            if (Object.keys(toDelete).length) {
+                await update(dutyHistoryRef, toDelete);
+            }
+        }
+
+        function render() {
+            document.getElementById("currentName").textContent =
+                members.length ? (members[currentIndex]?.name || "-") : "등록된 인원 없음";
+            document.getElementById("completeBtn").disabled = members.length === 0;
+
+            document.getElementById("adminColHead").style.display = isAdmin ? "" : "none";
+            document.getElementById("adminAddForm").style.display = isAdmin ? "flex" : "none";
+
+            const body = document.getElementById("rosterBody");
+            if (!members.length) {
+                body.innerHTML = `<tr><td colspan="5" class="empty">등록된 인원이 없습니다.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = members.map((m, i) => `
+                <tr class="${i === currentIndex ? 'current-row' : ''}">
+                    <td>${i + 1}</td>
+                    <td>${m.name}</td>
+                    <td>${formatDate(m.lastDone)}</td>
+                    <td>${i === currentIndex
+                        ? '<span class="status-badge status-current">진행중</span>'
+                        : '<span class="status-waiting">대기중</span>'}</td>
+                    <td class="row-actions">
+                        ${isAdmin ? `
+                            <button data-act="up" data-i="${i}" title="위로">↑</button>
+                            <button data-act="down" data-i="${i}" title="아래로">↓</button>
+                            <button data-act="jump" data-i="${i}" title="이 사람 차례로 지정">🎯</button>
+                            <button data-act="remove" data-i="${i}" title="삭제">✕</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `).join("");
+
+            if (isAdmin) {
+                body.querySelectorAll("button[data-act]").forEach(btn => {
+                    btn.onclick = () => handleRowAction(btn.dataset.act, Number(btn.dataset.i));
+                });
+            }
+        }
+
+        function renderHistory(historyData) {
+            const list = document.getElementById("historyList");
+            if (!historyData) {
+                list.innerHTML = `<div class="empty">이력이 없습니다.</div>`;
+                return;
+            }
+            const actionText = {
+                DUTY_COMPLETE: h => h.note ? `${h.target} 완료 처리 — ${h.note}` : `${h.target} 완료 처리`,
+                DUTY_JUMP: h => `${h.target}(으)로 순번 지정`,
+                DUTY_ADD: h => `${h.target} 추가`,
+                DUTY_REMOVE: h => `${h.target} 삭제`
+            };
+            const entries = Object.values(historyData)
+                .sort((a, b) => b.timestamp - a.timestamp)
+                .slice(0, 10);
+            list.innerHTML = entries.map(h => `
+                <div class="history-item">
+                    <span><b>${h.user}</b> — ${(actionText[h.action] || (hh => hh.action))(h)}</span>
+                    <span class="ts">${new Date(h.timestamp).toLocaleString('ko-KR')}</span>
+                </div>
+            `).join("");
+        }
+
+        async function handleRowAction(act, i) {
+            if (act === "remove") {
+                if (!confirm(`${members[i].name}님을 사역표에서 삭제할까요?`)) return;
+                const removedName = members[i].name;
+                const updated = members.filter((_, idx) => idx !== i);
+                let newIndex = currentIndex;
+                if (i < currentIndex) newIndex = currentIndex - 1;
+                else if (i === currentIndex) newIndex = updated.length ? currentIndex % updated.length : 0;
+                await update(dutyRef, { members: updated, currentIndex: newIndex });
+                await recordHistory("DUTY_REMOVE", removedName);
+            } else if (act === "up" && i > 0) {
+                await swapMembers(i, i - 1);
+            } else if (act === "down" && i < members.length - 1) {
+                await swapMembers(i, i + 1);
+            } else if (act === "jump") {
+                if (!confirm(`${members[i].name}님 차례로 지정할까요?`)) return;
+                await update(dutyRef, { currentIndex: i });
+                await recordHistory("DUTY_JUMP", members[i].name);
+            }
+        }
+
+        async function swapMembers(a, b) {
+            const updated = [...members];
+            [updated[a], updated[b]] = [updated[b], updated[a]];
+            let newIndex = currentIndex;
+            if (currentIndex === a) newIndex = b;
+            else if (currentIndex === b) newIndex = a;
+            await update(dutyRef, { members: updated, currentIndex: newIndex });
+        }
+
+        document.getElementById("completeBtn").onclick = async () => {
+            if (!members.length) return;
+            const doneName = members[currentIndex].name;
+            const note = prompt(`${doneName}님, 무슨 사역을 했나요?`, "") || "";
+            const updated = [...members];
+            updated[currentIndex] = { ...updated[currentIndex], lastDone: Date.now() };
+            const nextIndex = (currentIndex + 1) % updated.length;
+            await update(dutyRef, { members: updated, currentIndex: nextIndex });
+            await recordCompletion(doneName, note);
+        };
+
+        document.getElementById("addMemberBtn").onclick = async () => {
+            const input = document.getElementById("newMemberInput");
+            const name = input.value.trim();
+            if (!name) return;
+            const updated = [...members, { name, lastDone: null }];
+            await set(dutyMembersRef, updated);
+            await recordHistory("DUTY_ADD", name);
+            input.value = "";
+        };
+
+        onValue(dutyRef, (snap) => {
+            const data = snap.val() || {};
+            members = data.members || [];
+            currentIndex = data.currentIndex || 0;
+            render();
+            renderHistory(data.history);
+        });
+    </script>
+</body>
+</html>
