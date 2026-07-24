@@ -1,0 +1,29 @@
+{
+  "rules": {
+    "users": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "lastLogin": { ".validate": "newData.isNumber()" },
+        "hasPin":    { ".validate": "newData.isBoolean()" }
+      }
+    },
+    "secrets": {
+      ".read": false,
+      "$id": {
+        "pinHash": {
+          ".write": "!data.exists() || !newData.exists()",
+          ".validate": "newData.isString() && newData.val().length === 64"
+        },
+        "loginProbe": {
+          ".write": "newData.val() === data.parent().child('pinHash').val()"
+        }
+      }
+    },
+    "notes":               { ".read": true, ".write": true },
+    "duty":                { ".read": true, ".write": true },
+    "logs":                { ".read": true, ".write": true },
+    "materialConsumption": { ".read": true, ".write": true }
+  }
+}
