@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원 관리 - 성능기골 스티커 보드</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background: #f4f7f9;
+            color: #333;
+        }
+        header {
+            padding: 15px 20px;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .back-btn {
+            padding: 8px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .container {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-size: 1.2rem;
+            border-left: 4px solid #3498db;
+            padding-left: 10px;
+            margin-bottom: 10px;
+        }
+        .hint {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+        .table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 640px;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+            color: #555;
+            white-space: nowrap;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover { background: #fcfcfc; }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .badge-set { background: #d4edda; color: #155724; }
+        .badge-unset { background: #fff3cd; color: #856404; }
+        .timestamp { color: #888; font-size: 13px; }
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+        .btn-reset { background: #ffe08a; color: #7a5b00; }
+        .btn-reset:hover { background: #ffd766; }
+        .btn-delete { background: #f8d7da; color: #721c24; }
+        .btn-delete:hover { background: #f1b0b7; }
+        .loading, .no-data { text-align: center; padding: 50px; color: #888; }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
+        <div style="font-weight: bold;">👥 회원 관리 (관리자)</div>
+        <div style="width: 130px;"></div>
+    </header>
+
+    <div class="container">
+        <h2>사용자 목록</h2>
+        <div class="hint">
+            <strong>PIN 초기화</strong>: 해당 사용자의 PIN을 지웁니다. 사용자는 같은 아이디로 다시 접속해 새 PIN을 설정합니다. (기록 유지)<br>
+            <strong>계정 삭제</strong>: 사용자 계정을 완전히 제거합니다. 같은 아이디로 새로 가입할 수 있습니다.<br>
+            ※ PIN 분실 시 이 화면에서 초기화해 주세요. (비밀번호 찾기 기능은 없습니다)
+        </div>
+
+        <div class="table-wrapper">
+            <div id="usersContainer" class="loading">불러오는 중...</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            get,
+            set,
+            update,
+            remove
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+            authDomain: "board-sheet-metal.firebaseapp.com",
+            databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+            projectId: "board-sheet-metal",
+            storageBucket: "board-sheet-metal.firebasestorage.app",
+            messagingSenderId: "300454183349",
+            appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const currentUser = localStorage.getItem('username');
+
+        // 관리자만 접근 가능
+        if (currentUser !== 'admin') {
+            alert('이 페이지는 관리자(admin)만 접근할 수 있습니다.');
+            window.location.href = 'index.html';
+        }
+
+        function fmt(ts) {
+            return ts ? new Date(ts).toLocaleString('ko-KR') : '-';
+        }
+
+        async function recordLog(action, details) {
+            try {
+                const t = Date.now() + Math.floor(Math.random() * 100000);
+                await set(ref(db, 'logs/' + t), {
+                    user: currentUser, action, details: details || null, timestamp: Date.now()
+                });
+            } catch (e) { console.error('로그 기록 오류:', e); }
+        }
+
+        function render(users) {
+            const container = document.getElementById('usersContainer');
+            const ids = Object.keys(users || {});
+            if (ids.length === 0) {
+                container.innerHTML = '<div class="no-data">등록된 사용자가 없습니다.</div>';
+                return;
+            }
+            ids.sort((a, b) => (users[b].lastLogin || 0) - (users[a].lastLogin || 0));
+
+            let html = `<table><thead><tr>
+                <th>아이디</th><th>PIN</th><th>생성일</th><th>최근 접속</th><th>관리</th>
+            </tr></thead><tbody>`;
+            ids.forEach(id => {
+                const u = users[id] || {};
+                const hasPin = u.hasPin === true;
+                const badge = hasPin
+                    ? '<span class="badge badge-set">설정됨</span>'
+                    : '<span class="badge badge-unset">미설정</span>';
+                const safeId = id.replace(/"/g, '&quot;');
+                html += `<tr>
+                    <td><strong>${id}</strong></td>
+                    <td>${badge}</td>
+                    <td><span class="timestamp">${fmt(u.createdAt)}</span></td>
+                    <td><span class="timestamp">${fmt(u.lastLogin)}</span></td>
+                    <td>
+                        <button class="action-btn btn-reset" data-id="${safeId}" data-op="reset">PIN 초기화</button>
+                        <button class="action-btn btn-delete" data-id="${safeId}" data-op="delete">계정 삭제</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+
+            container.querySelectorAll('button[data-op]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.getAttribute('data-id');
+                    const op = btn.getAttribute('data-op');
+                    if (op === 'reset') resetPin(id);
+                    else deleteUser(id);
+                });
+            });
+        }
+
+        async function load() {
+            try {
+                const snap = await get(ref(db, 'users'));
+                render(snap.exists() ? snap.val() : {});
+            } catch (e) {
+                console.error('사용자 로드 오류:', e);
+                document.getElementById('usersContainer').innerHTML =
+                    '<div class="no-data">사용자 목록을 불러올 수 없습니다.</div>';
+            }
+        }
+
+        async function resetPin(id) {
+            if (!confirm(`'${id}' 사용자의 PIN을 초기화할까요?\n사용자는 다음 접속 때 새 PIN을 설정합니다.`)) return;
+            try {
+                await remove(ref(db, 'secrets/' + id + '/pinHash'));
+                await update(ref(db, 'users/' + id), { hasPin: false });
+                await recordLog('ADMIN_RESET_PIN', { target: id });
+                alert(`'${id}'의 PIN을 초기화했습니다.`);
+                load();
+            } catch (e) {
+                console.error('초기화 오류:', e);
+                alert('초기화 실패: ' + e.message);
+            }
+        }
+
+        async function deleteUser(id) {
+            if (id === 'admin' && !confirm('관리자 계정입니다. 정말 삭제할까요?')) return;
+            if (!confirm(`'${id}' 계정을 완전히 삭제할까요?\n(작성한 스티커는 남아 있습니다)`)) return;
+            try {
+                await remove(ref(db, 'secrets/' + id + '/pinHash'));
+                await remove(ref(db, 'users/' + id));
+                await recordLog('ADMIN_DELETE_USER', { target: id });
+                alert(`'${id}' 계정을 삭제했습니다.`);
+                load();
+            } catch (e) {
+                console.error('삭제 오류:', e);
+                alert('삭제 실패: ' + e.message);
+            }
+        }
+
+        window.addEventListener('load', load);
+    </script>
+</body>
+</html>

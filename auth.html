@@ -10,7 +10,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -19,7 +19,7 @@
             justify-content: center;
             align-items: center;
         }
-        
+
         .auth-container {
             background: white;
             border-radius: 12px;
@@ -28,25 +28,25 @@
             max-width: 400px;
             padding: 40px;
         }
-        
+
         .auth-container h1 {
             text-align: center;
             font-size: 24px;
             margin-bottom: 10px;
             color: #2c3e50;
         }
-        
+
         .auth-container p {
             text-align: center;
             color: #888;
             margin-bottom: 30px;
             font-size: 14px;
         }
-        
+
         .form-group {
             margin-bottom: 20px;
         }
-        
+
         .form-group label {
             display: block;
             margin-bottom: 8px;
@@ -54,7 +54,7 @@
             color: #333;
             font-size: 14px;
         }
-        
+
         .form-group input {
             width: 100%;
             padding: 12px 15px;
@@ -62,23 +62,30 @@
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.3s;
+            letter-spacing: 0.5px;
         }
-        
+
         .form-group input:focus {
             outline: none;
             border-color: #667eea;
         }
-        
+
         .form-group input::placeholder {
             color: #ccc;
+            letter-spacing: normal;
         }
-        
+
+        .form-group input:disabled {
+            background: #f7f7f7;
+            color: #666;
+        }
+
         .button-group {
             display: flex;
             gap: 10px;
             margin-top: 30px;
         }
-        
+
         .button-group button {
             flex: 1;
             padding: 12px;
@@ -89,32 +96,37 @@
             cursor: pointer;
             transition: background 0.3s;
         }
-        
+
         .btn-primary {
             background: #667eea;
             color: white;
         }
-        
+
         .btn-primary:hover {
             background: #5568d3;
         }
-        
+
+        .btn-primary:disabled {
+            background: #b7bdf0;
+            cursor: not-allowed;
+        }
+
         .btn-secondary {
             background: #f0f0f0;
             color: #333;
         }
-        
+
         .btn-secondary:hover {
             background: #e0e0e0;
         }
-        
+
         .error-message {
             color: #e74c3c;
             font-size: 13px;
             margin-top: 5px;
             display: none;
         }
-        
+
         .info-text {
             background: #d1ecf1;
             border: 1px solid #bee5eb;
@@ -123,8 +135,15 @@
             border-radius: 6px;
             font-size: 13px;
             margin-bottom: 20px;
+            line-height: 1.5;
         }
-        
+
+        .info-text.setup {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
         .user-count {
             background: #fff3cd;
             border: 1px solid #ffeeba;
@@ -135,32 +154,54 @@
             margin-bottom: 20px;
             text-align: center;
         }
+
+        .forgot-hint {
+            text-align: center;
+            color: #aaa;
+            font-size: 12px;
+            margin-top: 18px;
+        }
     </style>
 </head>
 <body>
     <div class="auth-container">
         <h1>성능기골 스티커 보드</h1>
-        <p>사용자 이름으로 접속하세요</p>
-        
-        <div class="info-text">
-            사용자 이름을 입력하면 바로 접속됩니다.<br>
-            처음이면 새로운 사용자로 생성됩니다.
+        <p>아이디와 PIN으로 접속하세요</p>
+
+        <div class="info-text" id="infoText">
+            아이디와 4자리 PIN을 입력하세요.<br>
+            처음이면 PIN을 새로 설정하게 됩니다.
         </div>
-        
+
         <div class="user-count" id="userCountDisplay"></div>
-        
+
         <div class="form-group">
-            <label for="username">사용자 이름</label>
-            <input type="text" id="username" placeholder="사용자 이름 입력" autofocus>
-            <div class="error-message" id="usernameError"></div>
+            <label for="userid">아이디</label>
+            <input type="text" id="userid" placeholder="아이디 입력" autocomplete="off" autofocus>
+            <div class="error-message" id="useridError"></div>
         </div>
-        
+
+        <div class="form-group">
+            <label for="pin">PIN (4자리 숫자)</label>
+            <input type="password" id="pin" placeholder="••••" inputmode="numeric" maxlength="4" autocomplete="off">
+            <div class="error-message" id="pinError"></div>
+        </div>
+
+        <div class="form-group" id="pinConfirmGroup" style="display:none;">
+            <label for="pinConfirm">PIN 확인 (한 번 더 입력)</label>
+            <input type="password" id="pinConfirm" placeholder="••••" inputmode="numeric" maxlength="4" autocomplete="off">
+            <div class="error-message" id="pinConfirmError"></div>
+        </div>
+
         <div class="button-group">
-            <button class="btn-primary" onclick="handleLogin()">접속</button>
-            <button class="btn-secondary" onclick="handleReset()">초기화</button>
+            <button class="btn-primary" id="submitBtn">접속</button>
+        </div>
+
+        <div class="forgot-hint">
+            PIN을 잊으셨나요? 관리자에게 초기화를 요청하세요.
         </div>
     </div>
-    
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import {
@@ -168,9 +209,9 @@
             ref,
             get,
             set,
-            remove
+            update
         } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
-        
+
         const firebaseConfig = {
             apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
             authDomain: "board-sheet-metal.firebaseapp.com",
@@ -180,171 +221,253 @@
             messagingSenderId: "300454183349",
             appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
         };
-        
+
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
-        
+
         const MAX_USERS = 31;
-        const RESET_PASSWORD = "5678";
-        
+
+        // 'login' = 아이디+PIN 확인 / 'setup' = 최초 PIN 설정(확인 입력 포함)
+        let mode = 'login';
+
+        const useridEl = document.getElementById('userid');
+        const pinEl = document.getElementById('pin');
+        const pinConfirmGroup = document.getElementById('pinConfirmGroup');
+        const pinConfirmEl = document.getElementById('pinConfirm');
+        const submitBtn = document.getElementById('submitBtn');
+        const infoText = document.getElementById('infoText');
+
         function clearErrors() {
             document.querySelectorAll('.error-message').forEach(el => {
                 el.style.display = 'none';
                 el.textContent = '';
             });
         }
-        
+
         function showError(elementId, message) {
-            const errorEl = document.getElementById(elementId);
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.style.display = 'block';
         }
-        
-        // 사용자 수 표시 업데이트
+
+        // Firebase 키로 쓸 수 없는 문자 검사
+        function isValidId(id) {
+            return id.length >= 2 && !/[.#$\[\]/]/.test(id);
+        }
+
+        function isValidPin(pin) {
+            return /^\d{4}$/.test(pin);
+        }
+
+        // SHA-256(id + ":" + pin) → 16진수 문자열(64자)
+        async function pinHash(id, pin) {
+            const data = new TextEncoder().encode(`${id}:${pin}`);
+            const buf = await crypto.subtle.digest("SHA-256", data);
+            return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+        }
+
+        // 적응형 PIN 검증
+        //  - secrets 읽기가 허용되면(규칙 미강화 상태) 로컬 해시 비교
+        //  - 읽기가 차단되면(규칙 강화 상태) loginProbe 쓰기 성공 여부로 검증(verify-by-write)
+        async function verifyPin(id, pin) {
+            const hash = await pinHash(id, pin);
+            try {
+                const snap = await get(ref(db, `secrets/${id}/pinHash`));
+                return snap.exists() && snap.val() === hash;
+            } catch (readErr) {
+                try {
+                    await set(ref(db, `secrets/${id}/loginProbe`), hash);
+                    return true;
+                } catch (writeErr) {
+                    return false;
+                }
+            }
+        }
+
+        async function getUserCount() {
+            const snap = await get(ref(db, 'users'));
+            return snap.exists() ? Object.keys(snap.val()).length : 0;
+        }
+
         async function updateUserCount() {
             try {
-                const usersRef = ref(db, 'users');
-                const snapshot = await get(usersRef);
-                const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-                
-                const userCountDisplay = document.getElementById('userCountDisplay');
-                userCountDisplay.textContent = 'Registered users: ' + userCount + ' / ' + MAX_USERS;
-                
-                if (userCount >= MAX_USERS) {
-                    userCountDisplay.style.background = '#f8d7da';
-                    userCountDisplay.style.borderColor = '#f5c6cb';
-                    userCountDisplay.style.color = '#721c24';
-                    userCountDisplay.innerHTML += '<br><strong>User limit reached. Please reset to add new users.</strong>';
+                const count = await getUserCount();
+                const el = document.getElementById('userCountDisplay');
+                el.textContent = '등록된 사용자: ' + count + ' / ' + MAX_USERS;
+                if (count >= MAX_USERS) {
+                    el.style.background = '#f8d7da';
+                    el.style.borderColor = '#f5c6cb';
+                    el.style.color = '#721c24';
+                    el.innerHTML += '<br><strong>정원이 찼습니다. 관리자에게 문의하세요.</strong>';
                 }
-            } catch (error) {
-                console.error('User count error:', error);
+            } catch (e) {
+                console.error('사용자 수 조회 오류:', e);
             }
         }
-        
-        window.handleLogin = async () => {
-            clearErrors();
-            const username = document.getElementById('username').value.trim();
-            
-            if (!username) {
-                showError('usernameError', 'Please enter a username');
-                return;
-            }
-            
-            if (username.length < 2) {
-                showError('usernameError', 'Username must be at least 2 characters');
-                return;
-            }
-            
+
+        async function recordLog(user, action, details) {
             try {
-                const usersRef = ref(db, 'users');
-                const snapshot = await get(usersRef);
-                const userCount = snapshot.exists() ? Object.keys(snapshot.val()).length : 0;
-                
-                const userRef = ref(db, 'users/' + username);
-                const userSnapshot = await get(userRef);
-                
-                // Check user limit for new users
-                if (!userSnapshot.exists() && userCount >= MAX_USERS) {
-                    showError('usernameError', 'User limit (' + MAX_USERS + ') reached. Please reset first.');
+                const ts = Date.now() + Math.floor(Math.random() * 100000);
+                await set(ref(db, 'logs/' + ts), {
+                    user, action, details: details || null, timestamp: Date.now()
+                });
+            } catch (e) {
+                console.error('로그 기록 오류:', e);
+            }
+        }
+
+        function finishLogin(id) {
+            localStorage.setItem('username', id);
+            window.location.href = 'index.html';
+        }
+
+        // setup 모드로 전환 (최초 PIN 설정)
+        function enterSetupMode() {
+            mode = 'setup';
+            useridEl.disabled = true;
+            pinConfirmGroup.style.display = 'block';
+            infoText.className = 'info-text setup';
+            infoText.innerHTML = '새 PIN을 설정합니다.<br>위에 입력한 PIN을 아래에 한 번 더 입력하세요. (설정 후에는 관리자만 변경할 수 있습니다)';
+            submitBtn.textContent = 'PIN 설정 & 접속';
+            pinConfirmEl.focus();
+        }
+
+        function resetToLogin() {
+            mode = 'login';
+            useridEl.disabled = false;
+            pinConfirmGroup.style.display = 'none';
+            pinConfirmEl.value = '';
+            infoText.className = 'info-text';
+            infoText.innerHTML = '아이디와 4자리 PIN을 입력하세요.<br>처음이면 PIN을 새로 설정하게 됩니다.';
+            submitBtn.textContent = '접속';
+        }
+
+        async function handleSubmit() {
+            clearErrors();
+            const id = useridEl.value.trim();
+            const pin = pinEl.value.trim();
+
+            if (!isValidId(id)) {
+                showError('useridError', '아이디는 2자 이상이며 . # $ [ ] / 는 사용할 수 없습니다.');
+                return;
+            }
+            if (!isValidPin(pin)) {
+                showError('pinError', 'PIN은 4자리 숫자여야 합니다.');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            try {
+                if (mode === 'setup') {
+                    await handleSetup(id, pin);
+                } else {
+                    await handleLogin(id, pin);
+                }
+            } catch (e) {
+                console.error('처리 오류:', e);
+                showError('pinError', '오류가 발생했습니다: ' + (e.message || '알 수 없는 오류'));
+            } finally {
+                submitBtn.disabled = false;
+            }
+        }
+
+        async function handleLogin(id, pin) {
+            const userSnap = await get(ref(db, 'users/' + id));
+            const exists = userSnap.exists();
+            const hasPin = exists && userSnap.val().hasPin === true;
+
+            // 신규 계정 또는 PIN 미설정(기존 이관) 계정 → 최초 설정
+            if (!exists || !hasPin) {
+                if (!exists) {
+                    const count = await getUserCount();
+                    if (count >= MAX_USERS) {
+                        showError('useridError', '정원(' + MAX_USERS + ')이 찼습니다. 관리자에게 문의하세요.');
+                        return;
+                    }
+                }
+                enterSetupMode();
+                return;
+            }
+
+            const ok = await verifyPin(id, pin);
+            if (!ok) {
+                showError('pinError', 'PIN이 올바르지 않습니다.');
+                return;
+            }
+
+            await update(ref(db, 'users/' + id), { lastLogin: Date.now() });
+            await recordLog(id, 'LOGIN');
+            finishLogin(id);
+        }
+
+        async function handleSetup(id, pin) {
+            const confirm = pinConfirmEl.value.trim();
+            if (!isValidPin(confirm)) {
+                showError('pinConfirmError', '확인 PIN도 4자리 숫자여야 합니다.');
+                return;
+            }
+            if (pin !== confirm) {
+                showError('pinConfirmError', 'PIN이 서로 일치하지 않습니다.');
+                return;
+            }
+
+            const userSnap = await get(ref(db, 'users/' + id));
+            const exists = userSnap.exists();
+            if (exists && userSnap.val().hasPin === true) {
+                // 이미 설정됨(경합) → 로그인 모드로
+                showError('pinError', '이미 PIN이 설정된 계정입니다. 다시 로그인하세요.');
+                resetToLogin();
+                return;
+            }
+            if (!exists) {
+                const count = await getUserCount();
+                if (count >= MAX_USERS) {
+                    showError('useridError', '정원(' + MAX_USERS + ')이 찼습니다. 관리자에게 문의하세요.');
+                    resetToLogin();
                     return;
                 }
-                
-                // Create new user if not exists
-                if (!userSnapshot.exists()) {
-                    await set(userRef, {
-                        createdAt: Date.now()
-                    });
-                }
-                
-                // Update last login
-                await set(ref(db, 'users/' + username + '/lastLogin'), Date.now());
-                
-                // Log login with unique timestamp to avoid collisions
-                const uniqueTimestamp = Date.now() + Math.floor(Math.random() * 100000);
-                await set(ref(db, 'logs/' + uniqueTimestamp), {
-                    user: username,
-                    action: 'LOGIN',
-                    timestamp: Date.now()
-                });
-                
-                // Save to local storage
-                localStorage.setItem('username', username);
-                
-                // Redirect to main page
-                window.location.href = 'index.html';
-            } catch (error) {
-                console.error('Login error:', error);
-                const errorMsg = error.code === 'PERMISSION_DENIED' 
-                    ? 'Database access denied. Please contact admin.'
-                    : 'Login failed: ' + (error.message || 'Unknown error');
-                showError('usernameError', errorMsg);
             }
-        };
-        
-        window.handleReset = async () => {
-            const password = prompt("Enter reset password:");
-            if (password === null) return;
-            
-            if (password !== RESET_PASSWORD) {
-                alert('Incorrect password.');
+
+            const hash = await pinHash(id, pin);
+            // pinHash 는 write-once 규칙 대상: 없을 때만 생성됨
+            await set(ref(db, 'secrets/' + id + '/pinHash'), hash);
+
+            const profile = { hasPin: true, lastLogin: Date.now() };
+            if (!exists) profile.createdAt = Date.now();
+            await update(ref(db, 'users/' + id), profile);
+
+            await recordLog(id, 'SETUP_PIN');
+            finishLogin(id);
+        }
+
+        window.addEventListener('load', async () => {
+            const saved = localStorage.getItem('username');
+            if (saved) {
+                window.location.href = 'index.html';
                 return;
             }
-            
-            if (confirm('Reset all user data? This cannot be undone!')) {
-                try {
-                    // Delete all users
-                    const usersRef = ref(db, 'users');
-                    try {
-                        await remove(usersRef);
-                    } catch (e) {
-                        console.log('User deletion (may already be empty):', e.message);
-                    }
-                    
-                    // Record reset log
-                    const logTimestamp = Date.now() + Math.floor(Math.random() * 1000);
-                    const logRef = ref(db, 'logs/' + logTimestamp);
-                    await set(logRef, {
-                        user: 'SYSTEM',
-                        action: 'SYSTEM_RESET',
-                        timestamp: Date.now(),
-                        details: 'All user data reset'
-                    });
-                    
-                    // Clear local state
-                    localStorage.removeItem('username');
-                    document.getElementById('username').value = '';
-                    clearErrors();
-                    
-                    // Update UI
-                    await updateUserCount();
-                    document.getElementById('username').focus();
-                    
-                    alert('All user data has been reset.');
-                } catch (error) {
-                    console.error('Reset error:', error);
-                    alert('Reset failed: ' + error.message);
-                }
-            }
-        };
-        
-        // Enter key handling
-        document.getElementById('username').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                window.handleLogin();
-            }
+            await updateUserCount();
         });
-        
-        // Page load
-        window.addEventListener('load', async () => {
-            const username = localStorage.getItem('username');
-            
-            if (username) {
-                // Already logged in, redirect to main
-                window.location.href = 'index.html';
-            } else {
-                // Update user count display
-                await updateUserCount();
-            }
+
+        submitBtn.addEventListener('click', handleSubmit);
+
+        // 아이디를 바꾸면 로그인 모드로 되돌림
+        useridEl.addEventListener('input', () => {
+            if (mode === 'setup') resetToLogin();
+        });
+
+        // 숫자만 허용
+        [pinEl, pinConfirmEl].forEach(el => {
+            el.addEventListener('input', () => {
+                el.value = el.value.replace(/\D/g, '').slice(0, 4);
+            });
+        });
+
+        // Enter 처리
+        [useridEl, pinEl, pinConfirmEl].forEach(el => {
+            el.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleSubmit();
+            });
         });
     </script>
 </body>

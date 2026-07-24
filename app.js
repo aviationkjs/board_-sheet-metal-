@@ -309,6 +309,15 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  // 관리자(admin)만 회원 관리 버튼 표시
+  const usersBtn = document.getElementById("usersBtn");
+  if (usersBtn && username === 'admin') {
+    usersBtn.style.display = 'block';
+    usersBtn.onclick = () => {
+      window.location.href = "admin.html";
+    };
+  }
+
   // 헤더 드롭다운 메뉴 토글
   const menus = [
     { btn: "stickerMenuBtn", menu: "stickerMenu" },
