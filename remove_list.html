@@ -224,7 +224,7 @@ async function recordLog(action, details){
   }catch(e){ console.error("로그 기록 오류:", e); }
 }
 
-/* ---- 스파크라인 (최근 소모 추이, 인라인 SVG) ---- */
+/* ---- 스파크라인 (최근 소모 추이, 꺾은선형 · 인라인 SVG) ---- */
 function sparkline(itemId){
   const vals = Object.values(historyData)
     .filter(h => h.itemId === itemId)
@@ -232,12 +232,18 @@ function sparkline(itemId){
     .slice(-12)
     .map(h => Number(h.qty)||0);
   if(!vals.length) return '<span class="spark-empty">—</span>';
-  const w=84,h=22,n=vals.length,max=Math.max(...vals,1),bw=w/n;
-  const bars = vals.map((v,i)=>{
-    const bh=Math.max(2,(v/max)*(h-2));
-    return `<rect x="${(i*bw+1).toFixed(1)}" y="${(h-bh).toFixed(1)}" width="${(bw*0.66).toFixed(1)}" height="${bh.toFixed(1)}" rx="1" fill="var(--amber)"/>`;
-  }).join("");
-  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-label="최근 소모 추이">${bars}</svg>`;
+  const w=84, h=22, pad=3, n=vals.length;
+  const max=Math.max(...vals), min=Math.min(...vals), range=(max-min)||1;
+  const x = i => n===1 ? w/2 : pad + (i*(w-2*pad))/(n-1);
+  const y = v => (h-pad) - ((v-min)/range)*(h-2*pad);
+  const lastX = x(n-1).toFixed(1), lastY = y(vals[n-1]).toFixed(1);
+  if(n===1){
+    return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-label="최근 소모 추이"><circle cx="${(w/2).toFixed(1)}" cy="${(h/2).toFixed(1)}" r="2.2" fill="var(--amber)"/></svg>`;
+  }
+  const pts = vals.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-label="최근 소모 추이">`
+    + `<polyline points="${pts}" fill="none" stroke="var(--amber)" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>`
+    + `<circle cx="${lastX}" cy="${lastY}" r="1.8" fill="var(--amber)"/></svg>`;
 }
 
 /* ---- 렌더 ---- */
