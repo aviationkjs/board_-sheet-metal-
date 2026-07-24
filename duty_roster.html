@@ -265,7 +265,13 @@
         if (!username) {
             window.location.href = "auth.html";
         }
-        const isAdmin = username === "admin";
+        const isMainAdmin = username === "admin";
+        // 사역표 관리 권한: 주관리자(admin) 또는 사역표 부관리자(users/{id}/dutyAdmin)
+        let canManage = isMainAdmin;
+        try {
+            const meSnap = await get(ref(db, "users/" + username));
+            if (meSnap.exists() && meSnap.val().dutyAdmin === true) canManage = true;
+        } catch (e) { /* users 읽기 실패 시 기본 권한 유지 */ }
 
         let members = [];
         let currentIndex = 0;
@@ -311,10 +317,16 @@
         function render() {
             document.getElementById("currentName").textContent =
                 members.length ? (members[currentIndex]?.name || "-") : "등록된 인원 없음";
-            document.getElementById("completeBtn").disabled = members.length === 0;
+            // 완료 버튼: 이번 순번 당사자(본인, 인원 이름=로그인 아이디) 또는 관리자/사역표 부관리자만
+            const isMyTurn = members.length ? (members[currentIndex]?.name === username) : false;
+            const completeBtn = document.getElementById("completeBtn");
+            completeBtn.disabled = members.length === 0 || !(isMyTurn || canManage);
+            completeBtn.title = (completeBtn.disabled && members.length)
+                ? "이번 순번 당사자 또는 관리자만 완료할 수 있습니다"
+                : "";
 
-            document.getElementById("adminColHead").style.display = isAdmin ? "" : "none";
-            document.getElementById("adminAddForm").style.display = isAdmin ? "flex" : "none";
+            document.getElementById("adminColHead").style.display = canManage ? "" : "none";
+            document.getElementById("adminAddForm").style.display = canManage ? "flex" : "none";
 
             const body = document.getElementById("rosterBody");
             if (!members.length) {
@@ -331,7 +343,7 @@
                         ? '<span class="status-badge status-current">진행중</span>'
                         : '<span class="status-waiting">대기중</span>'}</td>
                     <td class="row-actions">
-                        ${isAdmin ? `
+                        ${canManage ? `
                             <button data-act="up" data-i="${i}" title="위로">↑</button>
                             <button data-act="down" data-i="${i}" title="아래로">↓</button>
                             <button data-act="jump" data-i="${i}" title="이 사람 차례로 지정">🎯</button>
@@ -341,7 +353,7 @@
                 </tr>
             `).join("");
 
-            if (isAdmin) {
+            if (canManage) {
                 body.querySelectorAll("button[data-act]").forEach(btn => {
                     btn.onclick = () => handleRowAction(btn.dataset.act, Number(btn.dataset.i));
                 });
@@ -372,6 +384,7 @@
         }
 
         async function handleRowAction(act, i) {
+            if (!canManage) return;
             if (act === "remove") {
                 if (!confirm(`${members[i].name}님을 사역표에서 삭제할까요?`)) return;
                 const removedName = members[i].name;
@@ -403,6 +416,11 @@
 
         document.getElementById("completeBtn").onclick = async () => {
             if (!members.length) return;
+            const isMyTurn = members[currentIndex]?.name === username;
+            if (!isMyTurn && !canManage) {
+                alert("이번 순번 당사자 또는 관리자만 완료할 수 있습니다.");
+                return;
+            }
             const doneName = members[currentIndex].name;
             const note = prompt(`${doneName}님, 무슨 사역을 했나요?`, "") || "";
             const updated = [...members];
@@ -413,6 +431,7 @@
         };
 
         document.getElementById("addMemberBtn").onclick = async () => {
+            if (!canManage) return;
             const input = document.getElementById("newMemberInput");
             const name = input.value.trim();
             if (!name) return;

@@ -100,6 +100,13 @@
         .btn-reset:hover { background: #ffd766; }
         .btn-delete { background: #f8d7da; color: #721c24; }
         .btn-delete:hover { background: #f1b0b7; }
+        .role-btn {
+            padding: 5px 10px; border: 1px solid #ccc; border-radius: 6px;
+            cursor: pointer; font-size: 12px; font-weight: 600; margin-right: 6px;
+            background: #f0f0f0; color: #666;
+        }
+        .role-btn.role-on { background: #3498db; color: #fff; border-color: #3498db; }
+        .role-main { color: #999; font-size: 12px; }
         .loading, .no-data { text-align: center; padding: 50px; color: #888; }
     </style>
 </head>
@@ -113,6 +120,8 @@
     <div class="container">
         <h2>사용자 목록</h2>
         <div class="hint">
+            <strong>부관리자</strong>: 영역별로 <strong>딱 한 명</strong> 지정됩니다. 켜면 기존 담당자는 자동 해제됩니다.
+            사역표 담당은 사역표 페이지의 관리(인원 추가/삭제/순번 지정)를, 자재소모 담당은 자재소모 관리를 할 수 있습니다.<br>
             <strong>PIN 초기화</strong>: 해당 사용자의 PIN을 지웁니다. 사용자는 같은 아이디로 다시 접속해 새 PIN을 설정합니다. (기록 유지)<br>
             <strong>계정 삭제</strong>: 사용자 계정을 완전히 제거합니다. 같은 아이디로 새로 가입할 수 있습니다.<br>
             ※ PIN 분실 시 이 화면에서 초기화해 주세요. (비밀번호 찾기 기능은 없습니다)
@@ -178,7 +187,7 @@
             ids.sort((a, b) => (users[b].lastLogin || 0) - (users[a].lastLogin || 0));
 
             let html = `<table><thead><tr>
-                <th>아이디</th><th>PIN</th><th>생성일</th><th>최근 접속</th><th>관리</th>
+                <th>아이디</th><th>PIN</th><th>생성일</th><th>최근 접속</th><th>부관리자</th><th>관리</th>
             </tr></thead><tbody>`;
             ids.forEach(id => {
                 const u = users[id] || {};
@@ -187,11 +196,16 @@
                     ? '<span class="badge badge-set">설정됨</span>'
                     : '<span class="badge badge-unset">미설정</span>';
                 const safeId = id.replace(/"/g, '&quot;');
+                const roleCell = id === 'admin'
+                    ? '<span class="role-main">주관리자</span>'
+                    : `<button class="role-btn ${u.dutyAdmin===true?'role-on':''}" data-role="duty" data-id="${safeId}" data-on="${u.dutyAdmin===true}">사역표</button>
+                       <button class="role-btn ${u.materialAdmin===true?'role-on':''}" data-role="material" data-id="${safeId}" data-on="${u.materialAdmin===true}">자재소모</button>`;
                 html += `<tr>
                     <td><strong>${id}</strong></td>
                     <td>${badge}</td>
                     <td><span class="timestamp">${fmt(u.createdAt)}</span></td>
                     <td><span class="timestamp">${fmt(u.lastLogin)}</span></td>
+                    <td>${roleCell}</td>
                     <td>
                         <button class="action-btn btn-reset" data-id="${safeId}" data-op="reset">PIN 초기화</button>
                         <button class="action-btn btn-delete" data-id="${safeId}" data-op="delete">계정 삭제</button>
@@ -209,12 +223,20 @@
                     else deleteUser(id);
                 });
             });
+
+            container.querySelectorAll('button[data-role]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setRole(btn.getAttribute('data-id'), btn.getAttribute('data-role'), btn.getAttribute('data-on') !== 'true');
+                });
+            });
         }
 
+        let usersData = {};
         async function load() {
             try {
                 const snap = await get(ref(db, 'users'));
-                render(snap.exists() ? snap.val() : {});
+                usersData = snap.exists() ? snap.val() : {};
+                render(usersData);
             } catch (e) {
                 console.error('사용자 로드 오류:', e);
                 document.getElementById('usersContainer').innerHTML =
@@ -248,6 +270,27 @@
             } catch (e) {
                 console.error('삭제 오류:', e);
                 alert('삭제 실패: ' + e.message);
+            }
+        }
+
+        async function setRole(id, area, on) {
+            const field = area === 'duty' ? 'dutyAdmin' : 'materialAdmin';
+            const areaLabel = area === 'duty' ? '사역표' : '자재소모';
+            if (on && !confirm(`'${id}' 님을 ${areaLabel} 부관리자로 지정할까요?\n(기존 ${areaLabel} 담당자는 자동 해제됩니다)`)) return;
+            try {
+                const updates = {};
+                if (on) {
+                    // 영역당 딱 한 명: 대상만 true, 나머지 전원 false
+                    Object.keys(usersData).forEach(uid => { updates[uid + '/' + field] = (uid === id); });
+                } else {
+                    updates[id + '/' + field] = false;
+                }
+                await update(ref(db, 'users'), updates);
+                await recordLog('ADMIN_SET_ROLE', { target: id, area, on });
+                load();
+            } catch (e) {
+                console.error('부관리자 지정 오류:', e);
+                alert('부관리자 지정 실패: ' + e.message);
             }
         }
 
