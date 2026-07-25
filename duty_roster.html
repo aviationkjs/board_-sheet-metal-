@@ -188,6 +188,25 @@
             padding: 30px;
             color: #888;
         }
+        .hist-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+        .reset-btn {
+            background: #fde8e6;
+            color: #c0392b;
+            border: 1px solid #f0b7b1;
+            padding: 7px 13px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .reset-btn:hover {
+            background: #f9d2ce;
+        }
     </style>
 </head>
 <body>
@@ -228,7 +247,10 @@
             <button id="addMemberBtn">+ 인원 추가</button>
         </div>
 
-        <h2>최근 이력</h2>
+        <div class="hist-head">
+            <h2 style="margin-bottom:15px;">최근 이력</h2>
+            <button id="resetDutyBtn" class="reset-btn" style="display:none;">🗑 이력·기록 초기화</button>
+        </div>
         <div class="history-list" id="historyList">
             <div class="empty">이력이 없습니다.</div>
         </div>
@@ -473,6 +495,22 @@
             await set(dutyMembersRef, updated);
             await recordHistory("DUTY_ADD", name);
             input.value = "";
+        };
+
+        // 이력·수행기록 초기화: 주관리자(admin)만. 되돌릴 수 없음.
+        const resetDutyBtn = document.getElementById("resetDutyBtn");
+        resetDutyBtn.style.display = isMainAdmin ? "" : "none";
+        resetDutyBtn.onclick = async () => {
+            if (!isMainAdmin) return;
+            if (!confirm("최근 이력을 삭제하고, 모든 인원의 수행 카운터·최근 수행일을 초기화할까요?\n(인원 명단은 유지됩니다. 되돌릴 수 없습니다.)")) return;
+            try {
+                const cleared = members.map(m => ({ name: m.name, lastDone: null, served: 0 }));
+                await update(dutyRef, { members: cleared, currentIndex: 0 });
+                await set(dutyHistoryRef, null);
+            } catch (e) {
+                console.error("초기화 오류:", e);
+                alert("초기화 실패: " + e.message);
+            }
         };
 
         onValue(dutyRef, (snap) => {

@@ -84,8 +84,12 @@
   .empty .ico{font-size:38px;opacity:.5} .empty p{margin-top:12px;font-size:14px} .empty span{color:var(--amber)}
 
   .hist{margin-top:26px}
+  .hist-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
   .hist h3{font-size:13px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;
-    letter-spacing:.08em;margin-bottom:10px}
+    letter-spacing:.08em}
+  .hist-reset{background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger);
+    font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:.04em}
+  .hist-reset:hover{background:#4a2320}
   .hist-list{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 16px}
   .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
   .hist-item:last-child{border-bottom:none}
@@ -149,7 +153,10 @@
   </div>
 
   <div class="hist">
-    <h3>최근 소모 이력 (승인·감산)</h3>
+    <div class="hist-head">
+      <h3>최근 소모 이력 (승인·감산)</h3>
+      <button id="resetHistBtn" class="hist-reset" style="display:none;">🗑 이력 초기화</button>
+    </div>
     <div class="hist-list"><div id="histBody" class="hist-empty">이력이 없습니다.</div></div>
   </div>
 </div>
@@ -427,6 +434,19 @@ document.getElementById("mSave").onclick = async ()=>{
     await recordLog("MATERIAL_ADD_ITEM", { stockNo, partNo, qty });
     overlay.classList.remove("open");
   }catch(e){ console.error("항목 추가 오류:", e); alert("추가 실패: "+e.message); }
+};
+
+/* ---- 소모 이력 초기화: 주관리자(admin)만. 되돌릴 수 없음. ---- */
+const resetHistBtn = document.getElementById("resetHistBtn");
+if (username === "admin") resetHistBtn.style.display = "";
+resetHistBtn.onclick = async () => {
+  if (username !== "admin") return;
+  const n = Object.keys(historyData).length;
+  if (!confirm(`최근 소모 이력 ${n}건을 모두 삭제할까요?\n(등록 항목·대기 소모는 유지됩니다. 되돌릴 수 없습니다.)`)) return;
+  try {
+    await remove(ref(db, `${MC}/history`));
+    await recordLog("MATERIAL_RESET_HISTORY", { cleared: n });
+  } catch(e){ console.error("이력 초기화 오류:", e); alert("초기화 실패: "+e.message); }
 };
 
 /* ---- 실시간 리스너 ---- */
