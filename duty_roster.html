@@ -215,6 +215,7 @@
                         <th>이름</th>
                         <th>최근 수행일</th>
                         <th>상태</th>
+                        <th id="balanceColHead" style="display:none;" title="수행 횟수 / 보정(+는 초과 수행)">보정</th>
                         <th id="adminColHead" style="display:none;">관리</th>
                     </tr>
                 </thead>
@@ -281,6 +282,29 @@
             return new Date(ts).toLocaleDateString('ko-KR');
         }
 
+        // 각 인원의 누적 수행 횟수(숨김값). 기존 데이터 호환: 없으면 0.
+        function servedOf(m) {
+            return (m && typeof m.served === "number") ? m.served : 0;
+        }
+
+        function minServed(list) {
+            return list.length ? Math.min(...list.map(servedOf)) : 0;
+        }
+
+        // 다음 순번 = 수행 횟수가 가장 적은 사람.
+        // 동점은 fromIndex 바로 다음부터 앞으로 순회해 첫 번째를 선택 →
+        // 모두 동점이면 기존 "한 칸 전진(+1)"과 동일하게 동작한다.
+        function pickNextIndex(list, fromIndex) {
+            const n = list.length;
+            if (!n) return 0;
+            const min = minServed(list);
+            for (let step = 1; step <= n; step++) {
+                const idx = (fromIndex + step) % n;
+                if (servedOf(list[idx]) === min) return idx;
+            }
+            return (fromIndex + 1) % n;
+        }
+
         async function recordHistory(action, target) {
             await push(dutyHistoryRef, {
                 user: username,
@@ -325,15 +349,18 @@
                 ? "이번 순번 당사자 또는 관리자만 완료할 수 있습니다"
                 : "";
 
+            document.getElementById("balanceColHead").style.display = canManage ? "" : "none";
             document.getElementById("adminColHead").style.display = canManage ? "" : "none";
             document.getElementById("adminAddForm").style.display = canManage ? "flex" : "none";
 
             const body = document.getElementById("rosterBody");
             if (!members.length) {
-                body.innerHTML = `<tr><td colspan="5" class="empty">등록된 인원이 없습니다.</td></tr>`;
+                body.innerHTML = `<tr><td colspan="6" class="empty">등록된 인원이 없습니다.</td></tr>`;
                 return;
             }
 
+            // 관리자 전용 보정 표시: 가장 적게 한 사람 기준 초과 수행량(+n) / 최소자는 0
+            const base = minServed(members);
             body.innerHTML = members.map((m, i) => `
                 <tr class="${i === currentIndex ? 'current-row' : ''}">
                     <td>${i + 1}</td>
@@ -342,6 +369,7 @@
                     <td>${i === currentIndex
                         ? '<span class="status-badge status-current">진행중</span>'
                         : '<span class="status-waiting">대기중</span>'}</td>
+                    ${canManage ? `<td title="누적 수행 ${servedOf(m)}회">${servedOf(m)}회 (${servedOf(m) - base > 0 ? '+' : ''}${servedOf(m) - base})</td>` : ''}
                     <td class="row-actions">
                         ${canManage ? `
                             <button data-act="up" data-i="${i}" title="위로">↑</button>
@@ -424,8 +452,13 @@
             const doneName = members[currentIndex].name;
             const note = prompt(`${doneName}님, 무슨 사역을 했나요?`, "") || "";
             const updated = [...members];
-            updated[currentIndex] = { ...updated[currentIndex], lastDone: Date.now() };
-            const nextIndex = (currentIndex + 1) % updated.length;
+            updated[currentIndex] = {
+                ...updated[currentIndex],
+                lastDone: Date.now(),
+                served: servedOf(updated[currentIndex]) + 1
+            };
+            // 가장 적게 수행한 사람을 다음 순번으로 → 강제지정으로 건너뛴 사람이 자동 보정됨
+            const nextIndex = pickNextIndex(updated, currentIndex);
             await update(dutyRef, { members: updated, currentIndex: nextIndex });
             await recordCompletion(doneName, note);
         };
@@ -435,7 +468,8 @@
             const input = document.getElementById("newMemberInput");
             const name = input.value.trim();
             if (!name) return;
-            const updated = [...members, { name, lastDone: null }];
+            // 신규 인원은 현재 그룹 최소 수행 횟수로 시드 → 새 사람만 몰려서 걸리지 않게
+            const updated = [...members, { name, lastDone: null, served: minServed(members) }];
             await set(dutyMembersRef, updated);
             await recordHistory("DUTY_ADD", name);
             input.value = "";
