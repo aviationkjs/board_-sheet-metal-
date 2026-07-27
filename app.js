@@ -86,18 +86,30 @@ function colorFromName(name) {
   return `hsl(${hue}, 70%, 80%)`;
 }
 
-/* 스티커 추가 */
-window.addNote = () => {
-  push(notesRef, {
-    user: username,
-    text: "",
-    vote: 0,
-    voters: {},
-    pin: false,
-    createdAt: Date.now()
-  }).then((newNoteRef) => {
+/* 스티커 추가 (한 명당 최대 2개) */
+const MAX_NOTES_PER_USER = 2;
+window.addNote = async () => {
+  try {
+    const snap = await get(notesRef);
+    const data = snap.val() || {};
+    const myCount = Object.values(data).filter(n => n && n.user === username).length;
+    if (myCount >= MAX_NOTES_PER_USER) {
+      alert(`스티커는 한 명당 최대 ${MAX_NOTES_PER_USER}개까지만 만들 수 있습니다.`);
+      return;
+    }
+    const newNoteRef = await push(notesRef, {
+      user: username,
+      text: "",
+      vote: 0,
+      voters: {},
+      pin: false,
+      createdAt: Date.now()
+    });
     recordLog('CREATE_NOTE', { noteId: newNoteRef.key });
-  });
+  } catch (error) {
+    console.error('스티커 추가 오류:', error);
+    alert('스티커 추가 중 오류가 발생했습니다: ' + error.message);
+  }
 };
 
 /* 전체 삭제 (고정된 스티커 제외, 관리자만 가능) */
@@ -160,7 +172,17 @@ window.deleteAll = async () => {
 /* 데이터 로딩 및 표시 */
 onValue(notesRef, (snap) => {
   const data = snap.val();
-  
+
+  // 본인 스티커 개수에 따라 '스티커 추가' 버튼 상태 갱신 (최대 2개)
+  const addNoteBtn = document.getElementById("addNoteBtn");
+  if (addNoteBtn) {
+    const myCount = data ? Object.values(data).filter(n => n && n.user === username).length : 0;
+    const reached = myCount >= MAX_NOTES_PER_USER;
+    addNoteBtn.disabled = reached;
+    addNoteBtn.style.opacity = reached ? "0.5" : "";
+    addNoteBtn.title = reached ? `스티커는 한 명당 최대 ${MAX_NOTES_PER_USER}개까지입니다` : "";
+  }
+
   if (!data) {
     board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px; color: #888;'>스티커가 없습니다.</div>";
     return;
@@ -202,7 +224,7 @@ onValue(notesRef, (snap) => {
       </div>
       <textarea placeholder="내용을 입력하세요...">${n.text || ""}</textarea>
       <div class="note-footer">
-        <div class="vote-badge">👍 ${n.vote || 0}</div>
+        <div class="vote-badge${n.voters && n.voters[username] ? ' voted' : ''}" title="${n.voters && n.voters[username] ? '좋아요 취소' : '좋아요'}">👍 ${n.vote || 0}</div>
       </div>
     `;
     board.appendChild(note);
@@ -228,17 +250,23 @@ onValue(notesRef, (snap) => {
     }
 
     note.querySelector(".vote-badge").onclick = () => {
-      if (n.voters && n.voters[username]) {
-        alert("이미 투표했습니다!");
-        return;
+      // 좋아요는 한 사람당 한 번. 이미 눌렀으면 다시 눌러 취소(토글).
+      const voters = { ...(n.voters || {}) };
+      if (voters[username]) {
+        delete voters[username];
+        update(ref(db, "notes/" + n.id), {
+          vote: Math.max(0, (n.vote || 0) - 1),
+          voters: voters
+        });
+        recordLog('VOTE_CANCEL', { noteId: n.id });
+      } else {
+        voters[username] = true;
+        update(ref(db, "notes/" + n.id), {
+          vote: (n.vote || 0) + 1,
+          voters: voters
+        });
+        recordLog('VOTE', { noteId: n.id });
       }
-      let voters = n.voters || {};
-      voters[username] = true;
-      update(ref(db, "notes/" + n.id), {
-        vote: (n.vote || 0) + 1,
-        voters: voters
-      });
-      recordLog('VOTE', { noteId: n.id });
     };
 
     note.querySelector(".pin-btn").onclick = () => {

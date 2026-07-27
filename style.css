@@ -241,6 +241,13 @@ header {
   transform: scale(0.9);
 }
 
+/* 본인이 좋아요를 누른 상태 */
+.vote-badge.voted {
+  background: #ffd54f;
+  color: #7a5c00;
+  box-shadow: 0 0 0 1px #f0b400 inset;
+}
+
 /* 모바일 2열 유지 */
 @media (max-width: 600px) {
   header {
