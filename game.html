@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전투기 런</title>
+    <link rel="stylesheet" href="game.css">
+    <script type="module" src="game.js"></script>
+</head>
+<body>
+    <header>
+        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
+        <div class="header-title">전투기 런</div>
+        <div id="hud-user"></div>
+    </header>
+
+    <div id="game-container">
+
+        <!-- 시작 화면 -->
+        <section id="screen-start" class="screen active">
+            <h1>전투기 런</h1>
+            <p class="desc">
+                스페이스바(또는 화면 터치)를 <b>누르고 있으면 상승</b>, 떼면 하강합니다.<br>
+                위·아래 경계에 닿으면 잠시 감속 패널티를 받습니다.<br>
+                장애물을 피해 최대한 오래 비행하세요.
+            </p>
+            <div class="leaderboard">
+                <h2>TOP 3</h2>
+                <ol id="leaderboard-start-list"><li>불러오는 중...</li></ol>
+            </div>
+            <div class="btn-row">
+                <button id="btn-start">게임 시작</button>
+                <button class="btn-exit" onclick="location.href='index.html'">🚪 나가기</button>
+            </div>
+        </section>
+
+        <!-- 플레이 화면 -->
+        <section id="screen-play" class="screen">
+            <div id="hud">
+                <span id="hud-score">SCORE: 0</span>
+                <span id="hud-best">BEST: 0</span>
+            </div>
+            <canvas id="game-canvas" width="800" height="400"></canvas>
+            <p class="hint">스페이스바 / 화면을 누르고 있으면 상승</p>
+        </section>
+
+        <!-- 게임오버 화면 -->
+        <section id="screen-over" class="screen">
+            <h1>GAME OVER</h1>
+            <p id="final-score">최종 점수: 0</p>
+            <p id="new-record" class="hidden">🎉 TOP 3 진입!</p>
+            <div class="leaderboard">
+                <h2>TOP 3</h2>
+                <ol id="leaderboard-over-list"><li>불러오는 중...</li></ol>
+            </div>
+            <div class="btn-row">
+                <button id="btn-restart">다시 하기</button>
+                <button class="btn-exit" onclick="location.href='index.html'">🚪 보드로 나가기</button>
+            </div>
+        </section>
+
+    </div>
+</body>
+</html>

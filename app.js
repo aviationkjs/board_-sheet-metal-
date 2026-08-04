@@ -308,6 +308,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const logsBtn = document.getElementById("logsBtn");
   const huckViewBtn = document.getElementById("huckViewBtn");
   const dutyViewBtn = document.getElementById("dutyViewBtn");
+  const gameBtn = document.getElementById("gameBtn");
   const logoutBtnEl = document.getElementById("logoutBtn");
 
   if (addNoteBtn) addNoteBtn.onclick = window.addNote;
@@ -326,6 +327,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (dutyViewBtn) {
     dutyViewBtn.onclick = () => {
       window.location.href = "duty_roster.html";
+    };
+  }
+  if (gameBtn) {
+    gameBtn.onclick = () => {
+      window.location.href = "game.html";
     };
   }
 
