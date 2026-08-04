@@ -188,6 +188,22 @@
             padding: 30px;
             color: #888;
         }
+        .more-btn {
+            display: block;
+            width: 100%;
+            margin: 10px 0;
+            padding: 10px;
+            background: #f4f7f9;
+            color: #5f6c76;
+            border: 1px solid #e3e9ee;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .more-btn:hover {
+            background: #e9eff4;
+        }
         .hist-head {
             display: flex;
             align-items: center;
@@ -385,28 +401,16 @@
             });
         }
 
-        // 완료 처리 이력은 사람별로 최근 1건만 남기고 이전 기록은 삭제한다
+        // 완료 처리 이력은 사람별로 전부 누적 보관한다(자동 삭제 없음).
+        // 전체 삭제는 주관리자의 "이력·기록 초기화"로만 가능.
         async function recordCompletion(target, note) {
-            const newEntryRef = await push(dutyHistoryRef, {
+            await push(dutyHistoryRef, {
                 user: username,
                 action: "DUTY_COMPLETE",
                 target: target,
                 note: note,
                 timestamp: Date.now()
             });
-
-            const snap = await get(dutyHistoryRef);
-            const data = snap.val() || {};
-            const toDelete = {};
-            for (const key in data) {
-                const entry = data[key];
-                if (key !== newEntryRef.key && entry.action === "DUTY_COMPLETE" && entry.target === target) {
-                    toDelete[key] = null;
-                }
-            }
-            if (Object.keys(toDelete).length) {
-                await update(dutyHistoryRef, toDelete);
-            }
         }
 
         function render() {
@@ -462,8 +466,9 @@
         // 최근 이력(전체, 최신순). 필터는 화면 단에서만 적용한다.
         let historyEntries = [];
         let historyNameFilter = "";
-        const HISTORY_LIMIT_ALL = 10;
-        const HISTORY_LIMIT_FILTERED = 50;
+        // 이력이 계속 쌓이므로 기본은 최근 10건만 보여주고 "더 보기"로 늘린다
+        const HISTORY_PAGE = 10;
+        let historyLimit = HISTORY_PAGE;
 
         const actionText = {
             DUTY_COMPLETE: h => h.note ? `${h.target} 완료 처리 — ${h.note}` : `${h.target} 완료 처리`,
@@ -507,8 +512,7 @@
             const filtered = historyNameFilter
                 ? historyEntries.filter(h => h.target === historyNameFilter || h.user === historyNameFilter)
                 : historyEntries;
-            const limit = historyNameFilter ? HISTORY_LIMIT_FILTERED : HISTORY_LIMIT_ALL;
-            const shown = filtered.slice(0, limit);
+            const shown = filtered.slice(0, historyLimit);
 
             count.textContent = !filtered.length
                 ? ""
@@ -523,12 +527,21 @@
                 return;
             }
 
+            const rest = filtered.length - shown.length;
             list.innerHTML = shown.map(h => `
                 <div class="history-item">
                     <span><b>${h.user}</b> — ${(actionText[h.action] || (hh => hh.action))(h)}</span>
                     <span class="ts">${new Date(h.timestamp).toLocaleString('ko-KR')}</span>
                 </div>
-            `).join("");
+            `).join("") + (rest > 0
+                ? `<button type="button" id="moreHistoryBtn" class="more-btn">더 보기 (${rest}건 남음)</button>`
+                : "");
+
+            const moreBtn = document.getElementById("moreHistoryBtn");
+            if (moreBtn) moreBtn.onclick = () => {
+                historyLimit += HISTORY_PAGE;
+                renderHistoryList();
+            };
         }
 
         function renderHistory(historyData) {
@@ -539,17 +552,15 @@
             renderHistoryList();
         }
 
-        document.getElementById("historyNameFilter").onchange = (e) => {
-            historyNameFilter = e.target.value;
+        function applyHistoryFilter(name) {
+            historyNameFilter = name;
+            historyLimit = HISTORY_PAGE;   // 필터가 바뀌면 다시 최근 10건부터
             syncHistoryFilterOptions();
             renderHistoryList();
-        };
+        }
 
-        document.getElementById("clearHistoryFilter").onclick = () => {
-            historyNameFilter = "";
-            syncHistoryFilterOptions();
-            renderHistoryList();
-        };
+        document.getElementById("historyNameFilter").onchange = (e) => applyHistoryFilter(e.target.value);
+        document.getElementById("clearHistoryFilter").onclick = () => applyHistoryFilter("");
 
         async function handleRowAction(act, i) {
             if (!canManage) return;
