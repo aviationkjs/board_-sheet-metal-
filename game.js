@@ -126,13 +126,24 @@ const GROUND_MARGIN = 0; // 상/하단 경계는 캔버스 끝까지 사용
 const JET = {
   x: 80,
   y: H / 2,
-  w: 48,
-  h: 24,
+  w: 56,
+  h: 20,            // jet.png 비율(약 2.8:1)에 맞춘 크기
   vy: 0,
   lift: -0.55,      // 키를 누르고 있을 때 위로 받는 가속도
   gravity: 0.35,    // 기본 중력
   maxVy: 8,
 };
+
+// 전투기 이미지 (기수가 오른쪽을 향하도록 좌우 반전해 둔 스프라이트)
+const jetImg = new Image();
+let jetImgReady = false;
+jetImg.onload = () => { jetImgReady = true; };
+jetImg.src = "jet.png";
+
+// 충돌 판정은 스프라이트보다 살짝 작게 (날개 여백 보정)
+function jetHitbox() {
+  return { x: JET.x + 5, y: JET.y + 3, w: JET.w - 10, h: JET.h - 6 };
+}
 
 const INITIAL_SPEED = 4;
 
@@ -248,7 +259,7 @@ function update() {
   }
 
   // 장애물 이동 및 충돌 판정
-  const jetBox = { x: JET.x, y: JET.y, w: JET.w, h: JET.h };
+  const jetBox = jetHitbox();
   let crashed = false;
   obstacles.forEach((o) => {
     o.x -= scrollSpeed;
@@ -286,21 +297,25 @@ function draw() {
   if (isHolding) {
     ctx.fillStyle = "#ff9f43";
     ctx.beginPath();
-    ctx.moveTo(JET.x, JET.y + JET.h * 0.3);
-    ctx.lineTo(JET.x - 14 - Math.random() * 8, JET.y + JET.h / 2);
-    ctx.lineTo(JET.x, JET.y + JET.h * 0.7);
+    ctx.moveTo(JET.x + 2, JET.y + JET.h * 0.32);
+    ctx.lineTo(JET.x - 14 - Math.random() * 8, JET.y + JET.h * 0.5);
+    ctx.lineTo(JET.x + 2, JET.y + JET.h * 0.62);
     ctx.closePath();
     ctx.fill();
   }
 
-  // 전투기 (기수는 진행 방향인 오른쪽을 향함)
-  ctx.fillStyle = "#6fb3ff";
-  ctx.beginPath();
-  ctx.moveTo(JET.x + JET.w, JET.y + JET.h / 2);
-  ctx.lineTo(JET.x, JET.y);
-  ctx.lineTo(JET.x, JET.y + JET.h);
-  ctx.closePath();
-  ctx.fill();
+  // 전투기 (이미지 로딩 전에는 삼각형으로 대체 표시)
+  if (jetImgReady) {
+    ctx.drawImage(jetImg, JET.x, JET.y, JET.w, JET.h);
+  } else {
+    ctx.fillStyle = "#6fb3ff";
+    ctx.beginPath();
+    ctx.moveTo(JET.x + JET.w, JET.y + JET.h / 2);
+    ctx.lineTo(JET.x, JET.y);
+    ctx.lineTo(JET.x, JET.y + JET.h);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // 장애물
   obstacles.forEach((o) => {
