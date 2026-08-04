@@ -193,6 +193,46 @@
             align-items: center;
             justify-content: space-between;
             gap: 10px;
+            flex-wrap: wrap;
+        }
+        .hist-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        .hist-filter label {
+            font-size: 13px;
+            color: #5f6c76;
+            font-weight: bold;
+        }
+        .hist-filter select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            min-width: 140px;
+        }
+        .hist-filter .clear-filter {
+            padding: 7px 13px;
+            background: #eef2f5;
+            color: #5f6c76;
+            border: 1px solid #dde3e8;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .hist-filter .clear-filter:hover {
+            background: #e2e8ed;
+        }
+        .hist-count {
+            font-size: 12px;
+            color: #888;
+            margin-left: auto;
         }
         .reset-btn {
             background: #fde8e6;
@@ -250,6 +290,15 @@
         <div class="hist-head">
             <h2 style="margin-bottom:15px;">최근 이력</h2>
             <button id="resetDutyBtn" class="reset-btn" style="display:none;">🗑 이력·기록 초기화</button>
+        </div>
+        <!-- 최근 이력은 권한과 무관하게 모든 사용자에게 공개되며, 이름으로 필터할 수 있다 -->
+        <div class="hist-filter">
+            <label for="historyNameFilter">이름 필터</label>
+            <select id="historyNameFilter">
+                <option value="">전체</option>
+            </select>
+            <button type="button" id="clearHistoryFilter" class="clear-filter" style="display:none;">필터 해제</button>
+            <span class="hist-count" id="historyCount"></span>
         </div>
         <div class="history-list" id="historyList">
             <div class="empty">이력이 없습니다.</div>
@@ -410,28 +459,97 @@
             }
         }
 
-        function renderHistory(historyData) {
+        // 최근 이력(전체, 최신순). 필터는 화면 단에서만 적용한다.
+        let historyEntries = [];
+        let historyNameFilter = "";
+        const HISTORY_LIMIT_ALL = 10;
+        const HISTORY_LIMIT_FILTERED = 50;
+
+        const actionText = {
+            DUTY_COMPLETE: h => h.note ? `${h.target} 완료 처리 — ${h.note}` : `${h.target} 완료 처리`,
+            DUTY_JUMP: h => `${h.target}(으)로 순번 지정`,
+            DUTY_ADD: h => `${h.target} 추가`,
+            DUTY_REMOVE: h => `${h.target} 삭제`
+        };
+
+        // 이력에 등장하는 이름(수행자·처리자) + 현재 명단을 합쳐 필터 후보를 만든다
+        function historyNameOptions() {
+            const names = new Set();
+            members.forEach(m => m?.name && names.add(m.name));
+            historyEntries.forEach(h => {
+                if (h.target) names.add(h.target);
+                if (h.user) names.add(h.user);
+            });
+            // 선택 중인 이름은 명단에서 빠져도 목록에 남겨 필터가 풀리지 않게 한다
+            if (historyNameFilter) names.add(historyNameFilter);
+            return [...names].sort((a, b) => a.localeCompare(b, 'ko'));
+        }
+
+        function syncHistoryFilterOptions() {
+            const select = document.getElementById("historyNameFilter");
+            const options = historyNameOptions();
+            const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            const markup = `<option value="">전체</option>` +
+                options.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join("");
+            if (select.dataset.options !== options.join(" ")) {
+                select.innerHTML = markup;
+                select.dataset.options = options.join(" ");
+            }
+            select.value = historyNameFilter;
+            document.getElementById("clearHistoryFilter").style.display =
+                historyNameFilter ? "" : "none";
+        }
+
+        function renderHistoryList() {
             const list = document.getElementById("historyList");
-            if (!historyData) {
-                list.innerHTML = `<div class="empty">이력이 없습니다.</div>`;
+            const count = document.getElementById("historyCount");
+            const filtered = historyNameFilter
+                ? historyEntries.filter(h => h.target === historyNameFilter || h.user === historyNameFilter)
+                : historyEntries;
+            const limit = historyNameFilter ? HISTORY_LIMIT_FILTERED : HISTORY_LIMIT_ALL;
+            const shown = filtered.slice(0, limit);
+
+            count.textContent = !filtered.length
+                ? ""
+                : (shown.length < filtered.length
+                    ? `${filtered.length}건 중 최근 ${shown.length}건`
+                    : `총 ${filtered.length}건`);
+
+            if (!shown.length) {
+                list.innerHTML = historyNameFilter
+                    ? `<div class="empty">${historyNameFilter}님의 이력이 없습니다.</div>`
+                    : `<div class="empty">이력이 없습니다.</div>`;
                 return;
             }
-            const actionText = {
-                DUTY_COMPLETE: h => h.note ? `${h.target} 완료 처리 — ${h.note}` : `${h.target} 완료 처리`,
-                DUTY_JUMP: h => `${h.target}(으)로 순번 지정`,
-                DUTY_ADD: h => `${h.target} 추가`,
-                DUTY_REMOVE: h => `${h.target} 삭제`
-            };
-            const entries = Object.values(historyData)
-                .sort((a, b) => b.timestamp - a.timestamp)
-                .slice(0, 10);
-            list.innerHTML = entries.map(h => `
+
+            list.innerHTML = shown.map(h => `
                 <div class="history-item">
                     <span><b>${h.user}</b> — ${(actionText[h.action] || (hh => hh.action))(h)}</span>
                     <span class="ts">${new Date(h.timestamp).toLocaleString('ko-KR')}</span>
                 </div>
             `).join("");
         }
+
+        function renderHistory(historyData) {
+            historyEntries = Object.values(historyData || {})
+                .filter(h => h && h.timestamp)
+                .sort((a, b) => b.timestamp - a.timestamp);
+            syncHistoryFilterOptions();
+            renderHistoryList();
+        }
+
+        document.getElementById("historyNameFilter").onchange = (e) => {
+            historyNameFilter = e.target.value;
+            syncHistoryFilterOptions();
+            renderHistoryList();
+        };
+
+        document.getElementById("clearHistoryFilter").onclick = () => {
+            historyNameFilter = "";
+            syncHistoryFilterOptions();
+            renderHistoryList();
+        };
 
         async function handleRowAction(act, i) {
             if (!canManage) return;
