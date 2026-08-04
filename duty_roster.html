@@ -142,6 +142,27 @@
         .row-actions button:hover {
             background: rgba(0,0,0,0.1);
         }
+        .served-cell {
+            white-space: nowrap;
+        }
+        .served-cell .delta {
+            color: #8a949c;
+            font-size: 12px;
+        }
+        .edit-served {
+            border: none;
+            background: rgba(0,0,0,0.05);
+            border-radius: 6px;
+            width: 26px;
+            height: 26px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-left: 4px;
+            vertical-align: middle;
+        }
+        .edit-served:hover {
+            background: rgba(0,0,0,0.1);
+        }
         .add-form {
             display: flex;
             gap: 8px;
@@ -290,7 +311,7 @@
                         <th>이름</th>
                         <th>최근 수행일</th>
                         <th>상태</th>
-                        <th id="balanceColHead" style="display:none;" title="수행 횟수 / 보정(+는 초과 수행)">보정</th>
+                        <th id="balanceColHead" style="display:none;" title="완료 처리로만 누적되는 횟수입니다. 인원 추가·삭제는 이 값을 바꾸지 않습니다.&#10;괄호 안은 최소 수행자 대비 차이(+는 초과 수행)이며, ✏️로 직접 수정할 수 있습니다.">완료 횟수</th>
                         <th id="adminColHead" style="display:none;">관리</th>
                     </tr>
                 </thead>
@@ -434,7 +455,11 @@
                 return;
             }
 
-            // 관리자 전용 보정 표시: 가장 적게 한 사람 기준 초과 수행량(+n) / 최소자는 0
+            // 관리자 전용 보정 표시.
+            // 완료 횟수(served)는 오직 "완료 → 다음 순번"으로만 +1 되며,
+            // 인원 추가·삭제·순서 변경은 이 값을 건드리지 않는다.
+            // 괄호 안 (+n)은 값 자체가 아니라 "현재 최소 수행자 대비 차이"라서,
+            // 인원이 빠져 최소 기준이 바뀌면 함께 움직인다.
             const base = minServed(members);
             body.innerHTML = members.map((m, i) => `
                 <tr class="${i === currentIndex ? 'current-row' : ''}">
@@ -444,7 +469,11 @@
                     <td>${i === currentIndex
                         ? '<span class="status-badge status-current">진행중</span>'
                         : '<span class="status-waiting">대기중</span>'}</td>
-                    ${canManage ? `<td title="누적 수행 ${servedOf(m)}회">${servedOf(m)}회 (${servedOf(m) - base > 0 ? '+' : ''}${servedOf(m) - base})</td>` : ''}
+                    ${canManage ? `<td class="served-cell" title="완료 처리로만 누적됩니다 (인원 추가·삭제는 영향 없음)&#10;괄호 안은 최소 수행자 대비 차이">
+                        <b>${servedOf(m)}</b>회
+                        <span class="delta">(${servedOf(m) - base > 0 ? '+' : ''}${servedOf(m) - base})</span>
+                        <button data-act="setServed" data-i="${i}" class="edit-served" title="완료 횟수 직접 수정">✏️</button>
+                    </td>` : ''}
                     <td class="row-actions">
                         ${canManage ? `
                             <button data-act="up" data-i="${i}" title="위로">↑</button>
@@ -581,6 +610,22 @@
                 if (!confirm(`${members[i].name}님 차례로 지정할까요?`)) return;
                 await update(dutyRef, { currentIndex: i });
                 await recordHistory("DUTY_JUMP", members[i].name);
+            } else if (act === "setServed") {
+                // 관리자 보정값 직접 수정. 요청에 따라 이력은 남기지 않는다.
+                const target = members[i];
+                const input = prompt(
+                    `${target.name}님의 완료 횟수를 입력하세요.\n(숫자가 작을수록 순번이 먼저 옵니다)`,
+                    String(servedOf(target))
+                );
+                if (input === null) return;
+                const value = Number(input.trim());
+                if (!Number.isInteger(value) || value < 0) {
+                    alert("0 이상의 정수만 입력할 수 있습니다.");
+                    return;
+                }
+                if (value === servedOf(target)) return;
+                const updated = members.map((m, idx) => idx === i ? { ...m, served: value } : m);
+                await update(dutyRef, { members: updated });
             }
         }
 
