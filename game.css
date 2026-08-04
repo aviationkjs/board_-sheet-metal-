@@ -117,13 +117,14 @@ button:hover { background: #1f57c9; }
 }
 #hud-best { color: #ffd54f; }
 
+/* 캔버스는 컨테이너 폭에 맞춰 늘어나고, 높이는 화면에 맞춰 제한된다 */
 #game-canvas {
   background: linear-gradient(#1b2c47, #0b1622);
   border: 2px solid #2f6fed;
   border-radius: 8px;
-  width: 800px;
-  max-width: 100%;
-  height: auto;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  max-height: calc(100dvh - 230px);
   touch-action: none;
   display: block;
   margin: 0 auto;
@@ -133,12 +134,29 @@ button:hover { background: #1f57c9; }
 #new-record { color: #ffd54f; font-weight: bold; margin: 8px 0; }
 #final-score { font-size: 1.2rem; }
 
-@media (max-width: 600px) {
+@media (max-width: 700px) {
   header { padding: 12px 10px; }
   .back-btn { padding: 6px 10px; font-size: 12px; }
   .header-title { font-size: 14px; }
   #hud-user { font-size: 12px; min-width: 0; }
   #game-container { padding: 16px 10px 30px; }
   h1 { font-size: 1.5rem; }
+  .desc { font-size: 0.85rem; }
   button { padding: 10px 18px; font-size: 0.9rem; }
+  /* 세로 화면에서는 위아래 여유가 있어야 조작이 가능하다 */
+  #game-canvas { aspect-ratio: 3 / 2; max-height: calc(100dvh - 190px); }
+  #hud { font-size: 0.95rem; }
+  .hint { font-size: 0.78rem; }
+}
+
+/* 가로로 눕힌 모바일: 캔버스가 화면 높이를 넘지 않도록 */
+@media (max-height: 500px) and (orientation: landscape) {
+  header { padding: 8px 10px; }
+  #game-container { padding: 8px 10px 12px; }
+  #game-canvas {
+    aspect-ratio: auto;
+    height: calc(100dvh - 120px);
+    max-height: none;
+  }
+  .hint { display: none; }
 }
