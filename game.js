@@ -146,6 +146,7 @@ function jetHitbox() {
 }
 
 const INITIAL_SPEED = 4;
+const BOUNDARY_SPEED_UP = 1.8; // 경계에 닿았을 때 속도 배율(패널티)
 
 let obstacles = [];
 let clouds = [];
@@ -156,7 +157,7 @@ let distance = 0;
 let isHolding = false;
 let gameOver = false;
 let running = false;
-let penaltyTimer = 0; // 경계 충돌 감속 패널티 지속 프레임
+let penaltyTimer = 0; // 경계 충돌 가속 패널티 지속 프레임
 let rafId = null;
 let spawnTimer = 0;
 let spawnInterval = 90; // 프레임 단위, 랜덤하게 변동
@@ -224,7 +225,7 @@ function update() {
   JET.vy = Math.max(-JET.maxVy, Math.min(JET.maxVy, JET.vy));
   JET.y += JET.vy;
 
-  // 경계 충돌 -> 감속 패널티 (게임오버 아님)
+  // 경계 충돌 -> 가속 패널티 (게임오버 아님, 속도가 빨라져 더 어려워짐)
   let hitBoundary = false;
   if (JET.y < GROUND_MARGIN) {
     JET.y = GROUND_MARGIN;
@@ -236,9 +237,9 @@ function update() {
     hitBoundary = true;
   }
   if (hitBoundary) {
-    penaltyTimer = 45; // 약 0.75초(60fps 기준) 동안 감속 패널티
+    penaltyTimer = 45; // 약 0.75초(60fps 기준) 동안 가속 패널티
   }
-  scrollSpeed = penaltyTimer > 0 ? baseScrollSpeed * 0.4 : baseScrollSpeed;
+  scrollSpeed = penaltyTimer > 0 ? baseScrollSpeed * BOUNDARY_SPEED_UP : baseScrollSpeed;
   if (penaltyTimer > 0) penaltyTimer--;
 
   // 배경 구름 스크롤
