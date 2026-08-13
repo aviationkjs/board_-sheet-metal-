@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>균등분할 계산기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16181c; --panel:#1e2127; --panel-2:#23272f; --line:#2c3038; --line-2:#363b45;
+    --text:#e6e8ec; --muted:#8b909a; --amber:#ffb020; --amber-dim:#3a2f14;
+    --danger:#ff5a52; --danger-dim:#3a1c1a; --ok:#4ade80; --ok-dim:#16301f;
+    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+  .statusbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    position:sticky;top:0;z-index:20}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .statusbar .sys{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .statusbar .sys b{color:var(--text);font-weight:600}
+  .statusbar .clock{margin-left:auto;color:var(--amber)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 64px}
+  .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+  .back{background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
+    font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
+  .back:hover{color:var(--text);border-color:var(--line-2)}
+  .toolbar h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .unit-toggle{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .unit-toggle button{background:var(--panel);border:none;color:var(--muted);font-family:var(--mono);
+    font-size:12px;padding:9px 16px;cursor:pointer}
+  .unit-toggle button.on{background:var(--amber);color:#1a1400;font-weight:600}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .panel h3{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);
+    text-transform:uppercase;margin-bottom:12px;font-weight:500}
+
+  .inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .field label .opt{color:var(--line-2)}
+  .field input,.field select{width:100%;background:var(--panel-2);border:1px solid var(--line);
+    color:var(--text);font-family:var(--mono);font-size:16px;padding:10px 12px;border-radius:8px;outline:none}
+  .field input:focus,.field select:focus{border-color:var(--amber)}
+
+  .modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .modes label{display:flex;align-items:center;gap:7px;background:var(--panel-2);border:1px solid var(--line);
+    padding:9px 13px;border-radius:8px;font-size:13px;cursor:pointer;color:var(--muted)}
+  .modes label.on{border-color:var(--amber);color:var(--text)}
+  .modes input{accent-color:var(--amber);margin:0}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card .k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .card .v{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.25;margin-top:6px}
+  .card .s{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .card.hi{border-color:var(--amber)} .card.hi .v{color:var(--amber)}
+
+  .alerts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .alert{font-size:13px;padding:10px 13px;border-radius:8px;border:1px solid}
+  .alert.warn{background:var(--amber-dim);color:var(--amber);border-color:#5a4a1e}
+  .alert.err{background:var(--danger-dim);color:var(--danger);border-color:#5a2a26}
+
+  .ruler-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .ruler-wrap svg{display:block;height:auto}
+  .cap{font-family:var(--mono);font-size:14px;text-align:center;margin-top:12px;line-height:1.6}
+  .cap b{color:var(--amber);font-weight:600}
+  .hint{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px}
+  .hint .sw{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:420px}
+  thead th{background:var(--panel-2);text-align:left;padding:10px 12px;font-family:var(--mono);
+    font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    border-bottom:1px solid var(--line);white-space:nowrap}
+  tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);white-space:nowrap}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr.inner td.c-no{color:var(--amber)}
+  tbody tr.end{color:var(--muted)}
+  td.c-no{text-align:center;width:46px}
+
+  .row-head{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+  .row-head h3{margin:0}
+  .btn-copy{margin-left:auto;background:var(--panel-2);border:1px solid var(--line);color:var(--muted);
+    font-family:var(--mono);font-size:12px;padding:8px 13px;border-radius:8px;cursor:pointer}
+  .btn-copy:hover{color:var(--text);border-color:var(--line-2)}
+
+  .empty{font-size:14px;color:var(--muted);padding:26px 4px;text-align:center;font-family:var(--mono)}
+
+  @media (max-width:600px){
+    .wrap{padding:16px 10px 48px}
+    .toolbar h2{font-size:17px;width:100%;order:3}
+    .unit-toggle{margin-left:auto}
+    .card{padding:12px 13px}
+    .card .v{font-size:24px}
+    .inputs{grid-template-columns:repeat(2,1fr)}
+    .panel{padding:13px}
+    .cap{font-size:13px}
+    table{min-width:330px}
+    thead th:nth-child(5),tbody td:nth-child(5){display:none}  /* 구분은 번호 색으로 구별 */
+  }
+</style>
+</head>
+<body>
+
+<div class="statusbar">
+  <span class="dot"></span>
+  <span class="sys">SYSTEM · <b>균등분할 계산기</b></span>
+  <span class="clock" id="clock">--:--:--</span>
+</div>
+
+<div class="wrap">
+  <div class="toolbar">
+    <a class="back" href="index.html">← 스티커 보드로</a>
+    <h2>균등분할 계산기</h2>
+    <div class="unit-toggle">
+      <button id="uIn" class="on">inch</button>
+      <button id="uMm">mm</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>입력</h3>
+    <div class="inputs">
+      <div class="field">
+        <label>전체 구멍 개수</label>
+        <input id="fN" inputmode="numeric" value="8">
+      </div>
+      <div class="field">
+        <label>전체 길이 <span id="lblUnit">(inch)</span></label>
+        <input id="fL" inputmode="decimal" value="6">
+      </div>
+      <div class="field" id="wrapEd" style="display:none">
+        <label>연거리 ED</label>
+        <input id="fEd" inputmode="decimal" value="">
+      </div>
+      <div class="field">
+        <label>리벳 지름 D <span class="opt">(선택)</span></label>
+        <input id="fD" inputmode="decimal" value="">
+      </div>
+      <div class="field" id="wrapFrac">
+        <label>분수 정밀도</label>
+        <select id="fFrac">
+          <option value="16">1/16</option>
+          <option value="32" selected>1/32</option>
+          <option value="64">1/64</option>
+        </select>
+      </div>
+    </div>
+    <div class="modes" id="modes">
+      <label class="on"><input type="radio" name="mode" value="A" checked> 구멍 중심 기준</label>
+      <label><input type="radio" name="mode" value="B1"> 소재 전체 + 연거리</label>
+      <label><input type="radio" name="mode" value="B2"> 완전 균등분할</label>
+    </div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+  <div class="alerts" id="alerts"></div>
+
+  <div class="panel">
+    <h3>도면 · 자 눈금</h3>
+    <div class="ruler-wrap" id="rulerWrap"></div>
+    <div class="cap" id="cap"></div>
+    <div class="hint" id="hint"></div>
+  </div>
+
+  <div class="panel">
+    <div class="row-head">
+      <h3>구멍 위치</h3>
+      <button class="btn-copy" id="copyBtn">📋 목록 복사</button>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>위치</th><th id="thFrac">분수</th><th>직전 간격</th><th>구분</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table></div>
+  </div>
+</div>
+
+<script>
+/* ── 상수 ─────────────────────────────────────────── */
+const MM_PER_IN = 25.4;
+const MIN_PITCH_D = 3, REC_PITCH_D = 4, MAX_PITCH_D = 10, MIN_ED_D = 2, MAX_ED_D = 4;
+const DEC = 1;                       // 표시 소수점 자리수 — 전 페이지 일괄 1자리
+const MAX_N = 200;
+
+/* ── 상태 ─────────────────────────────────────────── */
+let unit = 'inch', mode = 'A';
+
+const $ = id => document.getElementById(id);
+const fN = $('fN'), fL = $('fL'), fEd = $('fEd'), fD = $('fD'), fFrac = $('fFrac');
+
+/* ── 값 파싱 · 포맷 ───────────────────────────────── */
+// "6", "6.5", "6 1/2", "6-1/2", "1/2" 모두 허용
+function parseVal(raw){
+  if(raw == null) return NaN;
+  const s = String(raw).trim().replace(/["″'”]/g,'').replace(/\s+/g,' ');
+  if(!s) return NaN;
+  let m = s.match(/^(\d+)[\s-](\d+)\/(\d+)$/);
+  if(m) return +m[1] + (+m[2]) / (+m[3]);
+  m = s.match(/^(\d+)\/(\d+)$/);
+  if(m) return (+m[1]) / (+m[2]);
+  const v = Number(s);
+  return isFinite(v) ? v : NaN;
+}
+const fmt = v => v.toFixed(DEC);                    // 소수점 1자리 일괄 적용
+const sym = () => unit === 'inch' ? '″' : 'mm';
+const fmtU = v => fmt(v) + sym();
+
+// 인치 분수 근사 (자 눈금용)
+function toFrac(v, denom){
+  let whole = Math.floor(v);
+  let num = Math.round((v - whole) * denom), d = denom;
+  if(num === denom){ whole++; num = 0; }
+  while(num > 0 && num % 2 === 0 && d % 2 === 0){ num /= 2; d /= 2; }
+  if(num === 0) return String(whole);
+  return whole ? whole + '-' + num + '/' + d : num + '/' + d;
+}
+
+/* ── 계산 ─────────────────────────────────────────── */
+function calc(){
+  const n = Math.round(parseVal(fN.value));
+  const L = parseVal(fL.value);
+  const ed = parseVal(fEd.value);
+  const D = parseVal(fD.value);
+  const errs = [];
+
+  if(!isFinite(n) || n < 2) errs.push('구멍은 2개 이상이어야 합니다.');
+  if(isFinite(n) && n > MAX_N) errs.push('구멍 개수는 ' + MAX_N + '개까지 계산합니다.');
+  if(!isFinite(L) || L <= 0) errs.push('전체 길이를 입력하세요.');
+  if(mode === 'B1'){
+    if(!isFinite(ed) || ed < 0) errs.push('연거리(ED)를 입력하세요.');
+    else if(isFinite(L) && 2 * ed >= L) errs.push('연거리가 소재 길이보다 큽니다.');
+  }
+  if(errs.length) return { ok:false, errs };
+
+  let pitch, pos = [], span = L;
+  if(mode === 'A'){                       // 첫 구멍 ~ 마지막 구멍 중심 거리 = L
+    pitch = L / (n - 1);
+    for(let i = 0; i < n; i++) pos.push(L * i / (n - 1));   // 원식 계산 → 누적 오차 없음
+  } else if(mode === 'B1'){               // 소재 전체 길이 L, 양 끝 연거리 ED
+    pitch = (L - 2 * ed) / (n - 1);
+    for(let i = 0; i < n; i++) pos.push(ed + (L - 2 * ed) * i / (n - 1));
+  } else {                                // 끝 여백까지 완전 균등
+    pitch = L / (n + 1);
+    for(let i = 1; i <= n; i++) pos.push(L * i / (n + 1));
+  }
+
+  // 경고
+  const warns = [];
+  if(isFinite(D) && D > 0){
+    const r = pitch / D;
+    if(r < MIN_PITCH_D) warns.push(['err', '간격이 최소 기준(' + MIN_PITCH_D + 'D = ' + fmtU(MIN_PITCH_D*D) + ')보다 좁습니다 — 소재 크랙 위험 (현재 ' + r.toFixed(DEC) + 'D)']);
+    else if(r < REC_PITCH_D) warns.push(['warn', '권장 범위(' + REC_PITCH_D + 'D~' + MAX_PITCH_D + 'D) 미만입니다 (현재 ' + r.toFixed(DEC) + 'D)']);
+    else if(r > MAX_PITCH_D) warns.push(['warn', '간격이 넓습니다 (현재 ' + r.toFixed(DEC) + 'D) — 강도/실링 조건을 확인하세요']);
+    if(mode === 'B1'){
+      const re = ed / D;
+      if(re < MIN_ED_D) warns.push(['err', '연거리가 최소 기준(' + MIN_ED_D + 'D = ' + fmtU(MIN_ED_D*D) + ') 미만입니다 (현재 ' + re.toFixed(DEC) + 'D)']);
+      else if(re > MAX_ED_D) warns.push(['warn', '연거리가 권장 상한(' + MAX_ED_D + 'D) 초과입니다 (현재 ' + re.toFixed(DEC) + 'D)']);
+    }
+  }
+  if(String(parseVal(fN.value)) !== String(n)) warns.push(['warn', '구멍 개수를 정수 ' + n + '개로 보정했습니다.']);
+
+  // 모드 A에서만 양 끝 구멍이 "이미 있는" 기준점 → 안쪽 구멍 = n-2
+  const innerFrom = mode === 'A' ? 1 : 0;
+  const innerTo   = mode === 'A' ? n - 2 : n - 1;
+  return { ok:true, n, L, ed, D, pitch, pos, span, warns, innerFrom, innerTo,
+           innerCount: innerTo - innerFrom + 1, spaces: mode === 'B2' ? n + 1 : n - 1 };
+}
+
+/* ── 요약 카드 ────────────────────────────────────── */
+function renderCards(r){
+  const fracTxt = unit === 'inch' ? '≈ ' + toFrac(r.pitch, +fFrac.value) + '″' : (r.pitch / MM_PER_IN).toFixed(DEC) + '″';
+  const innerLabel = mode === 'A' ? '안쪽에 표시할 구멍' : '표시할 구멍';
+  $('cards').innerHTML =
+    card('간격 (피치)', fmtU(r.pitch), fracTxt, true) +
+    card('구간 수', String(r.spaces), '구멍 ' + r.n + '개 기준') +
+    card(innerLabel, r.innerCount + '개', mode === 'A' ? '양 끝 2개 제외' : '전부 새로 표시') +
+    card('전체 길이', fmtU(r.span), unit === 'inch' ? (r.span * MM_PER_IN).toFixed(DEC) + 'mm' : (r.span / MM_PER_IN).toFixed(DEC) + '″');
+}
+const card = (k, v, s, hi) =>
+  '<div class="card' + (hi ? ' hi' : '') + '"><div class="k">' + k + '</div><div class="v">' + v + '</div><div class="s">' + (s || '') + '</div></div>';
+
+/* ── 자(ruler) + 도면 ─────────────────────────────── */
+function tickSteps(pxPerU){
+  const minors = unit === 'inch' ? [1/16, 1/8, 1/4, 1/2, 1, 2, 6, 12] : [1, 2, 5, 10, 20, 50, 100];
+  const majors = unit === 'inch' ? [1/2, 1, 2, 5, 10, 20, 50] : [10, 20, 50, 100, 200, 500, 1000];
+  const minor = minors.find(s => s * pxPerU >= 5) || minors[minors.length - 1];
+  const major = majors.find(s => s * pxPerU >= 40) || majors[majors.length - 1];
+  return { minor, major, mid: major / 2 };
+}
+
+function renderRuler(r){
+  const n = r.n, W = Math.max(760, Math.min(1500, 120 + n * 62)), H = 214;
+  const x0 = 54, x1 = W - 54, plotW = x1 - x0;
+  const X = v => x0 + (v / r.span) * plotW;
+  const pxPerU = plotW / r.span;
+  const st = tickSteps(pxPerU);
+  const gapPx = (r.pos.length > 1 ? (r.pos[1] - r.pos[0]) : r.span) * pxPerU;
+
+  const PLATE_Y = 32, PLATE_H = 42, HOLE_Y = PLATE_Y + PLATE_H / 2;
+  const DIM_Y = 100, RULE_Y = 132, RULE_H = 66;
+  let s = '';
+
+  // 소재(평면선) + 구멍
+  s += '<rect x="' + (x0 - 16) + '" y="' + PLATE_Y + '" width="' + (plotW + 32) + '" height="' + PLATE_H + '" rx="5" fill="#23272f" stroke="#363b45"/>';
+  s += '<line x1="' + x0 + '" y1="' + HOLE_Y + '" x2="' + x1 + '" y2="' + HOLE_Y + '" stroke="#3d434e" stroke-width="1" stroke-dasharray="5 4"/>';
+
+  const labelEvery = Math.max(1, Math.ceil(n / (plotW / 30)));
+  r.pos.forEach((p, i) => {
+    const x = X(p), inner = i >= r.innerFrom && i <= r.innerTo;
+    s += '<line x1="' + x.toFixed(1) + '" y1="' + HOLE_Y + '" x2="' + x.toFixed(1) + '" y2="' + RULE_Y + '" stroke="' + (inner ? 'rgba(255,176,32,.45)' : 'rgba(139,144,154,.3)') + '" stroke-width="1" stroke-dasharray="3 3"/>';
+    s += '<circle cx="' + x.toFixed(1) + '" cy="' + HOLE_Y + '" r="8" fill="' + (inner ? '#ffb020' : '#16181c') + '" stroke="' + (inner ? '#ffcf6b' : '#8b909a') + '" stroke-width="2"/>';
+    if(i % labelEvery === 0 || i === n - 1)
+      s += txt(x, PLATE_Y - 9, String(i + 1), 11, inner ? '#ffb020' : '#8b909a');
+  });
+
+  // 간격 치수선
+  s += '<line x1="' + x0 + '" y1="' + DIM_Y + '" x2="' + x1 + '" y2="' + DIM_Y + '" stroke="#4a505c" stroke-width="1"/>';
+  r.pos.forEach(p => {
+    const x = X(p);
+    s += '<line x1="' + x.toFixed(1) + '" y1="' + (DIM_Y - 5) + '" x2="' + x.toFixed(1) + '" y2="' + (DIM_Y + 5) + '" stroke="#8b909a" stroke-width="1.5"/>';
+  });
+  const pitchTxt = fmtU(r.pitch);
+  if(gapPx >= 56){
+    for(let i = 1; i < r.pos.length; i++){
+      const cx = (X(r.pos[i-1]) + X(r.pos[i])) / 2;
+      s += '<rect x="' + (cx - 26) + '" y="' + (DIM_Y - 10) + '" width="52" height="20" rx="4" fill="#16181c"/>';
+      s += txt(cx, DIM_Y + 4, pitchTxt, 12, '#ffb020', 600);
+    }
+  } else if(r.pos.length > 1){
+    const cx = (x0 + x1) / 2, label = pitchTxt + ' × ' + (r.pos.length - 1);
+    s += '<rect x="' + (cx - 58) + '" y="' + (DIM_Y - 11) + '" width="116" height="22" rx="5" fill="#16181c"/>';
+    s += txt(cx, DIM_Y + 4, label, 12, '#ffb020', 600);
+  }
+
+  // 자 본체
+  s += '<defs><linearGradient id="steel" x1="0" y1="0" x2="0" y2="1">' +
+       '<stop offset="0" stop-color="#f2f4f8"/><stop offset="1" stop-color="#c6cbd4"/></linearGradient></defs>';
+  s += '<rect x="' + (x0 - 30) + '" y="' + RULE_Y + '" width="' + (plotW + 60) + '" height="' + RULE_H + '" rx="4" fill="url(#steel)" stroke="#9aa0ab"/>';
+
+  const cnt = Math.round(r.span / st.minor);
+  if(cnt <= 3000){
+    for(let k = 0; k <= cnt; k++){
+      const v = k * st.minor, x = X(v);
+      const isMajor = Math.abs(v / st.major - Math.round(v / st.major)) < 1e-6;
+      const isMid = !isMajor && Math.abs(v / st.mid - Math.round(v / st.mid)) < 1e-6;
+      const len = isMajor ? 26 : isMid ? 16 : 9;
+      s += '<line x1="' + x.toFixed(1) + '" y1="' + RULE_Y + '" x2="' + x.toFixed(1) + '" y2="' + (RULE_Y + len) + '" stroke="#2b2f36" stroke-width="' + (isMajor ? 1.6 : 1) + '"/>';
+      if(isMajor){
+        const lab = unit === 'inch'
+          ? (st.major >= 1 ? String(Math.round(v)) : toFrac(v, 16))
+          : String(Math.round(v));
+        s += txt(x, RULE_Y + 46, lab, 12, '#1b1d22', 600);
+      }
+    }
+  }
+  s += txt(x1 + 14, RULE_Y + 46, unit === 'inch' ? 'in' : 'mm', 11, '#5c626c', 600);
+
+  $('rulerWrap').innerHTML =
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" ' +
+    'style="width:100%;min-width:' + Math.max(520, Math.min(W, 90 + n * 46)) + 'px" ' +
+    'font-family="IBM Plex Mono, monospace">' + s + '</svg>';
+
+  // 요약은 SVG 밖(고정 영역)에 둬서 모바일에서 가로 스크롤돼도 항상 보이게 한다
+  $('cap').innerHTML =
+    '<b>' + (mode === 'A' ? '안쪽에 표시할 구멍' : '표시할 구멍') + ' ' + r.innerCount + '개</b>' +
+    ' · 간격 <b>' + pitchTxt + '</b> · 구간 ' + r.spaces + '개';
+
+  $('hint').innerHTML =
+    '<span class="sw" style="background:#ffb020"></span>새로 표시할 구멍 &nbsp; ' +
+    '<span class="sw" style="background:#16181c;box-shadow:0 0 0 2px #8b909a inset"></span>' +
+    (mode === 'A' ? '기준(양 끝) 구멍' : '소재 끝단') +
+    ' &nbsp;·&nbsp; 모든 값은 소수점 1자리 표시' + (n > 12 ? ' · 도면은 좌우로 스크롤됩니다' : '');
+}
+const txt = (x, y, t, size, fill, w) =>
+  '<text x="' + (typeof x === 'number' ? x.toFixed(1) : x) + '" y="' + y + '" text-anchor="middle" ' +
+  'font-size="' + size + '" fill="' + fill + '"' + (w ? ' font-weight="' + w + '"' : '') + '>' + t + '</text>';
+
+/* ── 표 ───────────────────────────────────────────── */
+function renderTable(r){
+  const den = +fFrac.value;
+  $('thFrac').textContent = unit === 'inch' ? '분수 (1/' + den + ')' : 'inch';
+  $('tbody').innerHTML = r.pos.map((p, i) => {
+    const inner = i >= r.innerFrom && i <= r.innerTo;
+    const gap = i === 0 ? '—' : fmtU(p - r.pos[i-1]);
+    const alt = unit === 'inch' ? toFrac(p, den) + '″' : (p / MM_PER_IN).toFixed(DEC) + '″';
+    return '<tr class="' + (inner ? 'inner' : 'end') + '">' +
+      '<td class="c-no">' + (i + 1) + '</td>' +
+      '<td>' + fmtU(p) + '</td><td>' + alt + '</td><td>' + gap + '</td>' +
+      '<td>' + (inner ? '표시' : '기준') + '</td></tr>';
+  }).join('');
+}
+
+/* ── 렌더 ─────────────────────────────────────────── */
+function render(){
+  const r = calc();
+  $('alerts').innerHTML = '';
+  if(!r.ok){
+    $('cards').innerHTML = '';
+    $('rulerWrap').innerHTML = '<div class="empty">입력값을 확인하세요</div>';
+    $('cap').textContent = ''; $('hint').textContent = '';
+    $('tbody').innerHTML = '<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:20px">—</td></tr>';
+    $('alerts').innerHTML = r.errs.map(e => '<div class="alert err">' + e + '</div>').join('');
+    return;
+  }
+  renderCards(r); renderRuler(r); renderTable(r);
+  $('alerts').innerHTML = r.warns.map(w => '<div class="alert ' + w[0] + '">' + w[1] + '</div>').join('');
+  save();
+  window.__last = r;
+}
+
+/* ── 단위 전환 ────────────────────────────────────── */
+function setUnit(u){
+  if(u === unit) return;
+  const k = u === 'mm' ? MM_PER_IN : 1 / MM_PER_IN;
+  [fL, fEd, fD].forEach(el => {
+    const v = parseVal(el.value);
+    if(isFinite(v)) el.value = (v * k).toFixed(DEC);
+  });
+  unit = u;
+  $('uIn').classList.toggle('on', u === 'inch');
+  $('uMm').classList.toggle('on', u === 'mm');
+  $('lblUnit').textContent = '(' + (u === 'inch' ? 'inch' : 'mm') + ')';
+  $('wrapFrac').style.display = u === 'inch' ? '' : 'none';
+  render();
+}
+
+/* ── 저장 · 복원 ──────────────────────────────────── */
+const KEY = 'dividerPrefs';
+function save(){
+  try{
+    localStorage.setItem(KEY, JSON.stringify({
+      unit, mode, n: fN.value, L: fL.value, ed: fEd.value, d: fD.value, frac: fFrac.value
+    }));
+  }catch(e){}
+}
+function restore(){
+  let p; try{ p = JSON.parse(localStorage.getItem(KEY) || 'null'); }catch(e){}
+  if(!p) return;
+  if(p.n) fN.value = p.n;
+  if(p.L) fL.value = p.L;
+  if(p.ed) fEd.value = p.ed;
+  if(p.d) fD.value = p.d;
+  if(p.frac) fFrac.value = p.frac;
+  if(p.mode) setMode(p.mode);
+  if(p.unit === 'mm'){ unit = 'inch'; setUnitSilently('mm'); }
+}
+function setUnitSilently(u){
+  unit = u;
+  $('uIn').classList.toggle('on', u === 'inch');
+  $('uMm').classList.toggle('on', u === 'mm');
+  $('lblUnit').textContent = '(' + (u === 'inch' ? 'inch' : 'mm') + ')';
+  $('wrapFrac').style.display = u === 'inch' ? '' : 'none';
+}
+function setMode(m){
+  mode = m;
+  document.querySelectorAll('#modes label').forEach(l => {
+    const on = l.querySelector('input').value === m;
+    l.classList.toggle('on', on);
+    l.querySelector('input').checked = on;
+  });
+  $('wrapEd').style.display = m === 'B1' ? '' : 'none';
+}
+
+/* ── 이벤트 ───────────────────────────────────────── */
+[fN, fL, fEd, fD].forEach(el => el.addEventListener('input', render));
+fFrac.addEventListener('change', render);
+$('uIn').onclick = () => setUnit('inch');
+$('uMm').onclick = () => setUnit('mm');
+document.querySelectorAll('#modes input').forEach(i => i.onchange = () => { setMode(i.value); render(); });
+
+$('copyBtn').onclick = () => {
+  const r = window.__last;
+  if(!r || !r.ok) return;
+  const lines = ['구멍 ' + r.n + '개 · 전체 ' + fmtU(r.span) + ' · 간격 ' + fmtU(r.pitch)];
+  r.pos.forEach((p, i) => lines.push((i + 1) + '\t' + fmtU(p)));
+  const txt = lines.join('\n');
+  const done = () => { const b = $('copyBtn'); b.textContent = '✓ 복사됨'; setTimeout(() => b.textContent = '📋 목록 복사', 1400); };
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(done, done);
+  else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta); done();
+  }
+};
+
+setInterval(() => {
+  $('clock').textContent = new Date().toTimeString().slice(0, 8);
+}, 1000);
+$('clock').textContent = new Date().toTimeString().slice(0, 8);
+
+restore();
+render();
+</script>
+</body>
+</html>
