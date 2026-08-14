@@ -82,29 +82,33 @@
   .block-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
   .block-h h2{font-size:15px;font-weight:600;letter-spacing:-.01em}
   .block-h span{font-family:var(--mono);font-size:11px;color:var(--muted)}
-  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  @media(min-width:620px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-  @media(min-width:900px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-  .pair{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  /* 차트 모드 — 세로 한 줄 목록 (표기 · 인치 · 분수 · 메모) */
   table{width:100%;border-collapse:collapse}
-  .pair th{background:var(--panel-2);font-family:var(--mono);font-size:10px;letter-spacing:.06em;
-    color:var(--muted);text-transform:uppercase;padding:8px 6px;border-bottom:1px solid var(--line);
-    text-align:left}
-  .pair th.r{text-align:right}
-  .pair td{padding:0;border-bottom:1px solid rgba(44,48,56,.6)}
-  .pair tr:last-child td{border-bottom:none}
-  .cell{display:flex;width:100%;align-items:center;gap:4px;background:none;border:none;cursor:pointer;
-    padding:9px 6px;font-family:var(--mono);font-size:13px;color:var(--text);text-align:left;min-height:38px}
-  .cell:hover,.cell:focus-visible{background:rgba(255,176,32,.09);outline:none}
-  .cell .lb{color:var(--muted);width:34px;flex:0 0 auto}
-  .cell .dv{margin-left:auto;font-weight:500;letter-spacing:-.02em}
-  .mk{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:4px}
-  .mk.ghost{background:transparent}
-  /* 폰: 행을 조여 한 화면에 더 많이 담는다 (탭 영역은 34px 유지) */
+  /* overflow:hidden 을 쓰면 스크롤 컨테이너가 생겨 헤더 sticky 가 죽는다.
+     모서리는 th 에 직접 radius 를 주어 처리한다. */
+  .list{background:var(--panel);border:1px solid var(--line);border-radius:10px;max-width:760px}
+  .list th{background:var(--panel-2);font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    color:var(--muted);text-transform:uppercase;padding:9px 10px;border-bottom:1px solid var(--line);
+    text-align:left;position:sticky;top:var(--sticky-top,0px);z-index:5}
+  .list th:first-child{border-top-left-radius:9px}
+  .list th:last-child{border-top-right-radius:9px}
+  .list th.n{text-align:right}
+  .list td{padding:9px 10px;border-bottom:1px solid rgba(44,48,56,.6);font-family:var(--mono);
+    font-size:13px;vertical-align:middle}
+  .list tr:last-child td{border-bottom:none}
+  .list tr.r{cursor:pointer}
+  .list tr.r:hover,.list tr.r:focus-visible{background:rgba(255,176,32,.09);outline:none}
+  .list .c-lb{color:var(--amber);font-weight:600;width:64px;white-space:nowrap}
+  .list .c-in{text-align:right;width:66px;white-space:nowrap;letter-spacing:-.02em}
+  .list .c-fr{text-align:right;width:74px;white-space:nowrap;color:var(--muted)}
+  .list .c-me{font-family:var(--sans);font-size:13px;padding-left:14px;line-height:1.45}
+  .list .dash{color:var(--line-2)}
+  .list .ph-ic{margin-left:6px;font-size:11px;opacity:.85}
   @media(max-width:619px){
-    .cell{padding:6px 5px;min-height:34px;font-size:12.5px}
-    .cell .lb{width:30px}
-    .grid{gap:8px}
+    .list td{padding:7px 7px;font-size:12.5px}
+    .list th{padding:8px 7px}
+    .list .c-lb{width:52px} .list .c-in{width:58px} .list .c-fr{width:62px}
+    .list .c-me{padding-left:9px;font-size:12.5px}
   }
 
   /* ── 상세 모드 ─────────────────────────────────────── */
@@ -239,7 +243,7 @@
   <div id="view"></div>
 
   <div class="legend">
-    <div><span class="m-dot"></span>메모 · 사진이 있는 항목 — 셀을 누르면 상세가 열립니다.</div>
+    <div>행을 누르면 mm · 클리코 · 사진까지 상세가 열립니다. 🖼 는 참고 사진이 있는 항목입니다.</div>
     <div>클리코 색: <span class="cl"><span class="sw" style="background:#c8ccd2"></span>3/32″ 은색</span> ·
       <span class="cl"><span class="sw" style="background:#b56a3c"></span>1/8″ 구리색</span> ·
       <span class="cl"><span class="sw" style="background:#2a2d33"></span>5/32″ 검정</span> ·
@@ -264,6 +268,11 @@
    - Number size drills: No.1~80 (ANSI 표준 규격)
    - Fraction size drills: 1/64″ ~ 1/4″ (1/64 간격, 16개)
    ============================================================ */
+
+/* ── 0) 표에 넣을 번호 드릴 상한 ────────────────────────
+   현장에서 쓰지 않는 소구경을 잘라낸다. #40 이상(= 지름 .0980 이하)은 제외.
+   되살리려면 이 숫자만 올리면 된다 (최대 80).                        */
+const MAX_NO = 39;
 
 /* ── 1) Number size drills — [번호, 지름(inch)] ─────────── */
 const NUMBER_DRILLS = [
@@ -291,6 +300,8 @@ const FRAC_MAX = 16;   // 16/64 = 1/4″
    새 항목 추가 예:  "#40": { memo:"…", photo:"drill-40.jpg" }
    ------------------------------------------------------- */
 const EXTRA = {
+  // #40 은 현재 MAX_NO(39) 밖이라 표에 나오지 않는다. MAX_NO 를 40 이상으로
+  // 올리면 이 줄이 그대로 살아난다.
   "#40": { memo:"AD3 3/32″ 리벳", cleco:"silver", photo:"drill-40.jpg" },
   "#30": { memo:"AD4 1/8″ 리벳",  cleco:"copper", photo:"drill-30.jpg" },
   "#21": { memo:"AD5 5/32″ 리벳", cleco:"black",  photo:"drill-21.jpg" },
@@ -324,7 +335,7 @@ function nearFrac(dec){
 }
 
 const ROWS = [];
-NUMBER_DRILLS.forEach(([no, dec]) => {
+NUMBER_DRILLS.filter(([no]) => no <= MAX_NO).forEach(([no, dec]) => {
   ROWS.push({ type:"no", label:"#"+no, no, dec, sortKey:no });
 });
 for (let n = 1; n <= FRAC_MAX; n++){
@@ -415,26 +426,28 @@ function nearest(){
 const view = document.getElementById("view");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
 
-function chunk(arr, size){
-  const out = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
-}
-
-function cellHTML(r){
-  const mark = r.hasInfo ? '<span class="mk"></span>' : '<span class="mk ghost"></span>';
-  const key  = r.type === "no" ? r.no : r.label;
-  return '<button class="cell" data-label="' + esc(r.label) + '" ' +
-         'aria-label="' + esc(r.label) + ' 상세">' +
-         '<span class="lb">' + esc(String(key)) + '</span>' + mark +
-         '<span class="dv">' + dia(r) + '</span></button>';
-}
-
-function pairTable(rows, head){
-  let h = '<div class="pair"><table><thead><tr>' +
-          '<th>' + head + '</th><th class="r">' + (state.unit === "in" ? "Dia." : "mm") + '</th>' +
+/* 차트 모드 — 세로로 내려가며 전부 보는 한 줄 목록
+   열: 표기 · 인치(또는 mm) · 분수 · 메모                              */
+function listTable(rows){
+  const unitHead = state.unit === "in" ? "Inch" : "mm";
+  let h = '<div class="list"><table><thead><tr>' +
+          '<th>표기</th><th class="n">' + unitHead + '</th><th class="n">분수</th><th>메모</th>' +
           '</tr></thead><tbody>';
-  rows.forEach(r => { h += '<tr><td colspan="2">' + cellHTML(r) + '</td></tr>'; });
+  rows.forEach(r => {
+    const fr = r.nf
+      ? esc(r.nf.label)
+      : (r.type === "frac" ? '<span class="dash">—</span>' : '<span class="dash">—</span>');
+    const ph = r.photo ? '<span class="ph-ic">🖼</span>' : '';
+    const me = r.memo
+      ? esc(r.memo) + ph
+      : (ph || '<span class="dash">—</span>');
+    h += '<tr class="r" tabindex="0" data-label="' + esc(r.label) + '" ' +
+         'aria-label="' + esc(r.label) + ' 상세">' +
+         '<td class="c-lb">' + esc(r.label) + '</td>' +
+         '<td class="c-in">' + dia(r) + '</td>' +
+         '<td class="c-fr">' + fr + '</td>' +
+         '<td class="c-me">' + me + '</td></tr>';
+  });
   return h + '</tbody></table></div>';
 }
 
@@ -445,15 +458,13 @@ function renderChart(rows){
 
   if (nums.length){
     h += '<div class="block"><div class="block-h"><h2>Number Size Drills</h2>' +
-         '<span>' + nums.length + '개 · Diameter in Inches</span></div><div class="grid">';
-    chunk(nums, 20).forEach(c => { h += pairTable(c, "No."); });
-    h += '</div></div>';
+         '<span>' + nums.length + '개 · #1 ~ #' + MAX_NO + '</span></div>' +
+         listTable(nums) + '</div>';
   }
   if (fracs.length){
     h += '<div class="block"><div class="block-h"><h2>Fraction Size Drills</h2>' +
-         '<span>' + fracs.length + '개 · 1/64″ ~ 1/4″</span></div><div class="grid">';
-    chunk(fracs, 8).forEach(c => { h += pairTable(c, "Frac"); });
-    h += '</div></div>';
+         '<span>' + fracs.length + '개 · 1/64″ ~ 1/4″</span></div>' +
+         listTable(fracs) + '</div>';
   }
   if (!h) h = '<div class="table-wrap"><div class="empty">조건에 맞는 사이즈가 없습니다.</div></div>';
   view.innerHTML = h;
@@ -647,8 +658,17 @@ document.getElementById("chips").addEventListener("click", e => {
 document.addEventListener("click", e => {
   const p = e.target.closest("[data-photo]");
   if (p){ openPhoto(p.dataset.photo); return; }
-  const c = e.target.closest(".cell, .npill");
+  const c = e.target.closest(".list tr.r, .npill");
   if (c){ openSheet(c.dataset.label); return; }
+});
+
+/* 목록 행 키보드 조작 */
+document.addEventListener("keydown", e => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const row = e.target.closest && e.target.closest(".list tr.r");
+  if (!row) return;
+  e.preventDefault();
+  openSheet(row.dataset.label);
 });
 
 sheetBack.addEventListener("click", e => {
