@@ -1,150 +1,705 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Huck Gun & Fastener 관계표</title>
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background: #f4f7f9;
-            color: #333;
-            line-height: 1.6;
-        }
-        header {
-            padding: 15px 20px;
-            background: #2c3e50;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .back-btn {
-            padding: 8px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .container {
-            padding: 20px;
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        h2 {
-            font-size: 1.2rem;
-            border-left: 4px solid #3498db;
-            padding-left: 10px;
-            margin-bottom: 15px;
-        }
-        /* 테이블 모바일 최적화: 가로 스크롤 허용 */
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px; /* 모바일에서 스크롤을 유도하기 위한 최소 너비 */
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: bold;
-            color: #555;
-            white-space: nowrap;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        tr:hover {
-            background: #fcfcfc;
-        }
-        .notes {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .notes ul {
-            padding-left: 20px;
-            margin: 0;
-        }
-        .notes li {
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        .notes b {
-            color: #2c3e50;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>드릴 사이즈 표</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#16181c; --panel:#1e2127; --panel-2:#23272f; --line:#2c3038; --line-2:#363b45;
+    --text:#e6e8ec; --muted:#8b909a; --amber:#ffb020; --amber-dim:#3a2f14;
+    --danger:#ff5a52; --ok:#4ade80; --ok-dim:#16301f;
+    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden}
+  body.locked{overflow:hidden}
+
+  /* ── 상태바 ─────────────────────────────────────────── */
+  .statusbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
+    position:sticky;top:0;z-index:20}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
+  @keyframes pulse{50%{opacity:.35}}
+  .statusbar .sys{color:var(--muted)} .statusbar .sys b{color:var(--text);font-weight:600}
+  .statusbar .clock{margin-left:auto;color:var(--amber)}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 72px}
+
+  /* ── 툴바 ───────────────────────────────────────────── */
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+  .back{background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
+    font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
+  .back:hover{color:var(--text);border-color:var(--line-2)}
+  .toolbar h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);
+    border:1px solid var(--line);padding:5px 10px;border-radius:20px}
+
+  /* ── 컨트롤 ─────────────────────────────────────────── */
+  .controls{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;
+    position:sticky;top:var(--bar-top,39px);z-index:15;background:var(--bg);padding:8px 0}
+  .ctl-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .search{flex:1 1 200px;min-width:0;display:flex;align-items:center;gap:8px;background:var(--panel);
+    border:1px solid var(--line);border-radius:8px;padding:0 12px}
+  .search:focus-within{border-color:var(--amber)}
+  .search span{color:var(--muted);font-size:14px}
+  .search input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--text);
+    font-family:var(--mono);font-size:14px;padding:11px 0}
+  .search input::placeholder{color:var(--muted)}
+  .clear-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;
+    padding:4px 2px;line-height:1}
+
+  .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:0 0 auto}
+  .seg button{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:12px;
+    padding:10px 14px;cursor:pointer;white-space:nowrap;min-height:42px}
+  .seg button.on{background:var(--amber);color:#1a1400;font-weight:700}
+  select.sort{background:var(--panel);border:1px solid var(--line);color:var(--text);
+    font-family:var(--mono);font-size:12px;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:42px}
+  select.sort:disabled{opacity:.4;cursor:not-allowed}
+
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
+    font-size:11px;padding:7px 12px;border-radius:20px;cursor:pointer;letter-spacing:.03em}
+  .chip.on{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+
+  /* ── 최근접 안내 ───────────────────────────────────── */
+  .nearest{display:none;background:var(--panel);border:1px solid var(--amber);border-radius:10px;
+    padding:12px 14px;margin-bottom:14px}
+  .nearest.show{display:block}
+  .nearest .nh{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.06em;margin-bottom:8px}
+  .nearest .nlist{display:flex;gap:8px;flex-wrap:wrap}
+  .npill{background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 12px;
+    font-family:var(--mono);font-size:13px;cursor:pointer;text-align:left}
+  .npill b{color:var(--amber);font-weight:600}
+  .npill i{color:var(--muted);font-style:normal;font-size:11px;margin-left:6px}
+
+  /* ── 차트 모드 ─────────────────────────────────────── */
+  .block{margin-bottom:22px}
+  .block-h{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+  .block-h h2{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .block-h span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  @media(min-width:620px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media(min-width:900px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+  .pair{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  .pair th{background:var(--panel-2);font-family:var(--mono);font-size:10px;letter-spacing:.06em;
+    color:var(--muted);text-transform:uppercase;padding:8px 6px;border-bottom:1px solid var(--line);
+    text-align:left}
+  .pair th.r{text-align:right}
+  .pair td{padding:0;border-bottom:1px solid rgba(44,48,56,.6)}
+  .pair tr:last-child td{border-bottom:none}
+  .cell{display:flex;width:100%;align-items:center;gap:4px;background:none;border:none;cursor:pointer;
+    padding:9px 6px;font-family:var(--mono);font-size:13px;color:var(--text);text-align:left;min-height:38px}
+  .cell:hover,.cell:focus-visible{background:rgba(255,176,32,.09);outline:none}
+  .cell .lb{color:var(--muted);width:34px;flex:0 0 auto}
+  .cell .dv{margin-left:auto;font-weight:500;letter-spacing:-.02em}
+  .mk{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:4px}
+  .mk.ghost{background:transparent}
+  /* 폰: 행을 조여 한 화면에 더 많이 담는다 (탭 영역은 34px 유지) */
+  @media(max-width:619px){
+    .cell{padding:6px 5px;min-height:34px;font-size:12.5px}
+    .cell .lb{width:30px}
+    .grid{gap:8px}
+  }
+
+  /* ── 상세 모드 ─────────────────────────────────────── */
+  /* 모바일에서는 가로 스크롤 컨테이너, 넓은 화면에서는 visible 로 두어
+     헤더 sticky 가 동작하게 한다 (스크롤 컨테이너 안에서는 sticky 가 뷰포트에 붙지 않음) */
+  .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+  @media(min-width:900px){ .table-wrap{overflow-x:visible} }
+  .detail{min-width:660px;font-size:14px}
+  /* 폰: 구분·근접분수 열을 숨겨 가로 스크롤 폭을 줄인다 */
+  @media(max-width:619px){
+    .detail{min-width:430px;font-size:13px}
+    .detail th:nth-child(1),.detail td:nth-child(1),
+    .detail th:nth-child(5),.detail td:nth-child(5){display:none}
+    .detail tbody td,.detail thead th{padding:9px 9px}
+  }
+  .detail thead th{background:var(--panel-2);text-align:left;padding:11px 12px;font-family:var(--mono);
+    font-size:10px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:var(--sticky-top,0px);z-index:5}
+  .detail tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
+  .detail tbody tr:last-child td{border-bottom:none}
+  .detail tbody tr:hover{background:rgba(255,255,255,.02)}
+  .detail .m{font-family:var(--mono)}
+  .detail .lbl{font-family:var(--mono);font-weight:600;color:var(--amber)}
+  .detail .dim{color:var(--muted)}
+  .detail .memo{white-space:normal;min-width:120px}
+  .tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;letter-spacing:.04em}
+  .tag.no{background:#1f2b3a;color:#7fb3e8}
+  .tag.frac{background:var(--amber-dim);color:var(--amber)}
+  .cl{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:var(--mono)}
+  .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--line-2);flex:0 0 auto}
+  .pbtn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--amber);cursor:pointer;
+    border-radius:7px;padding:7px 11px;font-size:13px;min-height:34px;min-width:44px}
+  .pbtn:hover{border-color:var(--amber)}
+  .empty{padding:36px 16px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
+
+  .legend{margin-top:16px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.9}
+  .legend .m-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);
+    vertical-align:middle;margin-right:4px}
+
+  /* ── 하단 시트 ─────────────────────────────────────── */
+  .sheet-back,.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.66);backdrop-filter:blur(3px);
+    z-index:60;display:none}
+  .sheet-back.show,.modal-back.show{display:block}
+  .modal-back{z-index:70}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line-2);
+    border-radius:16px 16px 0 0;padding:8px 18px 26px;max-height:82vh;overflow-y:auto;
+    animation:up .18s ease-out}
+  @keyframes up{from{transform:translateY(14px);opacity:.6}}
+  @media(min-width:700px){
+    .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);width:440px;
+      border-radius:14px;border:1px solid var(--line-2);animation:none}
+  }
+  .grip{width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:4px auto 14px}
+  @media(min-width:700px){.grip{display:none}}
+  .sheet-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .sheet-h .big{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--amber);letter-spacing:-.02em}
+  .x{margin-left:auto;background:var(--panel-2);border:1px solid var(--line-2);color:var(--muted);
+    width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1}
+  .x:hover{color:var(--text)}
+  .rows{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;margin-bottom:14px}
+  .row{display:flex;align-items:center;gap:12px;background:var(--panel-2);padding:11px 13px}
+  .row .k{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;flex:0 0 84px}
+  .row .v{font-family:var(--mono);font-size:14px;color:var(--text);text-align:right;margin-left:auto;
+    word-break:break-word}
+  .row .v.wrap{font-family:var(--sans);text-align:left;margin-left:0}
+  .sheet .pbtn{width:100%;padding:13px;font-family:var(--mono);font-size:13px;min-height:46px}
+
+  /* ── 사진 팝업 ─────────────────────────────────────── */
+  .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 28px);
+    max-width:620px;max-height:88vh;overflow-y:auto;background:var(--panel);
+    border:1px solid var(--line-2);border-radius:14px;padding:16px}
+  .modal-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .modal-h .t{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--amber)}
+  .media{background:#101215;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    min-height:180px;display:flex;align-items:center;justify-content:center}
+  .media img{display:block;width:100%;height:auto;max-height:62vh;object-fit:contain}
+  .ph{padding:34px 20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;line-height:2}
+  .ph .ic{font-size:30px;display:block;margin-bottom:6px}
+  .ph code{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;
+    color:var(--amber);font-size:11px}
+  .cap{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.7}
+</style>
 </head>
 <body>
-    <header>
-        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
-        <div style="font-weight: bold;">정리보드</div>
-        <div style="width: 100px;"></div>
-    </header>
 
-    <div class="container">
-        <h2>Huck Gun, Nose Assembly, Fastener 관계표</h2>
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>설치 공구 (Gun)</th>
-                        <th>노즈 어셈블리 (P/N)</th>
-                        <th>패스너 종류</th>
-                        <th>패스너 직경</th>
-                        <th>주요 용도</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td>202 / 2025</td><td>99-1456</td><td>Magna-Grip</td><td>3/16"</td><td>외피 패널 (Skin panel) 1, 2</td></tr>
-                    <tr><td>202 / 2025</td><td>99-1458</td><td>Magna-Grip</td><td>1/4"</td><td>날개 외피 및 패널 1</td></tr>
-                    <tr><td>202 / 2025</td><td>99-3300</td><td>Magna-Lok</td><td>3/16"</td><td>액세스 패널 블라인드 고정 1</td></tr>
-                    <tr><td>202 / 2025</td><td>99-3301</td><td>Magna-Lok</td><td>1/4"</td><td>블라인드 패스너 고정 1</td></tr>
-                    <tr><td>202 / 2025</td><td>99-1053</td><td>BOM (Blind Bolt)</td><td>3/16"</td><td>수리용 더블러 (Repair doubler) 1</td></tr>
-                    <tr><td>202 / 2025</td><td>99-830-1</td><td>BOM (Blind Bolt)</td><td>1/4"</td><td>야전 수리 (Field repair) 1</td></tr>
-                    <tr><td>2480</td><td>99-3206</td><td>Magna-Grip</td><td>3/16"</td><td>일반 구조물 2</td></tr>
-                    <tr><td>2480</td><td>99-3207</td><td>Magna-Grip</td><td>1/4"</td><td>일반 구조물 2</td></tr>
-                    <tr><td>256</td><td>99-2558</td><td>C6L Lockbolt</td><td>3/16"</td><td>일반 프레임 및 리브 2</td></tr>
-                    <tr><td>256</td><td>99-2564</td><td>C6L Lockbolt</td><td>1/4"</td><td>프레임 및 리브 (Frame / rib) 1</td></tr>
-                    <tr><td>256</td><td>99-99-245</td><td>C6L Lockbolt</td><td>5/16"</td><td>중구조물 (Heavy structure) 2</td></tr>
-                    <tr><td>256</td><td>99-100</td><td>C6L Lockbolt</td><td>3/8"</td><td>착륙 장치 구조물 2</td></tr>
-                    <tr><td>2620</td><td>99-1439</td><td>Magna-Grip</td><td>5/16"</td><td>중구조물 수리 2</td></tr>
-                    <tr><td>2620</td><td>99-1440</td><td>Magna-Grip</td><td>3/8"</td><td>날개 뿌리(Wing root) 및 벌크헤드 2</td></tr>
-                </tbody>
-            </table>
-        </div>
+<div class="statusbar">
+  <div class="dot"></div>
+  <div class="sys">DRILL CHART · <b>NUMBER / FRACTION</b></div>
+  <div class="clock" id="clock">--:--:--</div>
+</div>
 
-        <h2>추가 참고 사항</h2>
-        <div class="notes">
-            <ul>
-                <li><b>Magna-Grip 패스너:</b> 광범위한 Grip 범위를 가지며 진동에 강해 항공기 외피 및 날개 구조에 자주 사용됩니다.</li>
-                <li><b>C6L Lockbolt:</b> 고강도 구조물용으로 설계되었으며, F-16 판금 정비 등에서 약 70%를 차지하는 주요 부품입니다.</li>
-                <li><b>BOM (Blind Bolt):</b> 한쪽에서만 접근 가능한 곳에 사용하는 고강도 산업용 블라인드 볼트로, 주로 중구조물 수리에 사용됩니다.</li>
-                <li><b>공구 호환성:</b> 모델 256 공구는 어댑터(#593102463)를 사용하여 3/16" 및 1/4" 직경의 C6L/C120 패스너를 설치할 수도 있습니다. 모델 2580은 5/16" 및 3/8" Huck 패스너 설치에 특화되어 있습니다.</li>
-            </ul>
-        </div>
+<div class="wrap">
+  <div class="toolbar">
+    <a href="index.html" class="back">← 보드로</a>
+    <h1>드릴 사이즈 표</h1>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <label class="search">
+        <span>🔍</span>
+        <input id="q" type="text" inputmode="decimal" autocomplete="off"
+               placeholder="번호 · 지름 · 분수 · 메모 검색  (예: 30, .128, 1/8, 3.26)">
+        <button class="clear-btn" id="clearQ" type="button" title="지우기" hidden>✕</button>
+      </label>
+      <div class="seg" id="modeSeg">
+        <button data-mode="chart" class="on">차트</button>
+        <button data-mode="detail">상세</button>
+      </div>
+      <div class="seg" id="unitSeg">
+        <button data-unit="in" class="on">inch</button>
+        <button data-unit="mm">mm</button>
+      </div>
+      <select class="sort" id="sort" title="정렬 (상세 모드)">
+        <option value="desc">지름 큰 순</option>
+        <option value="asc">지름 작은 순</option>
+        <option value="label">번호 순</option>
+      </select>
     </div>
+    <div class="chips" id="chips">
+      <button class="chip on" data-f="all">전체</button>
+      <button class="chip" data-f="no">No.</button>
+      <button class="chip" data-f="frac">분수</button>
+      <button class="chip" data-f="memo">메모 있음</button>
+      <button class="chip" data-f="photo">사진 있음</button>
+    </div>
+  </div>
+
+  <div class="nearest" id="nearest"></div>
+  <div id="view"></div>
+
+  <div class="legend">
+    <div><span class="m-dot"></span>메모 · 사진이 있는 항목 — 셀을 누르면 상세가 열립니다.</div>
+    <div>클리코 색: <span class="cl"><span class="sw" style="background:#c8ccd2"></span>3/32″ 은색</span> ·
+      <span class="cl"><span class="sw" style="background:#b56a3c"></span>1/8″ 구리색</span> ·
+      <span class="cl"><span class="sw" style="background:#2a2d33"></span>5/32″ 검정</span> ·
+      <span class="cl"><span class="sw" style="background:#c9a227"></span>3/16″ 금색</span></div>
+    <div>지름 검색은 1.0 이하면 inch, 초과하면 mm 로 해석합니다. 1 inch = 25.4 mm</div>
+  </div>
+</div>
+
+<!-- 하단 시트 (셀 상세) -->
+<div class="sheet-back" id="sheetBack">
+  <div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- 사진 팝업 -->
+<div class="modal-back" id="modalBack">
+  <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+
+<script>
+/* ============================================================
+   드릴 사이즈 표
+   - Number size drills: No.1~80 (ANSI 표준 규격)
+   - Fraction size drills: 1/64″ ~ 1/4″ (1/64 간격, 16개)
+   ============================================================ */
+
+/* ── 1) Number size drills — [번호, 지름(inch)] ─────────── */
+const NUMBER_DRILLS = [
+  [1,.2280],[2,.2210],[3,.2130],[4,.2090],[5,.2055],[6,.2040],[7,.2010],[8,.1990],[9,.1960],[10,.1935],
+  [11,.1910],[12,.1890],[13,.1850],[14,.1820],[15,.1800],[16,.1770],[17,.1730],[18,.1695],[19,.1660],[20,.1610],
+  [21,.1590],[22,.1570],[23,.1540],[24,.1520],[25,.1495],[26,.1470],[27,.1440],[28,.1405],[29,.1360],[30,.1285],
+  [31,.1200],[32,.1160],[33,.1130],[34,.1110],[35,.1100],[36,.1065],[37,.1040],[38,.1015],[39,.0995],[40,.0980],
+  [41,.0960],[42,.0935],[43,.0890],[44,.0860],[45,.0820],[46,.0810],[47,.0785],[48,.0760],[49,.0730],[50,.0700],
+  [51,.0670],[52,.0635],[53,.0595],[54,.0550],[55,.0520],[56,.0465],[57,.0430],[58,.0420],[59,.0410],[60,.0400],
+  [61,.0390],[62,.0380],[63,.0370],[64,.0360],[65,.0350],[66,.0330],[67,.0320],[68,.0310],[69,.0292],[70,.0280],
+  [71,.0260],[72,.0250],[73,.0240],[74,.0225],[75,.0210],[76,.0200],[77,.0180],[78,.0160],[79,.0145],[80,.0135]
+];
+
+/* ── 2) 분수 사이즈 범위: 1/64″ ~ 1/4″ ──────────────────── */
+const FRAC_DEN = 64;
+const FRAC_MAX = 16;   // 16/64 = 1/4″
+
+/* ── 3) 메모 · 클리코 · 사진 ─────────────────────────────
+   ★ 여기만 고치면 표에 반영됩니다. 키는 표기(label).
+     memo   : 자유 메모 (아무 문장이나)
+     cleco  : "silver" | "copper" | "black" | "brass"  (없으면 생략)
+     photo  : assets/photos/ 안의 파일명 (확장자 포함)
+     caption: 사진 아래 설명 (선택)
+   파일이 아직 없어도 안전합니다 — 팝업에 "사진 준비 중" 안내가 뜹니다.
+   새 항목 추가 예:  "#40": { memo:"…", photo:"drill-40.jpg" }
+   ------------------------------------------------------- */
+const EXTRA = {
+  "#40": { memo:"AD3 3/32″ 리벳", cleco:"silver", photo:"drill-40.jpg" },
+  "#30": { memo:"AD4 1/8″ 리벳",  cleco:"copper", photo:"drill-30.jpg" },
+  "#21": { memo:"AD5 5/32″ 리벳", cleco:"black",  photo:"drill-21.jpg" },
+  "#11": { memo:"AD6 3/16″ 리벳", cleco:"brass",  photo:"drill-11.jpg" }
+};
+
+const CLECO = {
+  silver:{ name:"은색",  hex:"#c8ccd2", size:"3/32″" },
+  copper:{ name:"구리색", hex:"#b56a3c", size:"1/8″"  },
+  black :{ name:"검정",  hex:"#2a2d33", size:"5/32″" },
+  brass :{ name:"금색",  hex:"#c9a227", size:"3/16″" }
+};
+
+const PHOTO_DIR = "assets/photos/";
+const MM = 25.4;
+
+/* ── 데이터 조립 ─────────────────────────────────────── */
+function gcd(a,b){ return b ? gcd(b, a%b) : a; }
+
+function fracLabel(n, d){
+  const g = gcd(n, d);
+  return (n/g) + "/" + (d/g) + "″";
+}
+
+/* 지름에 가장 가까운 1/64 분수 + 오차 */
+function nearFrac(dec){
+  const n = Math.round(dec * FRAC_DEN);
+  if (n < 1) return null;
+  const val = n / FRAC_DEN;
+  return { label: fracLabel(n, FRAC_DEN), diff: dec - val };
+}
+
+const ROWS = [];
+NUMBER_DRILLS.forEach(([no, dec]) => {
+  ROWS.push({ type:"no", label:"#"+no, no, dec, sortKey:no });
+});
+for (let n = 1; n <= FRAC_MAX; n++){
+  ROWS.push({ type:"frac", label:fracLabel(n, FRAC_DEN), num:n, den:FRAC_DEN,
+              dec:n/FRAC_DEN, sortKey:1000+n });
+}
+ROWS.forEach(r => {
+  const e = EXTRA[r.label] || {};
+  r.memo = e.memo || "";
+  r.cleco = e.cleco || "";
+  r.photo = e.photo || "";
+  r.caption = e.caption || "";
+  r.mm = r.dec * MM;
+  r.nf = r.type === "no" ? nearFrac(r.dec) : null;
+  r.hasInfo = !!(r.memo || r.photo || r.cleco);
+});
+
+/* ── 표시 서식 ───────────────────────────────────────── */
+const f4 = v => v.toFixed(4).replace(/^0/, "");        // 0.1285 → .1285
+const f2 = v => v.toFixed(2);
+const sgn = v => (v >= 0 ? "+" : "−") + f4(Math.abs(v));
+const dia = r => state.unit === "in" ? f4(r.dec) : f2(r.mm);
+
+/* ── 상태 ────────────────────────────────────────────── */
+const PREF_KEY = "drillChartPrefs";
+const state = Object.assign(
+  { mode:"chart", unit:"in", sort:"desc", filter:"all", q:"" },
+  (() => { try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; } catch(e){ return {}; } })()
+);
+state.q = "";  // 검색어는 복원하지 않는다
+
+function savePrefs(){
+  try {
+    localStorage.setItem(PREF_KEY, JSON.stringify({
+      mode:state.mode, unit:state.unit, sort:state.sort, filter:state.filter
+    }));
+  } catch(e){}
+}
+
+/* ── 필터 · 검색 ─────────────────────────────────────── */
+function passFilter(r){
+  switch(state.filter){
+    case "no":    return r.type === "no";
+    case "frac":  return r.type === "frac";
+    case "memo":  return !!r.memo;
+    case "photo": return !!r.photo;
+    default:      return true;
+  }
+}
+
+/* "1/8", "3-1/2", ".128", "3.26" 을 숫자로 (inch 기준) */
+function parseNum(s){
+  s = s.trim().replace(/["″']/g, "");
+  if (!s) return null;
+  let m = s.match(/^(\d+)\s*[-\s]\s*(\d+)\s*\/\s*(\d+)$/);
+  if (m) return +m[1] + (+m[2]) / (+m[3]);
+  m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (m) return (+m[2]) === 0 ? null : (+m[1]) / (+m[2]);
+  m = s.match(/^\.?\d*\.?\d+$/);
+  if (m) return parseFloat(s);
+  return null;
+}
+
+function passQuery(r){
+  const q = state.q.trim().toLowerCase();
+  if (!q) return true;
+  const hay = [
+    r.label, String(r.no ?? ""), f4(r.dec), r.dec.toFixed(4),
+    f2(r.mm), r.memo, r.nf ? r.nf.label : "",
+    r.cleco ? CLECO[r.cleco].name : ""
+  ].join(" ").toLowerCase();
+  return hay.includes(q.replace(/^#/, ""));
+}
+
+/* 입력 지름과 가장 가까운 드릴 3개 */
+function nearest(){
+  const v = parseNum(state.q);
+  if (v === null) return null;
+  const inch = v <= 1 ? v : v / MM;     // 1.0 초과는 mm 로 해석
+  if (inch <= 0) return null;
+  const list = ROWS.slice()
+    .sort((a,b) => Math.abs(a.dec - inch) - Math.abs(b.dec - inch))
+    .slice(0, 3);
+  return { inch, unit: v <= 1 ? "in" : "mm", raw:v, list };
+}
+
+/* ── 렌더 ────────────────────────────────────────────── */
+const view = document.getElementById("view");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+
+function chunk(arr, size){
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+function cellHTML(r){
+  const mark = r.hasInfo ? '<span class="mk"></span>' : '<span class="mk ghost"></span>';
+  const key  = r.type === "no" ? r.no : r.label;
+  return '<button class="cell" data-label="' + esc(r.label) + '" ' +
+         'aria-label="' + esc(r.label) + ' 상세">' +
+         '<span class="lb">' + esc(String(key)) + '</span>' + mark +
+         '<span class="dv">' + dia(r) + '</span></button>';
+}
+
+function pairTable(rows, head){
+  let h = '<div class="pair"><table><thead><tr>' +
+          '<th>' + head + '</th><th class="r">' + (state.unit === "in" ? "Dia." : "mm") + '</th>' +
+          '</tr></thead><tbody>';
+  rows.forEach(r => { h += '<tr><td colspan="2">' + cellHTML(r) + '</td></tr>'; });
+  return h + '</tbody></table></div>';
+}
+
+function renderChart(rows){
+  const nums  = rows.filter(r => r.type === "no");
+  const fracs = rows.filter(r => r.type === "frac");
+  let h = "";
+
+  if (nums.length){
+    h += '<div class="block"><div class="block-h"><h2>Number Size Drills</h2>' +
+         '<span>' + nums.length + '개 · Diameter in Inches</span></div><div class="grid">';
+    chunk(nums, 20).forEach(c => { h += pairTable(c, "No."); });
+    h += '</div></div>';
+  }
+  if (fracs.length){
+    h += '<div class="block"><div class="block-h"><h2>Fraction Size Drills</h2>' +
+         '<span>' + fracs.length + '개 · 1/64″ ~ 1/4″</span></div><div class="grid">';
+    chunk(fracs, 8).forEach(c => { h += pairTable(c, "Frac"); });
+    h += '</div></div>';
+  }
+  if (!h) h = '<div class="table-wrap"><div class="empty">조건에 맞는 사이즈가 없습니다.</div></div>';
+  view.innerHTML = h;
+}
+
+function renderDetail(rows){
+  if (!rows.length){
+    view.innerHTML = '<div class="table-wrap"><div class="empty">조건에 맞는 사이즈가 없습니다.</div></div>';
+    return;
+  }
+  let h = '<div class="table-wrap"><table class="detail"><thead><tr>' +
+          '<th>구분</th><th>표기</th><th>inch</th><th>mm</th><th>근접 분수</th>' +
+          '<th>메모</th><th>클리코</th><th>사진</th></tr></thead><tbody>';
+  rows.forEach(r => {
+    const tag  = r.type === "no"
+      ? '<span class="tag no">No.</span>'
+      : '<span class="tag frac">Frac</span>';
+    const nf   = r.nf
+      ? '<span class="m">' + esc(r.nf.label) + '</span> <span class="dim m">(' + sgn(r.nf.diff) + ')</span>'
+      : '<span class="dim">—</span>';
+    const c    = r.cleco ? CLECO[r.cleco] : null;
+    const cl   = c
+      ? '<span class="cl"><span class="sw" style="background:' + c.hex + '"></span>' + c.name + '</span>'
+      : '<span class="dim">—</span>';
+    const memo = r.memo ? esc(r.memo) : '<span class="dim">—</span>';
+    const ph   = r.photo
+      ? '<button class="pbtn" data-photo="' + esc(r.label) + '" title="사진 보기">🖼</button>'
+      : '<span class="dim">—</span>';
+    h += '<tr><td>' + tag + '</td>' +
+         '<td class="lbl">' + esc(r.label) + '</td>' +
+         '<td class="m">' + f4(r.dec) + '</td>' +
+         '<td class="m dim">' + f2(r.mm) + '</td>' +
+         '<td>' + nf + '</td>' +
+         '<td class="memo">' + memo + '</td>' +
+         '<td>' + cl + '</td>' +
+         '<td>' + ph + '</td></tr>';
+  });
+  view.innerHTML = h + '</tbody></table></div>';
+}
+
+function renderNearest(){
+  const box = document.getElementById("nearest");
+  const n = nearest();
+  if (!n){ box.className = "nearest"; box.innerHTML = ""; return; }
+  const shown = n.unit === "in"
+    ? f4(n.inch) + "″ (" + f2(n.inch * MM) + "mm)"
+    : f2(n.raw) + "mm (" + f4(n.inch) + "″)";
+  let h = '<div class="nh">최근접 드릴 — 입력 ' + shown + '</div><div class="nlist">';
+  n.list.forEach(r => {
+    const d = r.dec - n.inch;
+    h += '<button class="npill" data-label="' + esc(r.label) + '">' +
+         '<b>' + esc(r.label) + '</b> ' + f4(r.dec) + '″' +
+         '<i>' + (Math.abs(d) < 1e-9 ? "일치" : sgn(d) + "″") + '</i></button>';
+  });
+  box.innerHTML = h + '</div>';
+  box.className = "nearest show";
+}
+
+function render(){
+  let rows = ROWS.filter(r => passFilter(r) && passQuery(r));
+
+  if (state.mode === "detail"){
+    const dir = state.sort === "asc" ? 1 : -1;
+    rows = rows.slice().sort((a,b) =>
+      state.sort === "label" ? a.sortKey - b.sortKey : (a.dec - b.dec) * dir);
+    renderDetail(rows);
+  } else {
+    renderChart(rows);
+  }
+
+  document.getElementById("count").textContent =
+    rows.length + " / " + ROWS.length + " 개";
+  document.getElementById("sort").disabled = state.mode !== "detail";
+  document.getElementById("clearQ").hidden = !state.q;
+  renderNearest();
+}
+
+/* ── 하단 시트 ───────────────────────────────────────── */
+const sheetBack = document.getElementById("sheetBack");
+const sheet     = document.getElementById("sheet");
+let scrollY = 0;
+
+function lock(){ scrollY = window.scrollY; document.body.classList.add("locked"); }
+function unlock(){
+  if (sheetBack.classList.contains("show") || modalBack.classList.contains("show")) return;
+  document.body.classList.remove("locked");
+  window.scrollTo(0, scrollY);
+}
+
+function openSheet(label){
+  const r = ROWS.find(x => x.label === label);
+  if (!r) return;
+  const c = r.cleco ? CLECO[r.cleco] : null;
+  let h = '<div class="grip"></div><div class="sheet-h">' +
+          '<span class="big">' + esc(r.label) + '</span>' +
+          '<span class="tag ' + r.type + '">' + (r.type === "no" ? "No." : "Frac") + '</span>' +
+          '<button class="x" id="sheetX" title="닫기">✕</button></div><div class="rows">' +
+          '<div class="row"><span class="k">INCH</span><span class="v">' + f4(r.dec) + '″</span></div>' +
+          '<div class="row"><span class="k">MM</span><span class="v">' + f2(r.mm) + ' mm</span></div>';
+  if (r.nf)
+    h += '<div class="row"><span class="k">근접 분수</span><span class="v">' +
+         esc(r.nf.label) + ' (' + sgn(r.nf.diff) + '″)</span></div>';
+  if (c)
+    h += '<div class="row"><span class="k">클리코</span><span class="v">' +
+         '<span class="cl"><span class="sw" style="background:' + c.hex + '"></span>' +
+         c.name + ' · ' + c.size + '</span></span></div>';
+  if (r.memo)
+    h += '<div class="row" style="align-items:flex-start"><span class="k">메모</span>' +
+         '<span class="v wrap" style="margin-left:auto;text-align:right">' + esc(r.memo) + '</span></div>';
+  h += '</div>';
+  if (r.photo)
+    h += '<button class="pbtn" data-photo="' + esc(r.label) + '">🖼 사진 보기</button>';
+  sheet.innerHTML = h;
+  sheetBack.classList.add("show");
+  lock();
+  const x = document.getElementById("sheetX");
+  if (x) x.focus();
+}
+
+function closeSheet(){ sheetBack.classList.remove("show"); unlock(); }
+
+/* ── 사진 팝업 ───────────────────────────────────────── */
+const modalBack = document.getElementById("modalBack");
+const modal     = document.getElementById("modal");
+
+function openPhoto(label){
+  const r = ROWS.find(x => x.label === label);
+  if (!r || !r.photo) return;
+  const src = PHOTO_DIR + r.photo;
+  modal.innerHTML =
+    '<div class="modal-h"><span class="t">' + esc(r.label) +
+    (r.memo ? ' · ' + esc(r.memo) : '') + '</span>' +
+    '<button class="x" id="modalX" title="닫기">✕</button></div>' +
+    '<div class="media" id="media">' +
+      '<img id="mimg" alt="' + esc(r.label) + ' 참고 사진" src="' + esc(src) + '">' +
+    '</div>' +
+    (r.caption ? '<div class="cap">' + esc(r.caption) + '</div>' : '');
+  modalBack.classList.add("show");
+  lock();
+
+  /* 파일이 아직 없으면 안내 카드로 대체 (깨진 이미지 방지) */
+  const img = document.getElementById("mimg");
+  img.onerror = () => {
+    document.getElementById("media").innerHTML =
+      '<div class="ph"><span class="ic">🖼</span>사진 준비 중입니다<br>' +
+      '<code>' + esc(src) + '</code><br>이 경로에 파일을 넣으면 자동으로 표시됩니다.</div>';
+  };
+  const x = document.getElementById("modalX");
+  if (x) x.focus();
+}
+
+function closePhoto(){ modalBack.classList.remove("show"); unlock(); }
+
+/* ── 이벤트 ──────────────────────────────────────────── */
+document.getElementById("q").addEventListener("input", e => {
+  state.q = e.target.value;
+  render();
+});
+document.getElementById("clearQ").addEventListener("click", () => {
+  state.q = "";
+  document.getElementById("q").value = "";
+  render();
+});
+document.getElementById("modeSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-mode]");
+  if (!b) return;
+  state.mode = b.dataset.mode;
+  document.querySelectorAll("#modeSeg button").forEach(x => x.classList.toggle("on", x === b));
+  savePrefs(); render();
+});
+document.getElementById("unitSeg").addEventListener("click", e => {
+  const b = e.target.closest("button[data-unit]");
+  if (!b) return;
+  state.unit = b.dataset.unit;
+  document.querySelectorAll("#unitSeg button").forEach(x => x.classList.toggle("on", x === b));
+  savePrefs(); render();
+});
+document.getElementById("sort").addEventListener("change", e => {
+  state.sort = e.target.value;
+  savePrefs(); render();
+});
+document.getElementById("chips").addEventListener("click", e => {
+  const b = e.target.closest(".chip");
+  if (!b) return;
+  state.filter = b.dataset.f;
+  document.querySelectorAll("#chips .chip").forEach(x => x.classList.toggle("on", x === b));
+  savePrefs(); render();
+});
+
+/* 셀 · 최근접 알약 · 사진 버튼 (위임) */
+document.addEventListener("click", e => {
+  const p = e.target.closest("[data-photo]");
+  if (p){ openPhoto(p.dataset.photo); return; }
+  const c = e.target.closest(".cell, .npill");
+  if (c){ openSheet(c.dataset.label); return; }
+});
+
+sheetBack.addEventListener("click", e => {
+  if (e.target === sheetBack || e.target.id === "sheetX" || e.target.closest("#sheetX")) closeSheet();
+});
+modalBack.addEventListener("click", e => {
+  if (e.target === modalBack || e.target.id === "modalX" || e.target.closest("#modalX")) closePhoto();
+});
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (modalBack.classList.contains("show")) closePhoto();
+  else if (sheetBack.classList.contains("show")) closeSheet();
+});
+
+/* 모바일: 시트 아래로 스와이프해 닫기 */
+let touchY = null;
+sheet.addEventListener("touchstart", e => { touchY = e.touches[0].clientY; }, { passive:true });
+sheet.addEventListener("touchmove", e => {
+  if (touchY === null) return;
+  if (e.touches[0].clientY - touchY > 70 && sheet.scrollTop <= 0){ touchY = null; closeSheet(); }
+}, { passive:true });
+sheet.addEventListener("touchend", () => { touchY = null; });
+
+/* 표 헤더가 상태바 + 컨트롤 바 아래에 붙도록 실제 높이를 재서 변수로 넘긴다 */
+const statusbarEl = document.querySelector(".statusbar");
+const controlsEl  = document.querySelector(".controls");
+function syncSticky(){
+  const barTop = statusbarEl.offsetHeight;
+  const root = document.documentElement.style;
+  root.setProperty("--bar-top", barTop + "px");
+  root.setProperty("--sticky-top", (barTop + controlsEl.offsetHeight) + "px");
+}
+syncSticky();
+addEventListener("resize", syncSticky);
+if (window.ResizeObserver) new ResizeObserver(syncSticky).observe(controlsEl);
+
+/* 시계 */
+function tick(){
+  const d = new Date();
+  document.getElementById("clock").textContent =
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(v => String(v).padStart(2, "0")).join(":");
+}
+tick(); setInterval(tick, 1000);
+
+/* 저장된 설정 UI 반영 후 첫 렌더 */
+document.querySelectorAll("#modeSeg button").forEach(b => b.classList.toggle("on", b.dataset.mode === state.mode));
+document.querySelectorAll("#unitSeg button").forEach(b => b.classList.toggle("on", b.dataset.unit === state.unit));
+document.querySelectorAll("#chips .chip").forEach(b => b.classList.toggle("on", b.dataset.f === state.filter));
+document.getElementById("sort").value = state.sort;
+render();
+</script>
 </body>
 </html>
