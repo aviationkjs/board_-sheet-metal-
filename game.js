@@ -370,9 +370,26 @@ function draw() {
   ctx.fillRect(0, H - edge, W, edge);
 }
 
-function loop() {
-  update();
+/* 고정 타임스텝 루프
+   rAF는 기기 주사율(60/90/120Hz)을 따라가므로 프레임마다 물리를 적용하면
+   주사율이 곧 게임 속도가 된다. 화면은 주사율대로 그리되 시뮬레이션은
+   항상 1/60초 단위로만 진행시켜 어떤 기기에서도 속도가 같게 만든다. */
+const STEP = 1000 / 60;
+const MAX_CATCH_UP = 250; // 탭 전환 등으로 시간이 크게 튀었을 때의 상한
+let acc = 0;
+let lastT = 0;
+
+function loop(now) {
+  if (!lastT) lastT = now;
+  acc += Math.min(now - lastT, MAX_CATCH_UP);
+  lastT = now;
+
+  while (acc >= STEP && !gameOver) {
+    update();
+    acc -= STEP;
+  }
   draw();
+
   if (!gameOver) {
     rafId = requestAnimationFrame(loop);
   }
@@ -404,7 +421,9 @@ function startGame() {
   showScreen("play");
   resetGame();
   running = true;
-  loop();
+  acc = 0;
+  lastT = 0;
+  rafId = requestAnimationFrame(loop);
 }
 
 // --- 입력 처리 ------------------------------------------------

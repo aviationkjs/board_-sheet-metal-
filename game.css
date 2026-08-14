@@ -143,8 +143,9 @@ button:hover { background: #1f57c9; }
   h1 { font-size: 1.5rem; }
   .desc { font-size: 0.85rem; }
   button { padding: 10px 18px; font-size: 0.9rem; }
-  /* 세로 화면에서는 위아래 여유가 있어야 조작이 가능하다 */
-  #game-canvas { aspect-ratio: 3 / 2; max-height: calc(100dvh - 190px); }
+  /* 세로 화면에서는 위아래 여유가 있어야 조작이 가능하다.
+     기기별 난이도 차이를 없애기 위해 모든 세로 화면에서 1:1로 고정한다. */
+  #game-canvas { aspect-ratio: 1 / 1; max-height: calc(100dvh - 190px); }
   #hud { font-size: 0.95rem; }
   .hint { font-size: 0.78rem; }
 }
