@@ -156,17 +156,29 @@ function jetHitbox() {
   return { x: JET.x + ix, y: JET.y + iy, w: JET.w - ix * 2, h: JET.h - iy * 2 };
 }
 
+// --- 난이도(레벨) 설계 ---------------------------------------
+// 1000점마다 1레벨, 12레벨에서 상한(그 이상은 고정 -> 실력으로 무한 지속 가능).
+// 속도는 완만하게만 올리고, 난이도는 스폰 밀도와 장애물 종류/움직임으로 올린다.
+const SCORE_PER_LEVEL = 1000;
+const MAX_LEVEL = 12;
+const SPEED_PER_LEVEL = 0.5;      // 레벨당 스크롤 속도 증가
+const SPAWN_GAP_BASE = 360;       // 레벨 0의 스폰 간격(진행 거리 단위)
+const SPAWN_GAP_PER_LEVEL = 18;   // 레벨당 줄어드는 간격
+const SPAWN_GAP_MIN = 140;        // 간격 하한
+const MAX_ON_SCREEN = 8;          // 화면에 동시에 존재할 수 있는 장애물 수
+
 let obstacles = [];
 let clouds = [];
 let speedBase = INITIAL_SPEED; // 기준 해상도 기준 속도
 let score = 0;
 let distance = 0;
+let level = 0;
+let levelUpTimer = 0;   // 레벨업 토스트 표시용 프레임 카운터
+let nextSpawnAt = 0;    // 다음 스폰이 일어날 진행 거리
 let isHolding = false;
 let gameOver = false;
 let running = false;
 let rafId = null;
-let spawnTimer = 0;
-let spawnInterval = 90; // 프레임 단위, 랜덤하게 변동
 
 /* 캔버스를 실제 표시 크기에 맞춰 다시 잡는다 (반응형) */
 function resizeCanvas() {
@@ -223,27 +235,126 @@ function resetGame() {
   speedBase = INITIAL_SPEED;
   score = 0;
   distance = 0;
+  level = 0;
+  levelUpTimer = 0;
   isHolding = false;
   gameOver = false;
-  spawnTimer = 0;
-  spawnInterval = 90;
+  scheduleNextSpawn();
   document.getElementById("hud-score").textContent = "SCORE: 0";
+  updateLevelHud();
 }
 
-function spawnObstacle() {
-  // 완전 랜덤 위치 + 랜덤 크기 + 랜덤 타입
-  const types = ["shell", "bird"];
-  const type = types[Math.floor(Math.random() * types.length)];
-  const size = (20 + Math.random() * 20) * su;
-  const y = Math.random() * (H - size);
-  obstacles.push({
+function updateLevelHud() {
+  const el = document.getElementById("hud-level");
+  if (el) el.textContent = `LV.${level}`;
+}
+
+/* 다음 스폰까지의 간격을 '진행 거리'로 예약한다.
+   프레임이 아니라 거리를 기준으로 하면 속도가 올라도 화면에 보이는
+   장애물 개수(= 화면폭 / 스폰거리)를 의도한 대로 정확히 통제할 수 있다. */
+function scheduleNextSpawn() {
+  const gap = Math.max(SPAWN_GAP_MIN, SPAWN_GAP_BASE - level * SPAWN_GAP_PER_LEVEL);
+  nextSpawnAt = distance + gap * (0.8 + Math.random() * 0.4); // ±20% 랜덤
+}
+
+/* 레벨에 따라 해금되는 장애물 종류.
+   미사일은 전투기 y로 유도되므로 한 웨이브에 2개 이상 나오면
+   서로 수렴해 통로를 막아버린다. 웨이브당 1개로 제한한다. */
+function pickType(missileUsed) {
+  const pool = ["shell", "bird"];
+  if (level >= 2 && !missileUsed) pool.push("missile");   // 유도 미사일
+  if (level >= 4) pool.push("diver");                     // 대각선으로 가로지르는 포탄
+  if (level >= 5) pool.push("waver");                     // 사인파로 움직이는 새떼
+  if (level >= 8 && !missileUsed) pool.push("missile");   // 상위 레벨에서 미사일 비중 증가
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function randomObstacleSize() {
+  // 레벨이 오를수록 크기 편차가 커지고, 대형 장애물이 섞이기 시작한다
+  const min = level >= 1 ? 15 : 20;
+  const range = level >= 1 ? 30 : 20;
+  let size = (min + Math.random() * range) * su;
+  const bigChance = level >= 10 ? 0.3 : (level >= 7 ? 0.2 : 0);
+  if (bigChance && Math.random() < bigChance) size *= 1.6;
+  return size;
+}
+
+/* 이번 스폰에서 몇 개를 낼지 결정 */
+function waveCount() {
+  const r = Math.random();
+  if (level >= 9) return r < 0.25 ? 3 : (r < 0.60 ? 2 : 1);
+  if (level >= 6) return r < 0.15 ? 3 : (r < 0.40 ? 2 : 1);
+  if (level >= 3) return r < 0.25 ? 2 : 1;
+  return 1;
+}
+
+function makeObstacle(y, size, missileUsed) {
+  const type = pickType(missileUsed);
+  const o = {
     x: W + size,
     y,
     w: size,
     h: size,
     type,
-    // 새 타입은 약간의 수직 이동을 랜덤으로 가짐
-    vy: type === "bird" ? (Math.random() - 0.5) * 2 * sy : 0,
+    vy: 0,
+    speedMul: 1,
+  };
+  if (type === "bird") {
+    const range = level >= 1 ? 2 : 1;
+    o.vy = (Math.random() - 0.5) * 2 * range * sy;
+  } else if (type === "missile") {
+    o.speedMul = 1.25;
+  } else if (type === "diver") {
+    // 위아래를 가로지르며 대각선으로 지나간다
+    o.vy = (y < H / 2 ? 1 : -1) * (1.2 + Math.random() * 1.3) * sy;
+  } else if (type === "waver") {
+    o.baseY = y;
+    o.phase = Math.random() * Math.PI * 2;
+    o.freq = 0.03 + Math.random() * 0.03;
+    o.amp = H * (level >= 10 ? 0.18 : 0.12);
+  }
+  return o;
+}
+
+/* 한 번에 count개를 내되, 전투기가 반드시 지나갈 수 있는
+   통로(= 전투기 높이의 약 2.6배)를 장애물 사이사이에 보장한다.
+   공간이 모자라면 개수를 자동으로 줄인다. */
+function spawnWave() {
+  if (obstacles.length >= MAX_ON_SCREEN) return;
+
+  let count = Math.min(waveCount(), MAX_ON_SCREEN - obstacles.length);
+  const margin = JET.h * 0.6;      // 경계에 딱 붙은(회피 불가) 스폰 방지
+  const corridor = JET.h * 2.6;    // 반드시 남겨야 하는 통과 통로
+  const usable = H - margin * 2;
+
+  let sizes = [];
+  for (let i = 0; i < count; i++) sizes.push(randomObstacleSize());
+  const need = () => sizes.reduce((a, b) => a + b, 0) + corridor * (sizes.length + 1);
+  while (sizes.length > 1 && need() > usable) sizes.pop();
+  if (need() > usable) {
+    // 1개도 통로를 못 만들 정도로 화면이 좁으면 크기를 줄인다
+    sizes = [Math.max(8 * su, usable - corridor * 2)];
+  }
+
+  // 남는 여유 공간을 통로들에 랜덤하게 나눠 배치 위치를 정한다
+  const free = Math.max(0, usable - need());
+  const weights = [];
+  let wsum = 0;
+  for (let i = 0; i <= sizes.length; i++) {
+    const r = Math.random();
+    weights.push(r);
+    wsum += r;
+  }
+  if (wsum === 0) wsum = 1;
+
+  let y = margin;
+  let missileUsed = false;
+  sizes.forEach((size, i) => {
+    y += corridor + free * (weights[i] / wsum);
+    const o = makeObstacle(y, size, missileUsed);
+    if (o.type === "missile") missileUsed = true;
+    obstacles.push(o);
+    y += size;
   });
 }
 
@@ -288,24 +399,38 @@ function update() {
     }
   });
 
-  // 장애물 스폰 (랜덤 간격)
-  spawnTimer++;
-  if (spawnTimer >= spawnInterval) {
-    spawnObstacle();
-    spawnTimer = 0;
-    spawnInterval = 60 + Math.random() * 60; // 다음 스폰까지 랜덤 간격
+  // 장애물 스폰 (진행 거리 기준)
+  if (distance >= nextSpawnAt) {
+    spawnWave();
+    scheduleNextSpawn();
   }
 
   // 장애물 이동 및 충돌 판정
   const jetBox = jetHitbox();
+  const jetCenterY = JET.y + JET.h / 2;
+  const homing = (level >= 11 ? 0.05 : (level >= 6 ? 0.035 : 0.02)) * sy;
+  const missileMaxVy = 2.5 * sy; // 전투기 상승 속도보다 느리게 -> 항상 회피 가능
   let crashed = false;
+
   obstacles.forEach((o) => {
-    o.x -= dx;
-    o.y += o.vy || 0;
-    // 새는 화면 위아래에서 반사
-    if (o.vy) {
+    o.x -= dx * (o.speedMul || 1);
+
+    if (o.type === "missile") {
+      // 전투기 쪽으로 약하게 유도
+      const dy = jetCenterY - (o.y + o.h / 2);
+      o.vy += Math.sign(dy) * homing;
+      o.vy = Math.max(-missileMaxVy, Math.min(missileMaxVy, o.vy));
+      o.y += o.vy;
+    } else if (o.type === "waver") {
+      o.phase += o.freq;
+      o.y = o.baseY + Math.sin(o.phase) * o.amp;
+    } else if (o.vy) {
+      o.y += o.vy;
+      // 새/대각선 포탄은 화면 위아래에서 반사
       if (o.y < 0 || o.y + o.h > H) o.vy *= -1;
     }
+    o.y = Math.max(0, Math.min(H - o.h, o.y));
+
     if (rectsOverlap(jetBox, o)) crashed = true;
   });
   obstacles = obstacles.filter((o) => o.x + o.w > 0);
@@ -313,7 +438,16 @@ function update() {
   // 점수 및 난이도 상승 (해상도와 무관하게 기준 단위로 누적)
   distance += speedBase;
   score = Math.floor(distance / 5);
-  speedBase = INITIAL_SPEED + Math.floor(distance / 1500) * 0.5;
+
+  const newLevel = Math.min(Math.floor(score / SCORE_PER_LEVEL), MAX_LEVEL);
+  if (newLevel !== level) {
+    level = newLevel;
+    speedBase = INITIAL_SPEED + level * SPEED_PER_LEVEL;
+    levelUpTimer = 60;                              // 약 1초간 토스트 표시
+    nextSpawnAt = Math.max(nextSpawnAt, distance + speedBase * 30); // 0.5초 유예
+    updateLevelHud();
+  }
+  if (levelUpTimer > 0) levelUpTimer--;
 
   document.getElementById("hud-score").textContent = `SCORE: ${score}`;
 
@@ -355,9 +489,16 @@ function draw() {
     ctx.fill();
   }
 
-  // 장애물
+  // 장애물 (종류별 색 구분)
+  const OBSTACLE_COLOR = {
+    shell: "#ffd54f",    // 대공포탄
+    bird: "#ff8a65",     // 새
+    missile: "#ff5252",  // 유도 미사일
+    diver: "#b388ff",    // 대각선 포탄
+    waver: "#4dd0e1",    // 사인파 새떼
+  };
   obstacles.forEach((o) => {
-    ctx.fillStyle = o.type === "bird" ? "#ff8a65" : "#ffd54f";
+    ctx.fillStyle = OBSTACLE_COLOR[o.type] || "#ffd54f";
     ctx.beginPath();
     ctx.arc(o.x + o.w / 2, o.y + o.h / 2, o.w / 2, 0, Math.PI * 2);
     ctx.fill();
@@ -368,6 +509,19 @@ function draw() {
   const edge = Math.max(2, 3 * su);
   ctx.fillRect(0, 0, W, edge);
   ctx.fillRect(0, H - edge, W, edge);
+
+  // 레벨업 토스트
+  if (levelUpTimer > 0) {
+    const fade = Math.min(1, levelUpTimer / 20);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = "#ffd54f";
+    ctx.font = `bold ${Math.round(28 * su)}px -apple-system, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`LEVEL ${level}`, W / 2, H / 2);
+    ctx.restore();
+  }
 }
 
 /* 고정 타임스텝 루프
@@ -404,7 +558,7 @@ async function endGame() {
   draw();
 
   const finalScore = score;
-  document.getElementById("final-score").textContent = `최종 점수: ${finalScore}`;
+  document.getElementById("final-score").textContent = `최종 점수: ${finalScore} (LV.${level} 도달)`;
   showScreen("over");
 
   const isNewBest = await saveScore(username, finalScore);

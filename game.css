@@ -116,6 +116,7 @@ button:hover { background: #1f57c9; }
   font-weight: 600;
 }
 #hud-best { color: #ffd54f; }
+#hud-level { color: #6fb3ff; }
 
 /* 캔버스는 컨테이너 폭에 맞춰 늘어나고, 높이는 화면에 맞춰 제한된다 */
 #game-canvas {
