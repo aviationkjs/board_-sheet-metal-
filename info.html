@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>드릴 사이즈 표</title>
+<title>Fastener Drill Reference Table</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,7 +25,8 @@
     position:sticky;top:0;z-index:20}
   .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
   @keyframes pulse{50%{opacity:.35}}
-  .statusbar .sys{color:var(--muted)} .statusbar .sys b{color:var(--text);font-weight:600}
+  .statusbar .sys{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .statusbar .sys b{color:var(--text);font-weight:600}
   .statusbar .clock{margin-left:auto;color:var(--amber)}
 
   .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 72px}
@@ -36,6 +37,8 @@
     font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
   .back:hover{color:var(--text);border-color:var(--line-2)}
   .toolbar h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+  .title-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+  @media(max-width:619px){.toolbar h1{font-size:17px}}
   .count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);
     border:1px solid var(--line);padding:5px 10px;border-radius:20px}
 
@@ -197,15 +200,17 @@
 
 <div class="statusbar">
   <div class="dot"></div>
-  <div class="sys">DRILL CHART · <b>NUMBER / FRACTION</b></div>
+  <div class="sys">FASTENER DRILL · <b>REF. TABLE</b></div>
   <div class="clock" id="clock">--:--:--</div>
 </div>
 
 <div class="wrap">
   <div class="toolbar">
     <a href="index.html" class="back">← 보드로</a>
-    <h1>드릴 사이즈 표</h1>
-    <span class="count" id="count"></span>
+    <div class="title-row">
+      <h1>Fastener Drill Reference Table</h1>
+      <span class="count" id="count"></span>
+    </div>
   </div>
 
   <div class="controls">
@@ -264,8 +269,8 @@
 
 <script>
 /* ============================================================
-   드릴 사이즈 표
-   - Number size drills: No.1~80 (ANSI 표준 규격)
+   Fastener Drill Reference Table
+   - Number size drills: No.1~80 (ANSI 표준 규격, MAX_NO 로 잘라 씀)
    - Fraction size drills: 1/64″ ~ 1/4″ (1/64 간격, 16개)
    ============================================================ */
 

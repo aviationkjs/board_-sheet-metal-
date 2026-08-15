@@ -11,33 +11,23 @@
     <header>
         <div id="username"></div>
         <div class="header-buttons">
+            <button id="addNoteBtn" class="nav-btn accent">🟨 스티커 추가</button>
             <div class="nav-item">
-                <button id="stickerMenuBtn" class="nav-btn">🟨 스티커 ▾</button>
-                <div class="dropdown" id="stickerMenu">
-                    <button id="addNoteBtn" class="drop-item">🟨 스티커 추가</button>
-                    <button id="huckViewBtn" class="drop-item">📖 FT-200_Guide</button>
-                    <button id="infoBtn" class="drop-item">📊 드릴 사이즈 표</button>
-                </div>
-            </div>
-            <button id="removeListBtn" class="nav-btn" onclick="location.href='remove_list.html'">📦 자재소모</button>
-            <div class="nav-item">
-                <button id="dutyMenuBtn" class="nav-btn accent">🔄 사역표<span id="dutyCurrentLabel"></span> ▾</button>
-                <div class="dropdown" id="dutyMenu">
+                <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기">⋯</button>
+                <div class="dropdown dropdown-right" id="moreMenu">
                     <div class="drop-info">
                         <div class="drop-info-label">이번 순번</div>
                         <div class="drop-info-value" id="dutyCurrentName">-</div>
                     </div>
                     <button id="dutyViewBtn" class="drop-item">📋 전체 사역표 보기</button>
-                </div>
-            </div>
-            <div class="nav-item">
-                <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기">⋯</button>
-                <div class="dropdown dropdown-right" id="moreMenu">
-                    <button id="usersBtn" class="drop-item" style="display: none;">👥 회원 관리</button>
-                    <button id="logsBtn" class="drop-item" style="display: none;">📋 로그 조회</button>
+                    <button id="removeListBtn" class="drop-item" onclick="location.href='remove_list.html'">📦 자재소모</button>
+                    <button id="infoBtn" class="drop-item">📊 Fastener Drill Reference Table</button>
+                    <button id="huckViewBtn" class="drop-item">📖 FT-200_Guide</button>
                     <button id="dividerBtn" class="drop-item" onclick="location.href='divider.html'">📐 균등분할 계산기</button>
                     <button id="gameBtn" class="drop-item">🛩 전투기 런 게임</button>
-                    <button id="deleteAllBtn" class="drop-item">🗑 전체삭제</button>
+                    <button id="usersBtn" class="drop-item" style="display: none;">👥 회원 관리</button>
+                    <button id="logsBtn" class="drop-item" style="display: none;">📋 로그 조회</button>
+                    <button id="deleteAllBtn" class="drop-item sep">🗑 전체삭제</button>
                     <button id="logoutBtn" class="drop-item">🚪 로그아웃</button>
                 </div>
             </div>

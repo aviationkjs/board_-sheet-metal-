@@ -353,9 +353,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // 헤더 드롭다운 메뉴 토글
+  // 헤더에는 '스티커 추가' 버튼과 더보기(⋯) 하나만 두고 나머지는 모두 더보기 안으로 모았다.
   const menus = [
-    { btn: "stickerMenuBtn", menu: "stickerMenu" },
-    { btn: "dutyMenuBtn", menu: "dutyMenu" },
     { btn: "moreMenuBtn", menu: "moreMenu" }
   ];
 
@@ -376,15 +375,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".dropdown").forEach(d => d.classList.remove("open"));
   });
 
-  // 현재 사역 순번 표시
-  const dutyCurrentLabel = document.getElementById("dutyCurrentLabel");
+  // 현재 사역 순번 표시 (더보기 메뉴 상단)
   const dutyCurrentName = document.getElementById("dutyCurrentName");
   onValue(dutyRef, (snap) => {
     const data = snap.val();
     const members = (data && data.members) || [];
     const currentIndex = (data && data.currentIndex) || 0;
     const currentName = members[currentIndex]?.name || "미설정";
-    if (dutyCurrentLabel) dutyCurrentLabel.textContent = `: ${currentName}`;
     if (dutyCurrentName) dutyCurrentName.textContent = currentName;
   });
 });

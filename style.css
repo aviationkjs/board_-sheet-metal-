@@ -89,7 +89,8 @@ header {
   color: #333;
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0,0,0,0.18);
-  min-width: 190px;
+  min-width: 215px;
+  max-width: min(300px, calc(100vw - 24px));
   overflow: hidden;
   z-index: 200;
 }
@@ -115,10 +116,16 @@ header {
   text-align: left;
   cursor: pointer;
   border: none;
+  line-height: 1.35;
 }
 
 .dropdown .drop-item:hover {
   background: #f4f6f8;
+}
+
+/* 파괴적 항목 앞 구분선 */
+.dropdown .drop-item.sep {
+  border-top: 1px solid #eee;
 }
 
 .drop-info {
