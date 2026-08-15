@@ -339,13 +339,21 @@ const FRAC_DEN = 64;
 const FRAC_MAX = 16;   // 16/64 = 1/4″
 
 /* ── 3) 메모 · 클리코 · 사진 ─────────────────────────────
-   ★ 여기만 고치면 표에 반영됩니다. 키는 표기(label).
+   ★ 여기만 고치면 표에 반영됩니다.
      memo   : 자유 메모 (아무 문장이나)
      cleco  : "silver" | "copper" | "black" | "brass"  (없으면 생략)
      photo  : assets/photos/ 안의 파일명 (확장자 포함)
      caption: 사진 아래 설명 (선택)
+
+   ★ 키는 세 가지 형태를 다 받습니다.
+       넘버 행    "#40"
+       분수 행    "1/8″"   (따옴표는 U+2033)
+       INCH 행    ".1290"  "0.1290"  ".129"  ← 셋 다 같은 행을 가리킵니다
+     INCH 는 숫자로 맞춰보므로 자리수·앞의 0 을 신경 쓰지 않아도 됩니다.
+
    파일이 아직 없어도 안전합니다 — 팝업에 "사진 준비 중" 안내가 뜹니다.
-   새 항목 추가 예:  "#40": { memo:"…", photo:"drill-40.jpg" }
+   예)  "#40":   { memo:"…", photo:"drill-40.jpg" }
+        ".2600": { photo:"ms90354s08.jpg" }
    ------------------------------------------------------- */
 const EXTRA = {
   "#40": { memo:"AD3 3/32″ 리벳", cleco:"silver", photo:"drill-40.jpg" },
@@ -442,8 +450,16 @@ FASTENER_HOLES.forEach(([dec, memo]) => {
   BASE_SEED.push({ type:"custom", label:f4(dec), dec, sortKey:2000+dec, memo, fastener:true });
 });
 
+/* EXTRA 의 키가 소수(".1290" · "0.1290" · ".129")면 숫자로 색인해 둔다.
+   표기를 글자 그대로 맞추지 않아도 되도록 하기 위함. 1/10000 인치 단위로 반올림. */
+const EXTRA_BY_DEC = {};
+Object.keys(EXTRA).forEach(k => {
+  if (/^\s*0?\.\d+\s*$/.test(k)) EXTRA_BY_DEC[Math.round(parseFloat(k) * 10000)] = EXTRA[k];
+});
+const extraFor = r => EXTRA[r.label] || EXTRA_BY_DEC[Math.round(r.dec * 10000)] || {};
+
 BASE_SEED.forEach(r => {
-  const e = EXTRA[r.label] || {};
+  const e = extraFor(r);
   r.seedKey = safeKey(r.label);
   r.key = "b:" + r.seedKey;
   r.memo = e.memo || r.memo || "";   // 패스너 행은 자기 메모를 유지한다
