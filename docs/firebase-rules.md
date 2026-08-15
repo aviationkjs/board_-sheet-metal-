@@ -54,6 +54,20 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
         "photo": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }
       }
+    },
+    "drill_overrides": {
+      ".read": true,
+      ".write": true,
+      "$key": {
+        "hidden": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "inch":   { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
+        "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
+        "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
+        "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "cleco":  { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
+        "photo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
+        "$other": { ".validate": true }
+      }
     }
   }
 }
@@ -118,6 +132,20 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
         "photo": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }
       }
+    },
+    "drill_overrides": {
+      ".read": true,
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$key": {
+        "hidden": { ".validate": "!newData.exists() || newData.isBoolean()" },
+        "inch":   { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
+        "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
+        "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
+        "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "cleco":  { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
+        "photo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
+        "$other": { ".validate": true }
+      }
     }
   }
 }
@@ -129,7 +157,7 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
 ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
 ```
 
-→ **DB 의 `admins/{uid}` 에 등록된 사람만** 드릴 표를 고칠 수 있습니다. `admins` 자체는 `.write: false` 라 **콘솔에서만** 손댈 수 있고, 앱 코드로는 자기를 관리자로 올릴 수 없습니다. 표 읽기는 `.read: true` 라 로그인 없이도 계속 보입니다.
+→ **DB 의 `admins/{uid}` 에 등록된 사람만** 드릴 표를 고칠 수 있습니다 (`drill_rows` · `drill_overrides` 동일). `admins` 자체는 `.write: false` 라 **콘솔에서만** 손댈 수 있고, 앱 코드로는 자기를 관리자로 올릴 수 없습니다. 표 읽기는 `.read: true` 라 로그인 없이도 계속 보입니다.
 
 ### B-1. 필요한 코드 변경 (아직 안 되어 있음)
 
@@ -176,6 +204,6 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
 
 | 증상 | 원인 | 조치 |
 |------|------|------|
-| `권한이 없습니다 — Firebase 규칙에 drill_rows 가 배포됐는지 확인해 주세요` | 규칙 미배포 | A안 붙여넣기 |
+| `권한이 없습니다 — … drill_rows / drill_overrides …` | 규칙 미배포 | A안 붙여넣기 |
 | `저장에 실패했습니다 (네트워크)` | 오프라인·차단 | 통신 확인 |
 | 관리자 바 자체가 안 보임 | `localStorage.username !== "admin"` 또는 Firebase 미연결 | `admin` 으로 로그인 |
