@@ -121,6 +121,44 @@
   .tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;letter-spacing:.04em}
   .tag.no{background:#1f2b3a;color:#7fb3e8}
   .tag.frac{background:var(--amber-dim);color:var(--amber)}
+  .tag.custom{background:var(--ok-dim);color:var(--ok)}
+  /* 관리자가 추가한 행 표시 — 왼쪽 초록 띠 */
+  .detail tbody tr.is-custom td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
+  @media(max-width:767px){
+    .detail tbody tr.is-custom td:nth-child(2){box-shadow:inset 3px 0 0 var(--ok)}
+  }
+
+  /* ── 관리자 ────────────────────────────────────────── */
+  .admin-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+  .admin-bar[hidden]{display:none}   /* display:flex 가 hidden 속성을 덮지 않도록 */
+  .badge-admin{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:20px;
+    background:var(--ok-dim);color:var(--ok);letter-spacing:.04em}
+  .btn-add{background:var(--amber);color:#1a1400;font-weight:700;border:none;
+    padding:11px 16px;border-radius:8px;cursor:pointer;font-size:14px;min-height:42px}
+  .btn-add:hover{filter:brightness(1.05)}
+  .form-rows{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+  .fld{display:flex;flex-direction:column;gap:5px}
+  .fld label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
+  .fld label .req{color:var(--amber)}
+  .fld input,.fld select{background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;
+    color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 12px;min-height:44px;width:100%}
+  .fld input:focus,.fld select:focus{outline:none;border-color:var(--amber)}
+  .fld .hint{font-size:11px;color:var(--muted);font-family:var(--sans)}
+  .fld-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form-err{background:rgba(255,90,82,.12);border:1px solid var(--danger);color:var(--danger);
+    border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
+  .form-err.show{display:block}
+  .form-act{display:flex;gap:8px}
+  .btn{border:none;border-radius:8px;padding:12px 16px;font-size:14px;font-weight:600;
+    cursor:pointer;min-height:46px;font-family:var(--sans)}
+  .btn.primary{background:var(--amber);color:#1a1400;flex:1}
+  .btn.ghost{background:var(--panel-2);border:1px solid var(--line-2);color:var(--text)}
+  .btn.danger{background:rgba(255,90,82,.14);border:1px solid var(--danger);color:var(--danger)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .sheet .form-act{margin-top:4px}
+  .preview{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+    font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:14px}
+  .preview b{color:var(--amber)}
   .cl{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:var(--mono)}
   .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--line-2);flex:0 0 auto}
   .pbtn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--amber);cursor:pointer;
@@ -219,6 +257,13 @@
     </div>
   </div>
 
+  <!-- 관리자 전용 (기본 숨김) -->
+  <div class="admin-bar" id="adminBar" hidden>
+    <span class="badge-admin" id="adminBadge">관리자</span>
+    <button class="btn-add" id="addRowBtn">＋ 행 추가</button>
+    <span class="count" id="customCount"></span>
+  </div>
+
   <div class="nearest" id="nearest"></div>
   <div id="view"></div>
 
@@ -240,6 +285,11 @@
 <!-- 사진 팝업 -->
 <div class="modal-back" id="modalBack">
   <div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+</div>
+
+<!-- 행 추가 · 편집 (관리자) -->
+<div class="sheet-back" id="formBack">
+  <div class="sheet" id="form" role="dialog" aria-modal="true"></div>
 </div>
 
 <script>
@@ -313,24 +363,65 @@ function nearFrac(dec){
   return { label: fracLabel(n, FRAC_DEN), diff: dec - val };
 }
 
-const ROWS = [];
+/* "1/8" → {num:1, den:8}. 잘못된 값이면 null */
+function parseFrac(s){
+  const m = String(s || "").trim().replace(/["″']/g, "").match(/^(\d+)\s*\/\s*(\d+)$/);
+  if (!m) return null;
+  const num = +m[1], den = +m[2];
+  if (!num || !den) return null;
+  return { num, den };
+}
+
+/* 표에 내장된 기본 행 (코드로 생성 · 편집 불가) */
+const BASE_ROWS = [];
 NUMBER_DRILLS.filter(([no]) => no <= MAX_NO).forEach(([no, dec]) => {
-  ROWS.push({ type:"no", label:"#"+no, no, dec, sortKey:no });
+  BASE_ROWS.push({ type:"no", label:"#"+no, no, dec, sortKey:no });
 });
 for (let n = 1; n <= FRAC_MAX; n++){
-  ROWS.push({ type:"frac", label:fracLabel(n, FRAC_DEN), num:n, den:FRAC_DEN,
-              dec:n/FRAC_DEN, sortKey:1000+n });
+  BASE_ROWS.push({ type:"frac", label:fracLabel(n, FRAC_DEN), num:n, den:FRAC_DEN,
+                   dec:n/FRAC_DEN, sortKey:1000+n });
 }
-ROWS.forEach(r => {
+BASE_ROWS.forEach(r => {
   const e = EXTRA[r.label] || {};
+  r.key = "b:" + r.label;
   r.memo = e.memo || "";
   r.cleco = e.cleco || "";
   r.photo = e.photo || "";
   r.caption = e.caption || "";
-  r.mm = r.dec * MM;
-  r.nf = r.type === "no" ? nearFrac(r.dec) : null;
-  r.hasInfo = !!(r.memo || r.photo || r.cleco);
 });
+
+/* 관리자가 추가한 행 (Firebase `drill_rows`) → 표시용 행으로 변환 */
+function customToRow(id, v){
+  const dec = Number(v && v.inch);
+  if (!isFinite(dec) || dec <= 0) return null;          // INCH 는 필수
+  const fr = parseFrac(v.frac);
+  const no = Number.isFinite(+v.no) && v.no !== "" && v.no != null ? +v.no : null;
+
+  let type = "custom", label = f4(dec), sortKey = 2000 + dec;
+  if (no != null){ type = "no";   label = "#" + no;               sortKey = no; }
+  else if (fr)   { type = "frac"; label = fracLabel(fr.num, fr.den); sortKey = 1000 + fr.num / fr.den; }
+
+  return {
+    key:"c:" + id, id, custom:true, type, label, dec, sortKey,
+    no, num: fr ? fr.num : null, den: fr ? fr.den : null,
+    fracText: v.frac || "",
+    memo: v.memo || "", cleco: v.cleco || "", photo: v.photo || "", caption: v.caption || ""
+  };
+}
+
+/* 기본 행 + 추가 행을 합쳐 파생값(mm · 근접 분수)을 채운다 */
+let customRows = [];
+let ROWS = [];
+function rebuildRows(){
+  ROWS = BASE_ROWS.concat(customRows);
+  ROWS.forEach(r => {
+    r.mm = r.dec * MM;
+    // 분수 행은 자기 자신이 분수이므로 근접 분수를 따로 계산하지 않는다
+    r.nf = r.type === "frac" ? null : nearFrac(r.dec);
+    r.hasInfo = !!(r.memo || r.photo || r.cleco);
+  });
+}
+rebuildRows();
 
 /* ── 표시 서식 ───────────────────────────────────────── */
 const f4 = v => v.toFixed(4).replace(/^0/, "");        // 0.1285 → .1285
@@ -417,9 +508,9 @@ function renderDetail(rows){
           '<th>구분</th><th>표기</th><th>' + unitHead + '</th><th>mm</th><th>근접 분수</th>' +
           '<th>메모</th><th>클리코</th><th>사진</th></tr></thead><tbody>';
   rows.forEach(r => {
-    const tag  = r.type === "no"
-      ? '<span class="tag no">No.</span>'
-      : '<span class="tag frac">Frac</span>';
+    const tag  = r.type === "no"   ? '<span class="tag no">No.</span>'
+               : r.type === "frac" ? '<span class="tag frac">Frac</span>'
+               :                     '<span class="tag custom">추가</span>';
     const nf   = r.nf
       ? '<span class="m">' + esc(r.nf.label) + '</span> <span class="dim m nf-err"> (' + sgn(r.nf.diff) + ')</span>'
       : '<span class="dim">—</span>';
@@ -432,9 +523,10 @@ function renderDetail(rows){
       ? esc(r.memo) + phIc
       : (phIc || '<span class="dim">—</span>');
     const ph   = r.photo
-      ? '<button class="pbtn" data-photo="' + esc(r.label) + '" title="사진 보기">🖼</button>'
+      ? '<button class="pbtn" data-photo="' + esc(r.key) + '" title="사진 보기">🖼</button>'
       : '<span class="dim">—</span>';
-    h += '<tr tabindex="0" data-label="' + esc(r.label) + '" ' +
+    h += '<tr tabindex="0" data-key="' + esc(r.key) + '"' +
+         (r.custom ? ' class="is-custom"' : '') + ' ' +
          'aria-label="' + esc(r.label) + ' 상세">' +
          '<td>' + tag + '</td>' +
          '<td class="lbl">' + esc(r.label) + '</td>' +
@@ -458,7 +550,7 @@ function renderNearest(){
   let h = '<div class="nh">최근접 드릴 — 입력 ' + shown + '</div><div class="nlist">';
   n.list.forEach(r => {
     const d = r.dec - n.inch;
-    h += '<button class="npill" data-label="' + esc(r.label) + '">' +
+    h += '<button class="npill" data-key="' + esc(r.key) + '">' +
          '<b>' + esc(r.label) + '</b> ' + f4(r.dec) + '″' +
          '<i>' + (Math.abs(d) < 1e-9 ? "일치" : sgn(d) + "″") + '</i></button>';
   });
@@ -487,18 +579,21 @@ let scrollY = 0;
 
 function lock(){ scrollY = window.scrollY; document.body.classList.add("locked"); }
 function unlock(){
-  if (sheetBack.classList.contains("show") || modalBack.classList.contains("show")) return;
+  if (sheetBack.classList.contains("show") || modalBack.classList.contains("show")
+      || formBack.classList.contains("show")) return;
   document.body.classList.remove("locked");
   window.scrollTo(0, scrollY);
 }
 
-function openSheet(label){
-  const r = ROWS.find(x => x.label === label);
+function openSheet(key){
+  const r = ROWS.find(x => x.key === key);
   if (!r) return;
   const c = r.cleco ? CLECO[r.cleco] : null;
+  const tagCls  = r.custom ? "custom" : r.type;
+  const tagText = r.type === "no" ? "No." : r.type === "frac" ? "Frac" : "추가";
   let h = '<div class="grip"></div><div class="sheet-h">' +
           '<span class="big">' + esc(r.label) + '</span>' +
-          '<span class="tag ' + r.type + '">' + (r.type === "no" ? "No." : "Frac") + '</span>' +
+          '<span class="tag ' + tagCls + '">' + tagText + '</span>' +
           '<button class="x" id="sheetX" title="닫기">✕</button></div><div class="rows">' +
           '<div class="row"><span class="k">INCH</span><span class="v">' + f4(r.dec) + '″</span></div>' +
           '<div class="row"><span class="k">MM</span><span class="v">' + f2(r.mm) + ' mm</span></div>';
@@ -514,7 +609,12 @@ function openSheet(label){
          '<span class="v wrap" style="margin-left:auto;text-align:right">' + esc(r.memo) + '</span></div>';
   h += '</div>';
   if (r.photo)
-    h += '<button class="pbtn" data-photo="' + esc(r.label) + '">🖼 사진 보기</button>';
+    h += '<button class="pbtn" data-photo="' + esc(r.key) + '">🖼 사진 보기</button>';
+  /* 관리자는 자기가 추가한 행을 여기서 편집·삭제한다 (기본 56행은 코드 소유라 편집 불가) */
+  if (isAdmin && r.custom)
+    h += '<div class="form-act" style="margin-top:12px">' +
+         '<button class="btn primary" data-edit="' + esc(r.id) + '">✎ 편집</button>' +
+         '<button class="btn danger" data-del="' + esc(r.id) + '">🗑 삭제</button></div>';
   sheet.innerHTML = h;
   sheetBack.classList.add("show");
   lock();
@@ -528,8 +628,8 @@ function closeSheet(){ sheetBack.classList.remove("show"); unlock(); }
 const modalBack = document.getElementById("modalBack");
 const modal     = document.getElementById("modal");
 
-function openPhoto(label){
-  const r = ROWS.find(x => x.label === label);
+function openPhoto(key){
+  const r = ROWS.find(x => x.key === key);
   if (!r || !r.photo) return;
   const src = PHOTO_DIR + r.photo;
   modal.innerHTML =
@@ -555,6 +655,177 @@ function openPhoto(label){
 }
 
 function closePhoto(){ modalBack.classList.remove("show"); unlock(); }
+
+/* ════════════════════════════════════════════════════════
+   관리자 — 행 추가 · 편집 · 삭제
+   저장소는 Firebase RTDB `drill_rows`. 아래 store 는 Firebase 모듈이
+   붙으면 교체된다(§ 하단 module 스크립트). 연결 전/실패 시에는
+   버튼이 뜨지 않으므로 표는 읽기 전용으로 정상 동작한다.
+   ════════════════════════════════════════════════════════ */
+let isAdmin = false;
+let store = null;                  // { save(id, data), remove(id) }
+
+const adminBar  = document.getElementById("adminBar");
+const formBack  = document.getElementById("formBack");
+const formEl    = document.getElementById("form");
+
+/* Firebase 모듈이 준비되면 호출한다 */
+window.__drillAdmin = {
+  enable(username, api){
+    isAdmin = true;
+    store = api;
+    document.getElementById("adminBadge").textContent = "관리자 · " + username;
+    adminBar.hidden = false;
+    syncLayout();
+  },
+  /* drill_rows 스냅샷이 올 때마다 호출 */
+  setRows(obj){
+    customRows = Object.entries(obj || {})
+      .map(([id, v]) => customToRow(id, v))
+      .filter(Boolean);
+    rebuildRows();
+    document.getElementById("customCount").textContent =
+      customRows.length ? "추가된 행 " + customRows.length + "개" : "추가된 행 없음";
+    render();
+  }
+};
+
+/* INCH 입력 파싱: `.128` `0.128` `1/8` `3-1/2` 모두 인치로 받는다 */
+function parseInch(s){
+  const v = parseNum(s);
+  return (v === null || !isFinite(v) || v <= 0) ? null : v;
+}
+
+function clecoOptions(sel){
+  return '<option value="">없음</option>' +
+    Object.keys(CLECO).map(k =>
+      '<option value="' + k + '"' + (k === sel ? " selected" : "") + '>' +
+      CLECO[k].name + " · " + CLECO[k].size + '</option>').join("");
+}
+
+/* id 가 없으면 추가, 있으면 편집 */
+function openForm(id){
+  const r = id ? customRows.find(x => x.id === id) : null;
+  const v = r || {};
+  formEl.innerHTML =
+    '<div class="grip"></div><div class="sheet-h">' +
+      '<span class="big" style="font-size:19px">' + (r ? "행 편집" : "행 추가") + '</span>' +
+      '<button class="x" id="formX" title="닫기">✕</button></div>' +
+    '<div class="form-err" id="formErr"></div>' +
+    '<div class="preview" id="formPrev">—</div>' +
+    '<div class="form-rows">' +
+      '<div class="fld">' +
+        '<label for="fInch">INCH <span class="req">＊필수</span></label>' +
+        '<input id="fInch" inputmode="decimal" autocomplete="off" placeholder="예: .1285  또는  1/8" ' +
+          'value="' + esc(r ? f4(r.dec) : "") + '">' +
+        '<span class="hint">소수(.1285)와 분수(1/8) 둘 다 됩니다. mm 로 넣지 마세요.</span>' +
+      '</div>' +
+      '<div class="fld-2">' +
+        '<div class="fld"><label for="fNo">넘버 (선택)</label>' +
+          '<input id="fNo" inputmode="numeric" autocomplete="off" placeholder="예: 30" ' +
+            'value="' + esc(v.no != null ? v.no : "") + '"></div>' +
+        '<div class="fld"><label for="fFrac">분수 (선택)</label>' +
+          '<input id="fFrac" autocomplete="off" placeholder="예: 1/8" ' +
+            'value="' + esc(v.fracText || "") + '"></div>' +
+      '</div>' +
+      '<div class="fld"><label for="fMemo">메모 (선택)</label>' +
+        '<input id="fMemo" autocomplete="off" placeholder="예: AD4 1/8″ 리벳" ' +
+          'value="' + esc(v.memo || "") + '"></div>' +
+      '<div class="fld"><label for="fCleco">클리코 (선택)</label>' +
+        '<select id="fCleco">' + clecoOptions(v.cleco) + '</select></div>' +
+      '<div class="fld"><label for="fPhoto">사진 파일명 (선택)</label>' +
+        '<input id="fPhoto" autocomplete="off" placeholder="예: drill-30.jpg" ' +
+          'value="' + esc(v.photo || "") + '">' +
+        '<span class="hint">assets/photos/ 안의 파일명입니다.</span></div>' +
+    '</div>' +
+    '<div class="form-act">' +
+      '<button class="btn primary" id="fSave">' + (r ? "저장" : "추가") + '</button>' +
+      '<button class="btn ghost" id="fCancel">취소</button>' +
+    '</div>';
+
+  formEl.dataset.id = id || "";
+  formBack.classList.add("show");
+  lock();
+  ["fInch","fNo","fFrac"].forEach(k =>
+    document.getElementById(k).addEventListener("input", updatePreview));
+  updatePreview();
+  document.getElementById("fInch").focus();
+}
+
+function closeForm(){ formBack.classList.remove("show"); unlock(); }
+
+/* 입력한 값이 표에서 어떻게 보일지 미리 알려준다 */
+function updatePreview(){
+  const box = document.getElementById("formPrev");
+  if (!box) return;
+  const inch = parseInch(document.getElementById("fInch").value);
+  if (inch === null){ box.innerHTML = '표기 —  ·  INCH 를 입력하세요'; return; }
+  const noRaw = document.getElementById("fNo").value.trim();
+  const fr    = parseFrac(document.getElementById("fFrac").value);
+  const label = noRaw !== "" ? "#" + noRaw : fr ? fracLabel(fr.num, fr.den) : f4(inch);
+  // 분수를 직접 지정한 행은 근접 분수를 계산하지 않는다 (표와 동일하게)
+  const nf    = (noRaw === "" && fr) ? null : nearFrac(inch);
+  box.innerHTML = '표기 <b>' + esc(label) + '</b>  ·  ' + f4(inch) + '″  ·  ' +
+                  f2(inch * MM) + 'mm' + (nf ? '  ·  근접 ' + esc(nf.label) : '');
+}
+
+/* 저장 — 검증 후 Firebase 로 */
+async function submitForm(){
+  const err  = document.getElementById("formErr");
+  const save = document.getElementById("fSave");
+  const show = m => { err.textContent = m; err.classList.add("show"); };
+  err.classList.remove("show");
+
+  const inch = parseInch(document.getElementById("fInch").value);
+  if (inch === null) return show("INCH 를 넣어주세요. 소수(.1285) 또는 분수(1/8) 형식입니다.");
+  if (inch > 4)      return show("INCH 값이 너무 큽니다 (4″ 초과). mm 로 넣으신 건 아닌가요?");
+
+  const noRaw = document.getElementById("fNo").value.trim();
+  let no = null;
+  if (noRaw !== ""){
+    no = Number(noRaw);
+    if (!Number.isInteger(no) || no < 1 || no > 200) return show("넘버는 1~200 사이 정수로 넣어주세요.");
+  }
+  const fracRaw = document.getElementById("fFrac").value.trim();
+  if (fracRaw !== "" && !parseFrac(fracRaw)) return show("분수는 1/8 처럼 넣어주세요.");
+
+  const id = formEl.dataset.id;
+  const label = no != null ? "#" + no
+              : fracRaw ? fracLabel(parseFrac(fracRaw).num, parseFrac(fracRaw).den)
+              : f4(inch);
+
+  const dupDia = ROWS.find(x => x.id !== id && Math.abs(x.dec - inch) < 1e-9);
+  if (dupDia && !confirm("같은 지름(" + f4(inch) + "″)인 " + dupDia.label + " 이(가) 이미 있습니다.\n그래도 진행할까요?")) return;
+
+  const dupLbl = ROWS.find(x => x.id !== id && x.label === label);
+  if (dupLbl && !confirm("표기가 " + label + " 인 행이 이미 있습니다 (" + f4(dupLbl.dec) + "″).\n같은 이름이 두 줄 생깁니다. 그래도 진행할까요?")) return;
+
+  const data = {
+    inch, no,
+    frac: fracRaw || null,
+    memo: document.getElementById("fMemo").value.trim() || null,
+    cleco: document.getElementById("fCleco").value || null,
+    photo: document.getElementById("fPhoto").value.trim() || null
+  };
+
+  save.disabled = true; save.textContent = "저장 중…";
+  try {
+    await store.save(id || null, data);
+    closeForm();
+  } catch(e){
+    console.error(e);
+    save.disabled = false; save.textContent = id ? "저장" : "추가";
+    show("저장에 실패했습니다. 연결을 확인해 주세요.");
+  }
+}
+
+async function deleteRow(id){
+  const r = customRows.find(x => x.id === id);
+  if (!r) return;
+  if (!confirm(r.label + " 행을 삭제할까요? 되돌릴 수 없습니다.")) return;
+  try { await store.remove(id); closeSheet(); }
+  catch(e){ console.error(e); alert("삭제에 실패했습니다."); }
+}
 
 /* ── 이벤트 ──────────────────────────────────────────── */
 document.getElementById("q").addEventListener("input", e => {
@@ -587,10 +858,19 @@ document.getElementById("chips").addEventListener("click", e => {
 
 /* 셀 · 최근접 알약 · 사진 버튼 (위임) */
 document.addEventListener("click", e => {
+  if (e.target.closest("#addRowBtn")){ openForm(null); return; }
+  const ed = e.target.closest("[data-edit]");
+  if (ed){ closeSheet(); openForm(ed.dataset.edit); return; }
+  const de = e.target.closest("[data-del]");
+  if (de){ deleteRow(de.dataset.del); return; }
+  if (e.target.closest("#fSave")){ submitForm(); return; }
+  if (e.target.closest("#fCancel") || e.target.closest("#formX")){ closeForm(); return; }
+  if (e.target === formBack){ closeForm(); return; }
+
   const p = e.target.closest("[data-photo]");
   if (p){ openPhoto(p.dataset.photo); return; }
   const c = e.target.closest(".detail tbody tr, .npill");
-  if (c){ openSheet(c.dataset.label); return; }
+  if (c){ openSheet(c.dataset.key); return; }
 });
 
 /* 표 행 키보드 조작 */
@@ -599,7 +879,7 @@ document.addEventListener("keydown", e => {
   const row = e.target.closest && e.target.closest(".detail tbody tr");
   if (!row) return;
   e.preventDefault();
-  openSheet(row.dataset.label);
+  openSheet(row.dataset.key);
 });
 
 sheetBack.addEventListener("click", e => {
@@ -611,7 +891,13 @@ modalBack.addEventListener("click", e => {
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (modalBack.classList.contains("show")) closePhoto();
+  else if (formBack.classList.contains("show")) closeForm();
   else if (sheetBack.classList.contains("show")) closeSheet();
+});
+
+/* 입력 폼에서 Enter 로 저장 */
+formEl.addEventListener("keydown", e => {
+  if (e.key === "Enter" && e.target.tagName === "INPUT"){ e.preventDefault(); submitForm(); }
 });
 
 /* 모바일: 시트 아래로 스와이프해 닫기 */
@@ -666,6 +952,53 @@ document.querySelectorAll("#unitSeg button").forEach(b => b.classList.toggle("on
 document.querySelectorAll("#chips .chip").forEach(b => b.classList.toggle("on", b.dataset.f === state.filter));
 document.getElementById("sort").value = state.sort;
 render();
+</script>
+
+<!-- ════════════════════════════════════════════════════════════
+     Firebase 연결 (관리자 편집 + 추가 행 동기화)
+
+     본 스크립트는 위 표와 **분리**돼 있다. 네트워크가 막히거나
+     Firebase 가 뜨지 않아도 위 56행 표·검색·시트·사진은 그대로 동작하고,
+     관리자 버튼만 나타나지 않는다.
+     ════════════════════════════════════════════════════════════ -->
+<script type="module">
+try {
+  const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+  const { getDatabase, ref, onValue, push, set, update, remove }
+    = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js");
+
+  const app = initializeApp({
+    apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+    authDomain: "board-sheet-metal.firebaseapp.com",
+    databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+    projectId: "board-sheet-metal",
+    storageBucket: "board-sheet-metal.firebasestorage.app",
+    messagingSenderId: "300454183349",
+    appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+  });
+  const db = getDatabase(app);
+  const ROOT = "drill_rows";
+
+  /* 추가 행은 누구나 읽는다 (이 페이지는 로그인 없이도 열람 가능) */
+  onValue(ref(db, ROOT), snap => window.__drillAdmin.setRows(snap.val()));
+
+  /* 쓰기는 관리자만 — 보드와 동일하게 localStorage 사용자명으로 판별 */
+  const username = localStorage.getItem("username");
+  if (username === "admin"){
+    window.__drillAdmin.enable(username, {
+      async save(id, data){
+        const payload = Object.assign({}, data, { updatedAt: Date.now(), updatedBy: username });
+        if (id) return update(ref(db, ROOT + "/" + id), payload);
+        payload.createdAt = Date.now();
+        return set(push(ref(db, ROOT)), payload);
+      },
+      async remove(id){ return remove(ref(db, ROOT + "/" + id)); }
+    });
+  }
+} catch (e) {
+  // 표는 이미 떠 있다. 관리자 기능만 비활성으로 둔다.
+  console.warn("Firebase 연결 실패 — 표는 읽기 전용으로 동작합니다.", e);
+}
 </script>
 </body>
 </html>

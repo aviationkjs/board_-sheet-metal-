@@ -25,6 +25,14 @@
     "duty":                { ".read": true, ".write": true },
     "logs":                { ".read": true, ".write": true },
     "materialConsumption": { ".read": true, ".write": true },
-    "fighterjet_scores":   { ".read": true, ".write": true }
+    "fighterjet_scores":   { ".read": true, ".write": true },
+    "drill_rows": {
+      ".read": true,
+      ".write": true,
+      "$id": {
+        "inch": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 4" },
+        "no":   { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" }
+      }
+    }
   }
 }
