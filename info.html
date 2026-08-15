@@ -104,7 +104,11 @@
     cursor:pointer;align-items:center;justify-content:center;vertical-align:middle}
   .detail .ph-ic:hover{border-color:var(--amber)}
   .detail .m{font-family:var(--mono)}
-  .detail .lbl{font-family:var(--mono);font-weight:600;color:var(--amber)}
+  /* 넘버·분수는 기본 글자색 — INCH 하나만 앰버로 띄우기 위해서다 */
+  .detail .lbl{font-family:var(--mono);font-weight:600;color:var(--text)}
+  /* ★ INCH — 이 표에서 가장 중요한 값. 유일하게 앰버로 강조한다 */
+  .detail .c-in{color:var(--amber);font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .detail thead th.h-in{color:var(--amber)}
   .detail .dim{color:var(--muted)}
   .detail .memo{white-space:normal;min-width:120px}
   /* 좁은 화면(≤767px): 구분 · mm · 클리코 · 사진 열을 접고
@@ -121,7 +125,7 @@
     .detail tbody td,.detail thead th{padding:8px 6px}
     .detail .c-no{width:48px}
     .detail .c-fr{width:60px}
-    .detail .c-in{width:56px}
+    .detail .c-in{width:60px;font-size:14px}
     .detail .c-ed{width:40px}
     .detail .memo{padding-left:8px;min-width:0}
     .detail.admin .memo{font-size:12px}
@@ -216,6 +220,7 @@
   .row .k{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;flex:0 0 84px}
   .row .v{font-family:var(--mono);font-size:14px;color:var(--text);text-align:right;margin-left:auto;
     word-break:break-word}
+  .row .v.big-in{color:var(--amber);font-weight:700;font-size:19px;letter-spacing:-.01em}
   .row .v.wrap{font-family:var(--sans);text-align:left;margin-left:0}
   .sheet .pbtn{width:100%;padding:13px;font-family:var(--mono);font-size:13px;min-height:46px}
 
@@ -630,7 +635,7 @@ function renderDetail(rows){
      좁은 화면에서는 CSS 로 mm · 클리코 · 사진이 접힌다 (§CSS @media 767px) */
   const unitHead = state.unit === "in" ? "inch" : "mm";
   let h = '<div class="table-wrap"><table class="detail' + (isAdmin ? " admin" : "") + '"><thead><tr>' +
-          '<th>넘버</th><th>분수</th><th>' + unitHead + '</th><th>mm</th>' +
+          '<th>넘버</th><th>분수</th><th class="h-in">' + unitHead + '</th><th>mm</th>' +
           '<th>메모</th><th>클리코</th><th>사진</th>' +
           (isAdmin ? '<th>수정</th>' : '') +
           '</tr></thead><tbody>';
@@ -736,7 +741,7 @@ function openSheet(key){
           '<span class="big">' + esc(r.label) + '</span>' +
           '<span class="tag ' + tagCls + '">' + tagText + '</span>' +
           '<button class="x" id="sheetX" title="닫기">✕</button></div><div class="rows">' +
-          '<div class="row"><span class="k">INCH</span><span class="v">' + f4(r.dec) + '″</span></div>' +
+          '<div class="row"><span class="k">INCH</span><span class="v big-in">' + f4(r.dec) + '″</span></div>' +
           '<div class="row"><span class="k">MM</span><span class="v">' + f2(r.mm) + ' mm</span></div>';
   if (r.nf)
     h += '<div class="row"><span class="k">근접 분수</span><span class="v">≈ ' +
