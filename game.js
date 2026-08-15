@@ -161,7 +161,7 @@ function jetHitbox() {
 // 속도는 완만하게만 올리고, 난이도는 스폰 밀도와 장애물 종류/움직임으로 올린다.
 const SCORE_PER_LEVEL = 1000;
 const MAX_LEVEL = 12;
-const SPEED_PER_LEVEL = 0.5;      // 레벨당 스크롤 속도 증가
+const SPEED_PER_LEVEL = 3;      // 레벨당 스크롤 속도 증가
 const SPAWN_GAP_BASE = 360;       // 레벨 0의 스폰 간격(진행 거리 단위)
 const SPAWN_GAP_PER_LEVEL = 18;   // 레벨당 줄어드는 간격
 const SPAWN_GAP_MIN = 140;        // 간격 하한
