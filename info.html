@@ -109,6 +109,9 @@
   /* ★ INCH — 이 표에서 가장 중요한 값. 유일하게 앰버로 강조한다 */
   .detail .c-in{color:var(--amber);font-weight:700;font-size:15px;letter-spacing:-.01em}
   .detail thead th.h-in{color:var(--amber)}
+  /* 허용 범위가 있는 행 표시 — 앰버 숫자 뒤의 흐린 물결 */
+  .rng{color:var(--muted);font-weight:400;margin-left:1px}
+  .row .v.rng-v{color:var(--amber)}
   .detail .dim{color:var(--muted)}
   .detail .memo{white-space:normal;min-width:120px}
   /* 좁은 화면(≤767px): 구분 · mm · 클리코 · 사진 열을 접고
@@ -120,6 +123,7 @@
     .detail th:nth-child(4),.detail td:nth-child(4),
     .detail th:nth-child(6),.detail td:nth-child(6),
     .detail th:nth-child(7),.detail td:nth-child(7){display:none}
+    .detail.no-photo th:nth-child(7),.detail.no-photo td:nth-child(7){display:none}
     .detail .nf-err{display:none}
     .detail .ph-ic{display:inline-flex}
     .detail tbody td,.detail thead th{padding:8px 6px}
@@ -280,7 +284,7 @@
       <button class="chip" data-f="no">No.</button>
       <button class="chip" data-f="frac">분수</button>
       <button class="chip" data-f="memo">메모 있음</button>
-      <button class="chip" data-f="photo">사진 있음</button>
+      <button class="chip" data-f="photo" id="chipPhoto">사진 있음</button>
     </div>
   </div>
 
@@ -366,44 +370,53 @@ const FRAC_MAX = 16;   // 16/64 = 1/4″
         ".2600": { photo:"ms90354s08.jpg" }
    ------------------------------------------------------- */
 const EXTRA = {
-  "#40": { memo:"AD3 3/32″ 리벳", cleco:"silver", photo:"drill-40.jpg" },
-  "#30": { memo:"AD4 1/8″ 리벳",  cleco:"copper", photo:"drill-30.jpg" },
-  "#21": { memo:"AD5 5/32″ 리벳", cleco:"black",  photo:"drill-21.jpg" },
-  "#11": { memo:"AD6 3/16″ 리벳", cleco:"brass",  photo:"drill-11.jpg" },
-
-  /* 아래는 패스너 홀 사이즈표에서 옮긴 것 — 기존 드릴 지름과 값이 정확히
-     같아 새 행을 만들지 않고 그 행 메모에 붙였다 (중복 제거) */
-  "#20":    { memo:"MS20426AD5 · C10001AD5 · MS20470AD5" },
-  "#15":    { memo:"C9502-05" },
-  "#12":    { memo:"NAS4452S06 · NAS4450S06" },
-  "#8":     { memo:"MS90353S06 · MS90354S06" },
-  "#7":     { memo:"NAS6203-8" },
-  "5/32″":  { memo:"NAS7035H" },
-  "1/4″":   { memo:"C20645-4" }
+  /* 사진은 보류 상태다 — SHOW_PHOTOS = false 이고 photo 값도 주석으로 빼뒀다.
+     다시 켤 때는 SHOW_PHOTOS 를 true 로 바꾸고 아래 주석을 풀면 된다. */
+  "#40": { memo:"AD3 3/32″ 리벳", cleco:"silver" /*, photo:"drill-40.jpg" */ },
+  "#30": { memo:"AD4 1/8″ 리벳",  cleco:"copper" /*, photo:"drill-30.jpg" */ },
+  "#21": { memo:"AD5 5/32″ 리벳", cleco:"black"  /*, photo:"drill-21.jpg" */ },
+  "#11": { memo:"AD6 3/16″ 리벳", cleco:"brass"  /*, photo:"drill-11.jpg" */ }
 };
-/* #11 은 위에서 이미 메모가 있으므로 덮어쓰지 않고 이어 붙인다 */
-EXTRA["#11"].memo += " · MS20426AD6 · MS20470AD6 · C20645-3 · NAS1581";
 
-/* ── 3-1) 패스너 홀 사이즈 — 표준 드릴에 없는 지름 ──────────
-   [지름(inch), 해당 패스너, 추가옵션?]
-   값은 홀 사이즈표의 1/10000 인치 표기를 그대로 옮긴 것이다 (1290 → .1290″).
-   같은 지름을 쓰는 패스너는 한 줄로 묶었다.
-   넘버·분수가 없는 치수이므로 표에서 두 칸은 공란으로 나간다.
+/* 사진 기능 전체 스위치. false 면 표의 사진 열·🖼 아이콘·시트 버튼이 모두 사라진다.
+   파일과 코드는 그대로 남아 있으므로 true 로만 바꾸면 즉시 되살아난다. */
+const SHOW_PHOTOS = false;
 
-   ★ 세 번째 자리에 사진·클리코를 **중괄호로 묶어서** 넣을 수 있다.
-       [0.1635, "NAS4452S05 · NAS4450S05", { photo:"NAS4450S05.jpg" }],
-                                           ↑ 중괄호 필수. 빠지면 문법 오류로
-                                             표 전체가 안 뜬다.                  */
+/* ── 3-1) 패스너 홀 사이즈 ────────────────────────────────
+   [하한(inch), 상한(inch), 해당 패스너, 추가옵션?]
+   홀 사이즈표의 1/10000 인치 표기를 그대로 옮겼다 (1290-1380 → .1290~.1380).
+
+   ★ 범위 폭이 규격마다 다르다(.0015 ~ .0100). 그래서 상한을 계산하지 않고
+     하나하나 저장한다.
+   ★ 하한이 같아도 상한이 다르면 다른 규격이다. 예) .1910 은 상한이
+     .2010 / .1990 / .1940 세 종류라 세 줄로 나뉜다.
+   ★ 드릴 행과는 섞지 않는다 — 드릴은 '공구 지름'(단일값),
+     이쪽은 '허용 홀 범위'(구간)라 성격이 다르다.
+
+   표에는 하한만 앰버로 찍고 뒤에 `~` 를 붙여 범위가 있음을 알린다.
+   전체 범위는 행을 탭하면 시트에서 본다. (방안 1)
+
+   세 번째 이후 자리에 { photo, cleco, caption } 을 중괄호로 묶어 넣을 수 있다. */
 const FASTENER_HOLES = [
-  [0.1290, "MS20426AD4 · MS20470AD4"],
-  [0.1310, "NAS1921@04"],
-  [0.1620, "NAS1921@05 · NAS1919@05"],
-  [0.1635, "NAS4452S05 · NAS4450S05", { photo:"NAS4450S05.jpg" }],
-  [0.1640, "MS90353S05 · MS90354S05"],
-  [0.1895, "NAS1436H"],
-  [0.2030, "C3629-6"],
-  [0.2600, "MS90354S08"],
-  [0.3125, "C20645-5"]
+  [0.3125, 0.3165, "C20645-5"],
+  [0.2600, 0.2630, "MS90354S08"],
+  [0.2500, 0.2540, "C20645-4"],
+  [0.2030, 0.2060, "C3629-6"],
+  [0.2010, 0.2060, "NAS6203-8"],
+  [0.1990, 0.2020, "MS90353S06 · MS90354S06"],
+  [0.1910, 0.2010, "MS20426AD6 · MS20470AD6"],
+  [0.1910, 0.1990, "NAS1581"],
+  [0.1910, 0.1940, "C20645-3"],
+  [0.1895, 0.1930, "NAS1436H"],
+  [0.1890, 0.1925, "NAS4452S06 · NAS4450S06"],
+  [0.1800, 0.1830, "C9502-05"],
+  [0.1640, 0.1670, "MS90353S05 · MS90354S05"],
+  [0.1635, 0.1670, "NAS4452S05 · NAS4450S05" /*, { photo:"NAS4450S05.jpg" } */],
+  [0.1620, 0.1645, "NAS1921@05 · NAS1919@05"],
+  [0.1610, 0.1710, "MS20426AD5 · C10001AD5 · MS20470AD5"],
+  [0.1562, 0.1600, "NAS7035H"],
+  [0.1310, 0.1325, "NAS1921@04"],
+  [0.1290, 0.1380, "MS20426AD4 · MS20470AD4"]
 ];
 
 const CLECO = {
@@ -462,9 +475,13 @@ for (let n = 1; n <= FRAC_MAX; n++){
 }
 /* 패스너 홀 사이즈 — INCH 와 메모만 있는 행 (넘버·분수 공란).
    세 번째 자리의 { photo, cleco, caption } 은 있으면 함께 실린다. */
-FASTENER_HOLES.forEach(([dec, memo, opt]) => {
+/* 패스너 홀 — 하한(dec) · 상한(decMax) · 메모. 넘버·분수는 공란이다.
+   하한이 같아도 상한이 다르면 다른 규격이므로 seedKey 를 하한+상한으로 만든다. */
+FASTENER_HOLES.forEach(([dec, decMax, memo, opt]) => {
   BASE_SEED.push(Object.assign(
-    { type:"custom", label:f4(dec), dec, sortKey:2000+dec, memo, fastener:true },
+    { type:"custom", label:f4(dec), dec, decMax, memo, fastener:true,
+      sortKey:2000+dec,
+      seedKey:"H" + Math.round(dec*10000) + "_" + Math.round(decMax*10000) },
     opt || {}
   ));
 });
@@ -479,7 +496,7 @@ const extraFor = r => EXTRA[r.label] || EXTRA_BY_DEC[Math.round(r.dec * 10000)] 
 
 BASE_SEED.forEach(r => {
   const e = extraFor(r);
-  r.seedKey = safeKey(r.label);
+  r.seedKey = r.seedKey || safeKey(r.label);   // 패스너 행은 이미 고유 키를 갖고 있다
   r.key = "b:" + r.seedKey;
   /* EXTRA 가 우선이고, 없으면 행이 원래 갖고 있던 값(패스너 옵션)을 쓴다 */
   r.memo    = e.memo    || r.memo    || "";
@@ -501,8 +518,10 @@ function customToRow(id, v){
   if (no != null){ type = "no";   sortKey = no; }
   else if (fr)   { type = "frac"; sortKey = 1000 + fr.num / fr.den; }
 
+  const decMax = Number(v.inchMax);
   return {
     key:"c:" + id, id, custom:true, type, dec, sortKey,
+    decMax: (isFinite(decMax) && decMax > dec) ? decMax : null,
     label: no != null ? "#" + no : fr ? fracLabel(fr.num, fr.den) : f4(dec),
     no, num: fr ? fr.num : null, den: fr ? fr.den : null,
     fracText: v.frac || "",
@@ -517,6 +536,11 @@ function applyOverride(seed, ov){
   r.overridden = true;
   if (ov.hidden) r.hidden = true;
   if (ov.inch != null && isFinite(+ov.inch) && +ov.inch > 0){ r.dec = +ov.inch; r.edited = true; }
+  if ("inchMax" in ov){
+    const m = Number(ov.inchMax);
+    r.decMax = (isFinite(m) && m > r.dec) ? m : null;
+    r.edited = true;
+  }
   if ("no" in ov){
     r.no = (ov.no === "" || ov.no == null) ? null : +ov.no;
     r.edited = true;
@@ -603,6 +627,7 @@ function passQuery(r){
   if (!q) return true;
   const hay = [
     r.label, String(r.no ?? ""), f4(r.dec), r.dec.toFixed(4),
+    r.decMax ? f4(r.decMax) : "", r.decMax ? f2(r.decMax * MM) : "",
     f2(r.mm), r.memo, r.nf ? r.nf.label : "",
     r.cleco ? CLECO[r.cleco].name : ""
   ].join(" ").toLowerCase();
@@ -634,9 +659,10 @@ function renderDetail(rows){
      넘버와 분수는 서로 덮지 않고 각자의 칸에 나간다.
      좁은 화면에서는 CSS 로 mm · 클리코 · 사진이 접힌다 (§CSS @media 767px) */
   const unitHead = state.unit === "in" ? "inch" : "mm";
-  let h = '<div class="table-wrap"><table class="detail' + (isAdmin ? " admin" : "") + '"><thead><tr>' +
+  let h = '<div class="table-wrap"><table class="detail' + (isAdmin ? " admin" : "") +
+            (SHOW_PHOTOS ? "" : " no-photo") + '"><thead><tr>' +
           '<th>넘버</th><th>분수</th><th class="h-in">' + unitHead + '</th><th>mm</th>' +
-          '<th>메모</th><th>클리코</th><th>사진</th>' +
+          '<th>메모</th><th>클리코</th>' + (SHOW_PHOTOS ? '<th>사진</th>' : '') +
           (isAdmin ? '<th>수정</th>' : '') +
           '</tr></thead><tbody>';
   const dash = '<span class="dim">—</span>';
@@ -657,11 +683,11 @@ function renderDetail(rows){
       ? '<span class="cl"><span class="sw" style="background:' + c.hex + '"></span>' + c.name + '</span>'
       : dash;
     /* 폰에서는 사진 열이 접히므로, 메모 뒤의 🖼 자체를 눌러 바로 열 수 있게 한다 */
-    const phIc = r.photo
+    const phIc = (SHOW_PHOTOS && r.photo)
       ? '<button class="ph-ic" data-photo="' + esc(r.key) + '" title="사진 보기">🖼</button>'
       : '';
     const memo = r.memo ? esc(r.memo) + phIc : (phIc || dash);
-    const ph   = r.photo
+    const ph   = (SHOW_PHOTOS && r.photo)
       ? '<button class="pbtn" data-photo="' + esc(r.key) + '" title="사진 보기">🖼</button>'
       : dash;
 
@@ -675,11 +701,12 @@ function renderDetail(rows){
          'aria-label="' + esc(r.label) + ' 상세">' +
          '<td class="c-no">' + noCell + (r.hidden ? ' <span class="tag hid">숨김</span>' : '') + '</td>' +
          '<td class="c-fr">' + frCell + '</td>' +
-         '<td class="m c-in">' + dia(r) + '</td>' +
+         '<td class="m c-in">' + dia(r) +
+           (r.decMax ? '<span class="rng" title="허용 범위 있음">~</span>' : '') + '</td>' +
          '<td class="m dim">' + f2(r.mm) + '</td>' +
          '<td class="memo">' + memo + '</td>' +
          '<td>' + cl + '</td>' +
-         '<td>' + ph + '</td>' +
+         (SHOW_PHOTOS ? '<td>' + ph + '</td>' : '') +
          (isAdmin ? '<td class="c-ed"><button class="ebtn" data-edit="' + esc(r.key) + '" title="수정">✎</button></td>' : '') +
          '</tr>';
   });
@@ -709,7 +736,8 @@ function render(){
 
   const dir = state.sort === "asc" ? 1 : -1;
   rows = rows.slice().sort((a,b) =>
-    state.sort === "label" ? a.sortKey - b.sortKey : (a.dec - b.dec) * dir);
+    state.sort === "label" ? a.sortKey - b.sortKey
+      : ((a.dec - b.dec) || ((a.decMax || a.dec) - (b.decMax || b.dec))) * dir);
   renderDetail(rows);
 
   document.getElementById("count").textContent =
@@ -742,7 +770,11 @@ function openSheet(key){
           '<span class="tag ' + tagCls + '">' + tagText + '</span>' +
           '<button class="x" id="sheetX" title="닫기">✕</button></div><div class="rows">' +
           '<div class="row"><span class="k">INCH</span><span class="v big-in">' + f4(r.dec) + '″</span></div>' +
-          '<div class="row"><span class="k">MM</span><span class="v">' + f2(r.mm) + ' mm</span></div>';
+          '<div class="row"><span class="k">MM</span><span class="v">' +
+            (r.decMax ? f2(r.mm) + ' ~ ' + f2(r.decMax * MM) : f2(r.mm)) + ' mm</span></div>';
+  if (r.decMax)
+    h += '<div class="row"><span class="k">허용 홀 범위</span><span class="v rng-v">' +
+         f4(r.dec) + '″ ~ ' + f4(r.decMax) + '″</span></div>';
   if (r.nf)
     h += '<div class="row"><span class="k">근접 분수</span><span class="v">≈ ' +
          esc(r.nf.label) + ' (' + sgn(r.nf.diff) + '″)</span></div>';
@@ -754,7 +786,7 @@ function openSheet(key){
     h += '<div class="row" style="align-items:flex-start"><span class="k">메모</span>' +
          '<span class="v wrap" style="margin-left:auto;text-align:right">' + esc(r.memo) + '</span></div>';
   h += '</div>';
-  if (r.photo)
+  if (SHOW_PHOTOS && r.photo)
     h += '<button class="pbtn" data-photo="' + esc(r.key) + '">🖼 사진 보기</button>';
   /* 관리자는 기본 행·추가 행 모두 여기서 편집·삭제한다.
      기본 행 삭제는 '숨김'(복원 가능), 추가 행 삭제는 실제 제거다. */
@@ -893,6 +925,12 @@ function openForm(key){
           'value="' + esc(r ? f4(r.dec) : "") + '">' +
         '<span class="hint">소수(.1285)와 분수(1/8) 둘 다 됩니다. mm 로 넣지 마세요.</span>' +
       '</div>' +
+      '<div class="fld">' +
+        '<label for="fInchMax">INCH 상한 (선택 · 허용 홀 범위)</label>' +
+        '<input id="fInchMax" inputmode="decimal" autocomplete="off" placeholder="예: .1380 — 비우면 단일값" ' +
+          'value="' + esc(v.decMax ? f4(v.decMax) : "") + '">' +
+        '<span class="hint">넣으면 표에 <b>.1290~</b> 처럼 물결이 붙고, 행을 누르면 전체 범위가 보입니다.</span>' +
+      '</div>' +
       '<div class="fld-2">' +
         '<div class="fld"><label for="fNo">넘버 (선택)</label>' +
           '<input id="fNo" inputmode="numeric" autocomplete="off" placeholder="비우면 공란" ' +
@@ -919,7 +957,7 @@ function openForm(key){
   formEl.dataset.key = key || "";
   formBack.classList.add("show");
   lock();
-  ["fInch","fNo","fFrac"].forEach(k =>
+  ["fInch","fInchMax","fNo","fFrac"].forEach(k =>
     document.getElementById(k).addEventListener("input", updatePreview));
   updatePreview();
   document.getElementById("fInch").focus();
@@ -940,9 +978,13 @@ function updatePreview(){
   const frCell = fr ? esc(fracLabel(fr.num, fr.den))
                : noRaw !== "" ? '≈ ' + esc(nearFrac(inch).label)
                : dash;
+  const mx = parseInch(document.getElementById("fInchMax").value);
+  const inchTxt = (mx !== null && mx > inch)
+    ? '<b>' + f4(inch) + '~' + f4(mx) + '″</b>'
+    : '<b>' + f4(inch) + '″</b>';
   box.innerHTML = '넘버 ' + (noRaw !== "" ? '<b>#' + esc(noRaw) + '</b>' : dash) +
-                  '  ·  분수 ' + frCell +
-                  '  ·  ' + f4(inch) + '″  ·  ' + f2(inch * MM) + 'mm';
+                  '  ·  분수 ' + frCell + '  ·  ' + inchTxt +
+                  '  ·  ' + f2(inch * MM) + 'mm';
 }
 
 /* 저장 — 검증 후 Firebase 로 */
@@ -956,6 +998,15 @@ async function submitForm(){
   if (inch === null) return show("INCH 를 넣어주세요. 소수(.1285) 또는 분수(1/8) 형식입니다.");
   if (inch > 4)      return show("INCH 값이 너무 큽니다 (4″ 초과). mm 로 넣으신 건 아닌가요?");
 
+  const maxRaw = document.getElementById("fInchMax").value.trim();
+  let inchMax = null;
+  if (maxRaw !== ""){
+    inchMax = parseInch(maxRaw);
+    if (inchMax === null) return show("INCH 상한 형식이 잘못됐습니다. 비우면 단일값이 됩니다.");
+    if (inchMax <= inch)  return show("INCH 상한은 INCH 보다 커야 합니다.");
+    if (inchMax > 4)      return show("INCH 상한이 너무 큽니다 (4″ 초과).");
+  }
+
   const noRaw = document.getElementById("fNo").value.trim();
   let no = null;
   if (noRaw !== ""){
@@ -968,11 +1019,14 @@ async function submitForm(){
   const key = formEl.dataset.key;
   const cur = key ? ROWS.find(x => x.key === key) : null;
 
-  const dup = ROWS.find(x => x.key !== key && Math.abs(x.dec - inch) < 1e-9);
-  if (dup && !confirm("같은 지름(" + f4(inch) + "″)인 행이 이미 있습니다.\n두 줄이 나란히 표시됩니다. 진행할까요?")) return;
+  /* 하한이 같아도 상한이 다르면 다른 규격이므로 경고하지 않는다 */
+  const dup = ROWS.find(x => x.key !== key && Math.abs(x.dec - inch) < 1e-9
+                             && Math.abs((x.decMax || 0) - (inchMax || 0)) < 1e-9);
+  if (dup && !confirm("같은 값(" + f4(inch) + (inchMax ? "~" + f4(inchMax) : "") +
+      "″)인 행이 이미 있습니다.\n두 줄이 나란히 표시됩니다. 진행할까요?")) return;
 
   const data = {
-    inch, no,
+    inch, inchMax, no,
     frac: fracRaw || null,
     memo: document.getElementById("fMemo").value.trim() || null,
     cleco: document.getElementById("fCleco").value || null,
@@ -1079,7 +1133,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("#fCancel") || e.target.closest("#formX")){ closeForm(); return; }
   if (e.target === formBack){ closeForm(); return; }
 
-  const p = e.target.closest("[data-photo]");
+  const p = SHOW_PHOTOS && e.target.closest("[data-photo]");
   if (p){ openPhoto(p.dataset.photo); return; }
   const c = e.target.closest(".detail tbody tr, .npill");
   if (c){ openSheet(c.dataset.key); return; }
@@ -1161,6 +1215,12 @@ tick(); setInterval(tick, 1000);
 
 /* 저장된 설정 UI 반영 후 첫 렌더 */
 document.querySelectorAll("#unitSeg button").forEach(b => b.classList.toggle("on", b.dataset.unit === state.unit));
+/* 사진 보류 중이면 '사진 있음' 필터도 감춘다 */
+if (!SHOW_PHOTOS){
+  const cp = document.getElementById("chipPhoto");
+  if (cp) cp.hidden = true;
+  if (state.filter === "photo") state.filter = "all";
+}
 document.querySelectorAll("#chips .chip").forEach(b => b.classList.toggle("on", b.dataset.f === state.filter));
 document.getElementById("sort").value = state.sort;
 render();

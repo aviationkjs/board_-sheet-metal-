@@ -31,6 +31,7 @@
       ".write": true,
       "$id": {
         "inch":  { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 4" },
+        "inchMax":  { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
         "no":    { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
@@ -45,6 +46,7 @@
       "$key": {
         "hidden": { ".validate": "!newData.exists() || newData.isBoolean()" },
         "inch":   { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
+        "inchMax":  { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
         "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },

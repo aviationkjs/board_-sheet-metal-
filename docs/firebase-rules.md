@@ -47,6 +47,7 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
       ".write": true,
       "$id": {
         "inch":  { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 4" },
+        "inchMax":  { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
         "no":    { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
@@ -61,6 +62,7 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
       "$key": {
         "hidden": { ".validate": "!newData.exists() || newData.isBoolean()" },
         "inch":   { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
+        "inchMax":  { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() > 0 && newData.val() <= 4)" },
         "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
