@@ -375,15 +375,20 @@ const EXTRA = {
 EXTRA["#11"].memo += " · MS20426AD6 · MS20470AD6 · C20645-3 · NAS1581";
 
 /* ── 3-1) 패스너 홀 사이즈 — 표준 드릴에 없는 지름 ──────────
-   [지름(inch), 해당 패스너]. 값은 홀 사이즈표의 1/10000 인치 표기를
-   그대로 옮긴 것이다 (1290 → .1290″).
+   [지름(inch), 해당 패스너, 추가옵션?]
+   값은 홀 사이즈표의 1/10000 인치 표기를 그대로 옮긴 것이다 (1290 → .1290″).
    같은 지름을 쓰는 패스너는 한 줄로 묶었다.
-   넘버·분수가 없는 치수이므로 표에서 두 칸은 공란으로 나간다.       */
+   넘버·분수가 없는 치수이므로 표에서 두 칸은 공란으로 나간다.
+
+   ★ 세 번째 자리에 사진·클리코를 **중괄호로 묶어서** 넣을 수 있다.
+       [0.1635, "NAS4452S05 · NAS4450S05", { photo:"NAS4450S05.jpg" }],
+                                           ↑ 중괄호 필수. 빠지면 문법 오류로
+                                             표 전체가 안 뜬다.                  */
 const FASTENER_HOLES = [
   [0.1290, "MS20426AD4 · MS20470AD4"],
   [0.1310, "NAS1921@04"],
   [0.1620, "NAS1921@05 · NAS1919@05"],
-  [0.1635, "NAS4452S05 · NAS4450S05" ,photo:"NAS4450S05.jpg"],
+  [0.1635, "NAS4452S05 · NAS4450S05", { photo:"NAS4450S05.jpg" }],
   [0.1640, "MS90353S05 · MS90354S05"],
   [0.1895, "NAS1436H"],
   [0.2030, "C3629-6"],
@@ -445,9 +450,13 @@ for (let n = 1; n <= FRAC_MAX; n++){
   BASE_SEED.push({ type:"frac", label:fracLabel(n, FRAC_DEN), num:n, den:FRAC_DEN,
                    dec:n/FRAC_DEN, sortKey:1000+n });
 }
-/* 패스너 홀 사이즈 — INCH 와 메모만 있는 행 (넘버·분수 공란) */
-FASTENER_HOLES.forEach(([dec, memo]) => {
-  BASE_SEED.push({ type:"custom", label:f4(dec), dec, sortKey:2000+dec, memo, fastener:true });
+/* 패스너 홀 사이즈 — INCH 와 메모만 있는 행 (넘버·분수 공란).
+   세 번째 자리의 { photo, cleco, caption } 은 있으면 함께 실린다. */
+FASTENER_HOLES.forEach(([dec, memo, opt]) => {
+  BASE_SEED.push(Object.assign(
+    { type:"custom", label:f4(dec), dec, sortKey:2000+dec, memo, fastener:true },
+    opt || {}
+  ));
 });
 
 /* EXTRA 의 키가 소수(".1290" · "0.1290" · ".129")면 숫자로 색인해 둔다.
@@ -462,10 +471,11 @@ BASE_SEED.forEach(r => {
   const e = extraFor(r);
   r.seedKey = safeKey(r.label);
   r.key = "b:" + r.seedKey;
-  r.memo = e.memo || r.memo || "";   // 패스너 행은 자기 메모를 유지한다
-  r.cleco = e.cleco || "";
-  r.photo = e.photo || "";
-  r.caption = e.caption || "";
+  /* EXTRA 가 우선이고, 없으면 행이 원래 갖고 있던 값(패스너 옵션)을 쓴다 */
+  r.memo    = e.memo    || r.memo    || "";
+  r.cleco   = e.cleco   || r.cleco   || "";
+  r.photo   = e.photo   || r.photo   || "";
+  r.caption = e.caption || r.caption || "";
   r.fracText = r.type === "frac" ? (r.num + "/" + r.den) : "";
 });
 
