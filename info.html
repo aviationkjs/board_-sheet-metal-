@@ -815,8 +815,19 @@ async function submitForm(){
   } catch(e){
     console.error(e);
     save.disabled = false; save.textContent = id ? "저장" : "추가";
-    show("저장에 실패했습니다. 연결을 확인해 주세요.");
+    show(writeErrorMsg(e));
   }
+}
+
+/* 저장 실패 원인을 구분해서 알려준다 — 대부분은 규칙 미배포다 */
+function writeErrorMsg(e){
+  const s = ((e && (e.code || e.message)) || "").toString().toUpperCase();
+  if (s.includes("PERMISSION_DENIED") || s.includes("PERMISSION-DENIED"))
+    return "권한이 없습니다 — Firebase 콘솔 규칙에 drill_rows 가 배포됐는지 확인해 주세요. " +
+           "(저장소 docs/firebase-rules.md 의 A안을 그대로 붙여넣고 게시)";
+  if (s.includes("NETWORK") || s.includes("UNAVAILABLE") || s.includes("DISCONNECT"))
+    return "저장에 실패했습니다 (네트워크). 통신 상태를 확인해 주세요.";
+  return "저장에 실패했습니다. " + (e && e.message ? e.message : "원인 불명");
 }
 
 async function deleteRow(id){
@@ -824,7 +835,7 @@ async function deleteRow(id){
   if (!r) return;
   if (!confirm(r.label + " 행을 삭제할까요? 되돌릴 수 없습니다.")) return;
   try { await store.remove(id); closeSheet(); }
-  catch(e){ console.error(e); alert("삭제에 실패했습니다."); }
+  catch(e){ console.error(e); alert(writeErrorMsg(e)); }
 }
 
 /* ── 이벤트 ──────────────────────────────────────────── */

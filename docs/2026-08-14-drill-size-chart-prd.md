@@ -3,7 +3,7 @@
 | 항목 | 내용 |
 |------|------|
 | 문서명 | 성능기골 스티커 보드 — Fastener Drill Reference Table |
-| 버전 | **v1.5 (최종 승인본)** |
+| 버전 | **v1.6 (최종 승인본)** |
 | 작성일 | 2026-08-14 |
 | 대상 파일 | `info.html`, `assets/photos/`, `index.html` · `style.css` · `app.js` (헤더), `database.rules.json` (drill_rows) |
 | 인프라 | GitHub Pages 정적 호스팅, 서버 없음, DB 사용 안 함 |
@@ -293,20 +293,21 @@ const EXTRA = {
 
 추가된 행은 표에서 **왼쪽 초록 띠**와 `추가` 배지로 구분된다. 정렬·검색·필터·시트·사진은 기본 행과 완전히 동일하게 동작한다.
 
-### 11.5.4 저장소
-`database.rules.json` 에 `drill_rows` 노드를 추가했다.
+### 11.5.4 저장소 · 규칙
 
-```json
-"drill_rows": {
-  ".read": true, ".write": true,
-  "$id": {
-    "inch": { ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= 4" },
-    "no":   { ".validate": "!newData.exists() || (newData.isNumber() && ...)" }
-  }
-}
-```
+추가 행은 Firebase RTDB `drill_rows` 에 저장된다. **규칙을 콘솔에 게시해야 저장이 된다** — RTDB 는 규칙에 선언되지 않은 경로의 쓰기를 전부 거부하므로, 미배포 상태에서는 `PERMISSION_DENIED` 가 난다.
 
-> **주의:** 이 저장소의 다른 노드(`notes`·`duty`·`logs`·`materialConsumption`)와 마찬가지로 **쓰기 권한은 서버에서 막혀 있지 않다.** 관리자 판별은 클라이언트(localStorage)에서만 이뤄지므로, DB 주소를 아는 사람은 API 로 직접 쓸 수 있다. 사내 도구 수준에서는 기존 방식과 동일하지만, 실제 권한 통제가 필요하면 Firebase Auth 도입이 선행돼야 한다. `inch` 범위 검증만 규칙에 넣어 최소한의 오염을 막았다.
+- 붙여넣을 규칙 전문: **`docs/firebase-rules.md`** (저장소 `database.rules.json` 과 동일)
+- 값 검증도 규칙에 넣었다 — `inch` 0~4, `no` 1~200, `cleco` 4색 화이트리스트, `memo`/`photo` 길이 제한.
+- 저장 실패 시 원인을 구분해 보여준다:
+
+| 오류 | 화면 문구 |
+|------|-----------|
+| `PERMISSION_DENIED` | 권한이 없습니다 — 규칙에 `drill_rows` 가 배포됐는지 확인 |
+| 네트워크 | 저장에 실패했습니다 (네트워크) |
+| 그 외 | 원본 메시지 노출 |
+
+> **A안(현재)의 한계:** 다른 노드와 마찬가지로 `.write: true` 다. 관리자 판별은 클라이언트에서만 이뤄지므로 DB 주소를 아는 사람은 API 로 직접 쓸 수 있다. 서버에서 막으려면 **B안 — Firebase Auth 도입**이 필요하며, 규칙 전문과 필요한 코드 변경·콘솔 설정은 `docs/firebase-rules.md` §B 에 정리했다. **모든 페이지를 건드리는 작업이라 별도 승인 후 진행한다.**
 
 ### 11.5.5 오프라인 안전장치
 Firebase 는 **본문 스크립트와 분리된 `<script type="module">`** 에서 `try/catch` 로 동적 import 한다.
