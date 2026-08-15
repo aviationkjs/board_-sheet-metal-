@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- 자주 고치는 사내 참조표라 폰이 옛 화면을 붙들지 않게 한다 -->
+<meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>Fastener Drill Reference Table</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,7 +99,10 @@
   .detail tbody tr:last-child td{border-bottom:none}
   .detail tbody tr{cursor:pointer}
   .detail tbody tr:hover,.detail tbody tr:focus-visible{background:rgba(255,176,32,.07);outline:none}
-  .detail .ph-ic{margin-left:6px;font-size:11px;opacity:.85;display:none}
+  .detail .ph-ic{display:none;margin-left:8px;background:var(--panel-2);border:1px solid var(--line-2);
+    color:var(--amber);border-radius:7px;padding:0 10px;min-height:30px;min-width:40px;font-size:13px;
+    cursor:pointer;align-items:center;justify-content:center;vertical-align:middle}
+  .detail .ph-ic:hover{border-color:var(--amber)}
   .detail .m{font-family:var(--mono)}
   .detail .lbl{font-family:var(--mono);font-weight:600;color:var(--amber)}
   .detail .dim{color:var(--muted)}
@@ -112,7 +117,7 @@
     .detail th:nth-child(6),.detail td:nth-child(6),
     .detail th:nth-child(7),.detail td:nth-child(7){display:none}
     .detail .nf-err{display:none}
-    .detail .ph-ic{display:inline}
+    .detail .ph-ic{display:inline-flex}
     .detail tbody td,.detail thead th{padding:8px 6px}
     .detail .c-no{width:48px}
     .detail .c-fr{width:60px}
@@ -646,7 +651,10 @@ function renderDetail(rows){
     const cl   = c
       ? '<span class="cl"><span class="sw" style="background:' + c.hex + '"></span>' + c.name + '</span>'
       : dash;
-    const phIc = r.photo ? '<span class="ph-ic">🖼</span>' : '';
+    /* 폰에서는 사진 열이 접히므로, 메모 뒤의 🖼 자체를 눌러 바로 열 수 있게 한다 */
+    const phIc = r.photo
+      ? '<button class="ph-ic" data-photo="' + esc(r.key) + '" title="사진 보기">🖼</button>'
+      : '';
     const memo = r.memo ? esc(r.memo) + phIc : (phIc || dash);
     const ph   = r.photo
       ? '<button class="pbtn" data-photo="' + esc(r.key) + '" title="사진 보기">🖼</button>'
