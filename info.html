@@ -225,7 +225,7 @@
   .row .v{font-family:var(--mono);font-size:14px;color:var(--text);text-align:right;margin-left:auto;
     word-break:break-word}
   .row .v.big-in{color:var(--amber);font-weight:700;font-size:19px;letter-spacing:-.01em}
-  .row .v.wrap{font-family:var(--sans);text-align:left;margin-left:0}
+  .row .v.vwrap{font-family:var(--sans);text-align:left;margin-left:0;padding:0;max-width:none}
   .sheet .pbtn{width:100%;padding:13px;font-family:var(--mono);font-size:13px;min-height:46px}
 
   /* ── 사진 팝업 ─────────────────────────────────────── */
@@ -355,6 +355,8 @@ const FRAC_MAX = 16;   // 16/64 = 1/4″
 /* ── 3) 메모 · 클리코 · 사진 ─────────────────────────────
    ★ 여기만 고치면 표에 반영됩니다.
      memo   : 자유 메모 (아무 문장이나)
+     nose   : 노즈 어셈블리 P/N (선택 — 없으면 팝업에 아예 안 나옵니다)
+     gun    : 설치 공구(Gun) 모델 (선택 — 없으면 팝업에 아예 안 나옵니다)
      cleco  : "silver" | "copper" | "black" | "brass"  (없으면 생략)
      photo  : assets/photos/ 안의 파일명 (확장자 포함)
      caption: 사진 아래 설명 (선택)
@@ -500,6 +502,8 @@ BASE_SEED.forEach(r => {
   r.key = "b:" + r.seedKey;
   /* EXTRA 가 우선이고, 없으면 행이 원래 갖고 있던 값(패스너 옵션)을 쓴다 */
   r.memo    = e.memo    || r.memo    || "";
+  r.nose    = e.nose    || r.nose    || "";
+  r.gun     = e.gun     || r.gun     || "";
   r.cleco   = e.cleco   || r.cleco   || "";
   r.photo   = e.photo   || r.photo   || "";
   r.caption = e.caption || r.caption || "";
@@ -525,7 +529,8 @@ function customToRow(id, v){
     label: no != null ? "#" + no : fr ? fracLabel(fr.num, fr.den) : f4(dec),
     no, num: fr ? fr.num : null, den: fr ? fr.den : null,
     fracText: v.frac || "",
-    memo: v.memo || "", cleco: v.cleco || "", photo: v.photo || "", caption: v.caption || ""
+    memo: v.memo || "", nose: v.nose || "", gun: v.gun || "",
+    cleco: v.cleco || "", photo: v.photo || "", caption: v.caption || ""
   };
 }
 
@@ -551,7 +556,7 @@ function applyOverride(seed, ov){
     r.fracText = ov.frac || "";
     r.edited = true;
   }
-  ["memo","cleco","photo","caption"].forEach(k => {
+  ["memo","nose","gun","cleco","photo","caption"].forEach(k => {
     if (k in ov){ r[k] = ov[k] || ""; r.edited = true; }
   });
   r.label = r.no != null ? "#" + r.no
@@ -573,7 +578,7 @@ function rebuildRows(){
     // 표에 실제로 찍을지는 renderDetail 이 정한다 — 넘버·분수가 모두 없는
     // 'INCH 만' 행은 표에서 공란으로 나간다.
     r.nf = r.num != null ? null : nearFrac(r.dec);
-    r.hasInfo = !!(r.memo || r.photo || r.cleco);
+    r.hasInfo = !!(r.memo || r.nose || r.gun || r.photo || r.cleco);
   });
 }
 rebuildRows();
@@ -784,7 +789,14 @@ function openSheet(key){
          c.name + ' · ' + c.size + '</span></span></div>';
   if (r.memo)
     h += '<div class="row" style="align-items:flex-start"><span class="k">메모</span>' +
-         '<span class="v wrap" style="margin-left:auto;text-align:right">' + esc(r.memo) + '</span></div>';
+         '<span class="v vwrap" style="margin-left:auto;text-align:right">' + esc(r.memo) + '</span></div>';
+  /* NOSE · GUN 은 선택 항목이다. 값이 없으면 줄 자체를 만들지 않는다. */
+  if (r.nose)
+    h += '<div class="row" style="align-items:flex-start"><span class="k">NOSE</span>' +
+         '<span class="v vwrap" style="margin-left:auto;text-align:right">' + esc(r.nose) + '</span></div>';
+  if (r.gun)
+    h += '<div class="row" style="align-items:flex-start"><span class="k">GUN</span>' +
+         '<span class="v vwrap" style="margin-left:auto;text-align:right">' + esc(r.gun) + '</span></div>';
   h += '</div>';
   if (SHOW_PHOTOS && r.photo)
     h += '<button class="pbtn" data-photo="' + esc(r.key) + '">🖼 사진 보기</button>';
@@ -942,6 +954,14 @@ function openForm(key){
       '<div class="fld"><label for="fMemo">메모 (선택)</label>' +
         '<input id="fMemo" autocomplete="off" placeholder="예: AD4 1/8″ 리벳" ' +
           'value="' + esc(v.memo || "") + '"></div>' +
+      '<div class="fld-2">' +
+        '<div class="fld"><label for="fNose">NOSE (선택)</label>' +
+          '<input id="fNose" autocomplete="off" placeholder="비우면 표시 안 함" ' +
+            'value="' + esc(v.nose || "") + '"></div>' +
+        '<div class="fld"><label for="fGun">GUN (선택)</label>' +
+          '<input id="fGun" autocomplete="off" placeholder="비우면 표시 안 함" ' +
+            'value="' + esc(v.gun || "") + '"></div>' +
+      '</div>' +
       '<div class="fld"><label for="fCleco">클리코 (선택)</label>' +
         '<select id="fCleco">' + clecoOptions(v.cleco) + '</select></div>' +
       '<div class="fld"><label for="fPhoto">사진 파일명 (선택)</label>' +
@@ -1029,6 +1049,8 @@ async function submitForm(){
     inch, inchMax, no,
     frac: fracRaw || null,
     memo: document.getElementById("fMemo").value.trim() || null,
+    nose: document.getElementById("fNose").value.trim() || null,
+    gun:  document.getElementById("fGun").value.trim()  || null,
     cleco: document.getElementById("fCleco").value || null,
     photo: document.getElementById("fPhoto").value.trim() || null
   };

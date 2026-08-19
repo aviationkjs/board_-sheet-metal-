@@ -35,6 +35,8 @@
         "no":    { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "nose":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
+        "gun":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
         "cleco": { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
         "photo": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }
@@ -50,6 +52,8 @@
         "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "nose":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
+        "gun":    { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
         "cleco":  { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
         "photo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }
