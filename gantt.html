@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>학습 간트차트</title>
+<style>
+  :root{
+    --bg:#0f1720; --panel:#16212e; --panel-2:#1b2836; --line:#2a3a4d;
+    --text:#e8eef6; --muted:#8ea3ba; --accent:#3498db; --amber:#f0b400;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
+    --col:120px;   /* 과목 열 너비 */
+    --day:40px;    /* 하루 폭 */
+    --rowh:44px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
+    -webkit-text-size-adjust:100%}
+
+  header{display:flex;justify-content:space-between;align-items:center;gap:8px;
+    padding:12px 16px;background:#2c3e50;position:sticky;top:0;z-index:60;
+    box-shadow:0 2px 10px rgba(0,0,0,.25)}
+  .back-btn{padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;
+    text-decoration:none;font-size:14px;font-weight:700;white-space:nowrap}
+  .head-t{font-weight:700}
+  .me{font-size:13px;color:#cfe0f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32vw}
+
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;
+    background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:55}
+  .btn{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;
+    padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;min-height:38px}
+  .btn:hover{background:#22364a}
+  .btn:disabled{opacity:.4;cursor:default}
+  .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.danger{border-color:#7d3b3b;color:#ff9b9b}
+  .spacer{flex:1}
+  .stat{font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+  /* ── 차트 ─────────────────────────────────────────── */
+  .chart{position:relative;overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;background:var(--bg)}
+  .grid{position:relative;min-width:max-content}
+
+  .dates{display:flex;position:sticky;top:0;z-index:30;background:var(--panel)}
+  .dcell{flex:0 0 var(--day);width:var(--day);text-align:center;padding:6px 0;
+    border-left:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--muted);
+    line-height:1.35}
+  .dcell.we{background:#141d28;color:#6f8299}
+  .dcell.today{background:rgba(240,180,0,.16);color:var(--amber);font-weight:700}
+  .dcell b{display:block;font-size:12px;color:var(--text)}
+  .dcell.today b{color:var(--amber)}
+  .dcell .mo{display:block;font-size:9px;color:var(--accent);height:11px}
+
+  .rowwrap{position:relative}
+  .row{display:flex;height:var(--rowh);border-top:1px solid var(--line);position:relative}
+  .cell{flex:0 0 var(--day);width:var(--day);border-left:1px solid rgba(42,58,77,.55)}
+  .cell.we{background:rgba(0,0,0,.22)}
+
+  /* 좌측 고정 과목 열 */
+  .names{position:absolute;left:0;top:0;z-index:40;width:var(--col);
+    background:var(--panel);border-right:2px solid var(--line)}
+  .nhead{height:46px;display:flex;align-items:center;justify-content:center;
+    font-size:11px;color:var(--muted);font-family:var(--mono);border-bottom:1px solid var(--line)}
+  .nrow{height:var(--rowh);display:flex;align-items:center;gap:7px;padding:0 10px;
+    border-top:1px solid var(--line);font-size:14px;font-weight:600}
+  .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+  .nrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  .todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);
+    opacity:.75;z-index:20;pointer-events:none}
+
+  /* ── 블록 ─────────────────────────────────────────── */
+  .bar-task{position:absolute;height:calc(var(--rowh) - 12px);top:6px;border-radius:8px;
+    display:flex;align-items:center;padding:0 10px;gap:6px;color:#08131d;font-weight:700;
+    font-size:13px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-x;
+    box-shadow:0 2px 6px rgba(0,0,0,.35);z-index:25;overflow:hidden;white-space:nowrap}
+  .bar-task .d{font-family:var(--mono);font-size:11px;opacity:.75}
+  .bar-task.dragging{cursor:grabbing;z-index:35;box-shadow:0 8px 20px rgba(0,0,0,.5);
+    filter:brightness(1.08)}
+  .bar-task.willmove{outline:2px dashed rgba(255,255,255,.85);outline-offset:-3px;opacity:.72}
+  .bar-task.locked{cursor:not-allowed;opacity:.55}
+  .bar-task .lockic{font-size:11px}
+  .handle{position:absolute;right:0;top:0;bottom:0;width:16px;cursor:ew-resize;
+    border-radius:0 8px 8px 0;background:linear-gradient(90deg,transparent,rgba(0,0,0,.28))}
+  .handle::after{content:"";position:absolute;right:5px;top:50%;transform:translateY(-50%);
+    width:2px;height:14px;background:rgba(0,0,0,.5);box-shadow:3px 0 0 rgba(0,0,0,.5)}
+
+  .hint{padding:10px 16px 26px;color:var(--muted);font-size:12px;line-height:1.6}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:200;
+    background:#0b1420;border:1px solid var(--line);color:var(--text);padding:10px 16px;
+    border-radius:10px;font-size:13px;font-family:var(--mono);box-shadow:0 8px 24px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:opacity .15s}
+  .toast.show{opacity:1}
+
+  /* ── 시트(세부 편집) ──────────────────────────────── */
+  .back{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;display:none}
+  .back.show{display:block}
+  .sheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:calc(100% - 32px);max-width:420px;background:var(--panel);border:1px solid var(--line);
+    border-radius:14px;padding:16px;max-height:86vh;overflow:auto}
+  .sheet h3{margin:0 0 12px;font-size:17px;display:flex;align-items:center;gap:8px}
+  .sheet h3 .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;
+    cursor:pointer;width:32px;height:32px;border-radius:8px}
+  .fld{margin-bottom:12px}
+  .fld label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .fld input,.fld select{width:100%;background:var(--panel-2);border:1px solid var(--line);
+    border-radius:8px;color:var(--text);padding:10px 12px;font-size:15px;font-family:var(--mono)}
+  .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .acts .btn{flex:1;justify-content:center;min-width:96px}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .err{display:none;background:#3a1c1c;border:1px solid #7d3b3b;color:#ffb4b4;
+    padding:9px 12px;border-radius:8px;font-size:13px;margin-bottom:10px}
+  .err.show{display:block}
+  .note{font-size:12px;color:var(--muted);line-height:1.6;margin:2px 0 12px}
+
+  @media (max-width:640px){
+    :root{--col:88px;--rowh:40px}
+    header{padding:10px 10px}
+    .head-t{font-size:14px}
+    .back-btn{padding:6px 10px;font-size:12px}
+    .bar{padding:8px 10px;top:50px}
+    .btn{padding:7px 10px;font-size:12px;min-height:36px}
+    .nrow{font-size:13px;padding:0 8px}
+    .bar-task{font-size:12px;padding:0 7px}
+    .hint{padding:10px 10px 30px}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="back-btn">⬅ 보드로</a>
+    <div class="head-t">📅 학습 간트차트</div>
+    <div class="me" id="me"></div>
+  </header>
+
+  <div class="bar">
+    <button class="btn" id="btnToday">오늘로</button>
+    <button class="btn" id="btnZoom">주 보기</button>
+    <button class="btn" id="btnUndo" disabled>↩ 되돌리기</button>
+    <span class="spacer"></span>
+    <span class="stat" id="stat">불러오는 중…</span>
+    <button class="btn" id="btnAdmin" style="display:none">⚙ 관리</button>
+  </div>
+
+  <div class="chart" id="chart">
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <p class="hint" id="hint"></p>
+
+  <div class="back" id="sheetBack"><div class="sheet" id="sheet"></div></div>
+  <div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getDatabase, ref, get, set, update, remove, onValue, push,
+         runTransaction, onDisconnect, query, orderByKey }
+  from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const app = initializeApp({
+  apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+  authDomain: "board-sheet-metal.firebaseapp.com",
+  databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+  projectId: "board-sheet-metal",
+  storageBucket: "board-sheet-metal.firebasestorage.app",
+  messagingSenderId: "300454183349",
+  appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+});
+const db = getDatabase(app);
+
+/* 보드와 동일한 로그인 방식 */
+const username = localStorage.getItem("username");
+if (!username) location.href = "auth.html";
+document.getElementById("me").textContent = "👤 " + username;
+
+const G      = "gantt";
+const TASKS  = G + "/tasks";
+const SET    = G + "/settings";
+const LOCKS  = G + "/locks";
+const HIST   = G + "/history";
+
+/* ── 날짜 유틸 ────────────────────────────────────────
+   날짜는 항상 'YYYY-MM-DD' 문자열로만 다룬다.
+   계산은 UTC 기준 일수로 환산해서 하므로 서머타임·타임존 영향을 받지 않는다. */
+const DAY = 86400000;
+const pad = n => String(n).padStart(2, "0");
+function toNum(ymd){ const [y,m,d] = ymd.split("-").map(Number); return Math.round(Date.UTC(y, m-1, d) / DAY); }
+function toYmd(n){ const t = new Date(n * DAY); return t.getUTCFullYear() + "-" + pad(t.getUTCMonth()+1) + "-" + pad(t.getUTCDate()); }
+function addDays(ymd, k){ return toYmd(toNum(ymd) + k); }
+function diffDays(a, b){ return toNum(b) - toNum(a); }
+function dow(ymd){ return new Date(toNum(ymd) * DAY).getUTCDay(); }   // 0=일,6=토
+function isWeekend(ymd){ const w = dow(ymd); return w === 0 || w === 6; }
+function todayYmd(){ const d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+
+/* 주말 건너뛰기 설정을 반영한 날짜 이동.
+   skipWeekend 가 꺼져 있으면 그냥 달력일 이동이다. */
+function workAdd(ymd, k){
+  if (!settings.skipWeekend) return addDays(ymd, k);
+  let cur = ymd, left = k;
+  while (isWeekend(cur)) cur = addDays(cur, 1);          // 시작이 주말이면 다음 평일로
+  while (left > 0){
+    cur = addDays(cur, 1);
+    if (!isWeekend(cur)) left--;
+  }
+  return cur;
+}
+/* a 에서 b 까지 몇 '작업일' 떨어져 있는지 (workAdd 의 역함수) */
+function workDiff(a, b){
+  if (!settings.skipWeekend) return diffDays(a, b);
+  const back = diffDays(a, b) < 0;
+  let from = back ? b : a, to = back ? a : b, n = 0, cur = from, guard = 0;
+  while (isWeekend(cur)) cur = addDays(cur, 1);
+  while (diffDays(cur, to) > 0 && guard++ < 3000){
+    cur = addDays(cur, 1);
+    if (!isWeekend(cur)) n++;
+  }
+  return back ? -n : n;
+}
+function taskEnd(t){ return workAdd(t.start, Math.max(0, t.days - 1)); }   // 마지막 근무일
+function snapStart(ymd){
+  if (!settings.skipWeekend) return ymd;
+  let c = ymd; while (isWeekend(c)) c = addDays(c, 1); return c;
+}
+
+/* ── 상태 ─────────────────────────────────────────── */
+const SEED = [
+  { id:"korean",  name:"국어", days:5, color:"#5aa9e6" },
+  { id:"math",    name:"수학", days:7, color:"#f0a04b" },
+  { id:"english", name:"영어", days:5, color:"#6fd08c" },
+  { id:"social",  name:"사회", days:4, color:"#b28ce8" },
+  { id:"science", name:"과학", days:4, color:"#4fd1c5" },
+];
+let tasks    = {};
+let settings = { mode:"rigid", skipWeekend:false };
+let locks    = {};
+let canAdmin = username === "admin";
+let dayW     = window.innerWidth <= 640 ? 14 : 40;   // 모바일 기본은 주 보기
+let lastUndo = null;      // { ts, key, before }
+let seeded   = false;
+
+const chart = document.getElementById("chart");
+const grid  = document.getElementById("grid");
+
+function toast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
+}
+function order(){ return Object.keys(tasks).sort((a,b) => (tasks[a].order||0) - (tasks[b].order||0)); }
+
+/* ── 전파 엔진 ───────────────────────────────────────
+   의존은 { 선행id: 간격(일) } 맵이다. 후속 시작일 = 선행 종료 다음 날 + 간격.
+   - rigid(간격 유지) : 항상 그 위치로 붙인다. 당기면 같이 당겨진다.
+   - push(겹침 방지)  : 겹칠 때만 민다. */
+function topoOrder(src){
+  const ids = Object.keys(src), deg = {}, adj = {};
+  ids.forEach(id => { deg[id] = 0; adj[id] = []; });
+  ids.forEach(id => Object.keys(src[id].deps || {}).forEach(dep => {
+    if (!src[dep]) return;
+    adj[dep].push(id); deg[id]++;
+  }));
+  const q = ids.filter(id => deg[id] === 0).sort((a,b) => (src[a].order||0) - (src[b].order||0));
+  const out = [];
+  while (q.length){
+    const id = q.shift(); out.push(id);
+    adj[id].forEach(nx => { if (--deg[nx] === 0) q.push(nx); });
+  }
+  return out.length === ids.length ? out : null;   // null = 순환
+}
+
+function propagate(src, anchorId){
+  const next = JSON.parse(JSON.stringify(src));
+  const ord  = topoOrder(next);
+  if (!ord) return next;                       // 순환이면 손대지 않는다
+  for (const id of ord){
+    if (id === anchorId) continue;             // 사용자가 직접 옮긴 것은 그대로 둔다
+    const deps = next[id].deps || {};
+    let earliest = null;
+    for (const [dep, lag] of Object.entries(deps)){
+      if (!next[dep]) continue;
+      const cand = workAdd(taskEnd(next[dep]), 1 + (Number(lag) || 0));
+      if (earliest === null || toNum(cand) > toNum(earliest)) earliest = cand;
+    }
+    if (earliest === null) continue;
+    if (settings.mode === "rigid") next[id].start = earliest;
+    else if (toNum(next[id].start) < toNum(earliest)) next[id].start = earliest;
+  }
+  return next;
+}
+
+/* 후속 과업을 사용자가 직접 끌었다면, 벌어진 간격을 기억한다 */
+function rememberLag(src, id){
+  const deps = src[id].deps || {};
+  for (const dep of Object.keys(deps)){
+    if (!src[dep]) continue;
+    const base = workAdd(taskEnd(src[dep]), 1);
+    deps[dep] = Math.max(0, workDiff(base, src[id].start));
+  }
+}
+
+/* ── 렌더 ─────────────────────────────────────────── */
+let range = { from:"", to:"", n:0 };
+function calcRange(){
+  const ids = order();
+  if (!ids.length){ range = { from: todayYmd(), to: addDays(todayYmd(), 60), n: 61 }; return; }
+  let min = tasks[ids[0]].start, max = taskEnd(tasks[ids[0]]);
+  ids.forEach(id => {
+    if (toNum(tasks[id].start) < toNum(min)) min = tasks[id].start;
+    const e = taskEnd(tasks[id]);
+    if (toNum(e) > toNum(max)) max = e;
+  });
+  const t = todayYmd();
+  if (toNum(t) < toNum(min)) min = t;
+  if (toNum(t) > toNum(max)) max = t;
+  const from = addDays(min, -7);
+  const to   = addDays(max, 21);
+  range = { from, to, n: diffDays(from, to) + 1 };
+}
+
+function render(){
+  calcRange();
+  document.documentElement.style.setProperty("--day", dayW + "px");
+  const ids = order();
+  const today = todayYmd();
+
+  let dates = '<div class="dates">';
+  for (let i = 0; i < range.n; i++){
+    const d = addDays(range.from, i);
+    const [, mo, da] = d.split("-");
+    const cls = (d === today ? " today" : "") + (isWeekend(d) ? " we" : "");
+    const showMo = (da === "01" || i === 0) ? (Number(mo) + "월") : "";
+    dates += '<div class="dcell' + cls + '"><span class="mo">' + showMo + '</span>' +
+             (dayW >= 26 ? '<b>' + Number(da) + '</b>' + "일월화수목금토"[dow(d)]
+                         : (Number(da) === 1 || Number(da) % 5 === 0 ? '<b>' + Number(da) + '</b>' : '<b>·</b>')) +
+             '</div>';
+  }
+  dates += '</div>';
+
+  let rows = '<div class="rowwrap">';
+  ids.forEach(() => {
+    rows += '<div class="row">';
+    for (let i = 0; i < range.n; i++){
+      const d = addDays(range.from, i);
+      rows += '<div class="cell' + (isWeekend(d) ? " we" : "") + '"></div>';
+    }
+    rows += '</div>';
+  });
+  rows += '</div>';
+
+  let names = '<div class="names"><div class="nhead">과목</div>';
+  ids.forEach(id => {
+    names += '<div class="nrow"><span class="dot" style="background:' + esc(tasks[id].color || "#888") + '"></span>' +
+             '<span class="nm">' + esc(tasks[id].name) + '</span></div>';
+  });
+  names += '</div>';
+
+  const tx = diffDays(range.from, today) * dayW;
+  const todayLine = (toNum(today) >= toNum(range.from) && toNum(today) <= toNum(range.to))
+    ? '<div class="todayline" style="left:' + (tx + dayW / 2) + 'px"></div>' : '';
+
+  grid.innerHTML = dates + rows + todayLine + names;
+  grid.style.paddingLeft = "0";
+
+  // 블록
+  const wrap = grid.querySelector(".rowwrap");
+  ids.forEach((id, i) => {
+    const t = tasks[id];
+    const left = diffDays(range.from, t.start) * dayW;
+    const spanDays = diffDays(t.start, taskEnd(t)) + 1;
+    const w = Math.max(dayW, spanDays * dayW);
+    const lock = activeLock(id);
+    const b = document.createElement("div");
+    b.className = "bar-task" + (lock ? " locked" : "");
+    b.dataset.id = id;
+    b.style.cssText = "left:" + left + "px;width:" + (w - 4) + "px;top:" +
+                      (i * rowH() + 6) + "px;background:" + (t.color || "#888");
+    b.innerHTML = (lock ? '<span class="lockic">🔒</span>' : "") +
+                  '<span class="nmv">' + esc(lock ? lock.by + " 수정 중" : t.name) + '</span>' +
+                  (w > 92 ? '<span class="d">' + t.days + '일</span>' : "") +
+                  (lock ? "" : '<div class="handle" data-h="1"></div>');
+    wrap.appendChild(b);
+  });
+
+  // 좌측 과목 열이 가리는 만큼 여백을 준다
+  const col = grid.querySelector(".names").offsetWidth;
+  grid.querySelector(".dates").style.paddingLeft = col + "px";
+  wrap.style.paddingLeft = col + "px";
+  grid.querySelectorAll(".bar-task").forEach(b => {
+    b.style.left = (parseFloat(b.style.left) + col) + "px";
+  });
+  const tl = grid.querySelector(".todayline");
+  if (tl) tl.style.left = (parseFloat(tl.style.left) + col) + "px";
+
+  stickNames();
+  updateStat();
+}
+/* 과목 열을 가로 스크롤에 붙여 둔다(고정 열).
+   .names 는 .grid 기준 absolute 라 그냥 두면 함께 밀려 나간다. */
+function stickNames(){
+  const n = grid.querySelector(".names");
+  if (n) n.style.transform = "translateX(" + chart.scrollLeft + "px)";
+}
+chart.addEventListener("scroll", stickNames, { passive:true });
+
+function rowH(){ return parseInt(getComputedStyle(document.documentElement).getPropertyValue("--rowh")) || 44; }
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
+
+function activeLock(id){
+  const l = locks[id];
+  if (!l || l.by === username) return null;
+  return (Date.now() - (l.at || 0) < 10000) ? l : null;   // 10초 만료
+}
+
+function updateStat(){
+  const ids = order();
+  const el = document.getElementById("stat");
+  if (!ids.length){ el.textContent = "일정 없음"; return; }
+  let min = tasks[ids[0]].start, max = taskEnd(tasks[ids[0]]), who = null, at = 0;
+  ids.forEach(id => {
+    if (toNum(tasks[id].start) < toNum(min)) min = tasks[id].start;
+    const e = taskEnd(tasks[id]);
+    if (toNum(e) > toNum(max)) max = e;
+    if ((tasks[id].updatedAt || 0) > at){ at = tasks[id].updatedAt; who = tasks[id].updatedBy; }
+  });
+  const md = s => Number(s.split("-")[1]) + "/" + Number(s.split("-")[2]);
+  el.textContent = md(min) + " ~ " + md(max) + " (" + (diffDays(min, max) + 1) + "일)" +
+                   (who ? "  ·  최종 " + who : "");
+}
+
+/* ── 드래그 ───────────────────────────────────────── */
+let drag = null;
+const LONGPRESS = 250;
+
+grid.addEventListener("pointerdown", e => {
+  const bar = e.target.closest(".bar-task");
+  if (!bar) return;
+  const id = bar.dataset.id;
+  if (activeLock(id)) { toast(activeLock(id).by + " 님이 수정 중입니다"); return; }
+
+  const resize = !!e.target.closest("[data-h]");
+  const startX = e.clientX;
+  const touch  = e.pointerType === "touch";
+
+  const begin = () => {
+    drag = { id, resize, startX, moved:0, base:JSON.parse(JSON.stringify(tasks)), started:true, bar };
+    bar.classList.add("dragging");
+    bar.setPointerCapture(e.pointerId);
+    setLock(id);
+    if (navigator.vibrate && touch) navigator.vibrate(12);
+  };
+
+  if (touch && !resize){
+    // 짧은 스와이프는 가로 스크롤이므로, 길게 눌러야 블록을 잡는다
+    const timer = setTimeout(() => { if (pending){ pending = null; begin(); } }, LONGPRESS);
+    let pending = { timer };
+    const cancel = ev => {
+      if (pending && Math.abs(ev.clientX - startX) > 8){ clearTimeout(timer); pending = null; }
+    };
+    const up = () => { if (pending){ clearTimeout(timer); pending = null; } cleanup(); };
+    const cleanup = () => {
+      grid.removeEventListener("pointermove", cancel);
+      grid.removeEventListener("pointerup", up);
+      grid.removeEventListener("pointercancel", up);
+    };
+    grid.addEventListener("pointermove", cancel);
+    grid.addEventListener("pointerup", up);
+    grid.addEventListener("pointercancel", up);
+  } else {
+    e.preventDefault();
+    begin();
+  }
+});
+
+grid.addEventListener("pointermove", e => {
+  if (!drag || !drag.started) return;
+  e.preventDefault();
+  const delta = Math.round((e.clientX - drag.startX) / dayW);
+  if (delta === drag.moved) return;
+  drag.moved = delta;
+  preview(delta);
+});
+
+function preview(delta){
+  const t0 = drag.base[drag.id];
+  const work = JSON.parse(JSON.stringify(drag.base));
+  if (drag.resize) work[drag.id].days = Math.max(1, Math.min(365, t0.days + delta));
+  else             work[drag.id].start = snapStart(addDays(t0.start, delta));
+  rememberLag(work, drag.id);
+  const next = propagate(work, drag.id);
+  drag.next = next;
+
+  order().forEach(id => {
+    const bar = grid.querySelector('.bar-task[data-id="' + id + '"]');
+    if (!bar) return;
+    const dx = diffDays(tasks[id].start, next[id].start) * dayW;
+    const spanNow = diffDays(tasks[id].start, taskEnd(tasks[id])) + 1;
+    const spanNew = diffDays(next[id].start, taskEnd(next[id])) + 1;
+    bar.style.transform = "translateX(" + dx + "px)";
+    bar.style.width = Math.max(dayW, spanNew * dayW) - 4 + "px";
+    bar.classList.toggle("willmove", id !== drag.id && (dx !== 0 || spanNow !== spanNew));
+  });
+
+  const t = next[drag.id];
+  const md = s => Number(s.split("-")[1]) + "/" + Number(s.split("-")[2]);
+  toast(tasks[drag.id].name + "  " + (drag.resize
+    ? tasks[drag.id].days + "일 → " + t.days + "일"
+    : md(tasks[drag.id].start) + " → " + md(t.start) + " (" + (delta >= 0 ? "+" : "") + delta + "일)"));
+}
+
+grid.addEventListener("pointerup", endDrag);
+grid.addEventListener("pointercancel", endDrag);
+async function endDrag(){
+  if (!drag || !drag.started) return;
+  const d = drag; drag = null;
+  d.bar.classList.remove("dragging");
+  grid.querySelectorAll(".bar-task").forEach(b => { b.style.transform = ""; b.classList.remove("willmove"); });
+  clearLock(d.id);
+  if (!d.next || !d.moved){ render(); return; }
+  await commit(d.next, d.id, d.resize ? "GANTT_RESIZE" : "GANTT_MOVE");
+}
+
+/* ── 저장 (여러 과업을 한 번에 원자적으로) ─────────── */
+async function commit(next, movedId, action){
+  const patch = {}, before = {}, after = {};
+  order().forEach(id => {
+    const a = tasks[id], b = next[id];
+    if (!b) return;
+    if (a.start !== b.start || a.days !== b.days || JSON.stringify(a.deps||{}) !== JSON.stringify(b.deps||{})){
+      before[id] = { start:a.start, days:a.days, deps:a.deps || {} };
+      after[id]  = { start:b.start, days:b.days, deps:b.deps || {} };
+      patch[id + "/start"] = b.start;
+      patch[id + "/days"]  = b.days;
+      patch[id + "/deps"]  = b.deps || {};
+      patch[id + "/updatedAt"] = Date.now();
+      patch[id + "/updatedBy"] = username;
+    }
+  });
+  if (!Object.keys(patch).length) { render(); return; }
+  try {
+    await update(ref(db, TASKS), patch);
+    await addHistory(action, movedId, before, after);
+    recordLog(action, { task: tasks[movedId] ? tasks[movedId].name : movedId,
+                        from: before[movedId], to: after[movedId],
+                        shifted: Object.keys(after).filter(k => k !== movedId).map(k => tasks[k].name) });
+  } catch (e){
+    console.error(e);
+    toast("저장 실패: " + e.message);
+    render();
+  }
+}
+
+async function addHistory(action, taskId, before, after){
+  const key = String(Date.now());
+  await set(ref(db, HIST + "/" + key), { user:username, action, taskId, before, after, at:Date.now() });
+  lastUndo = { key, at:Date.now(), before };
+  refreshUndo();
+  // 최근 50건만 유지
+  try {
+    const snap = await get(query(ref(db, HIST), orderByKey()));
+    const keys = Object.keys(snap.val() || {}).sort();
+    if (keys.length > 50){
+      const del = {};
+      keys.slice(0, keys.length - 50).forEach(k => del[k] = null);
+      await update(ref(db, HIST), del);
+    }
+  } catch(e){ /* 정리 실패는 무시 */ }
+}
+
+function refreshUndo(){
+  const b = document.getElementById("btnUndo");
+  b.disabled = !(lastUndo && Date.now() - lastUndo.at < 5 * 60 * 1000);
+}
+setInterval(refreshUndo, 20000);
+
+document.getElementById("btnUndo").onclick = async () => {
+  if (!lastUndo) return;
+  const patch = {};
+  Object.entries(lastUndo.before).forEach(([id, v]) => {
+    if (!tasks[id]) return;
+    patch[id + "/start"] = v.start;
+    patch[id + "/days"]  = v.days;
+    patch[id + "/deps"]  = v.deps || {};
+    patch[id + "/updatedAt"] = Date.now();
+    patch[id + "/updatedBy"] = username;
+  });
+  try {
+    await update(ref(db, TASKS), patch);
+    await remove(ref(db, HIST + "/" + lastUndo.key));
+    recordLog("GANTT_UNDO", { restored: Object.keys(lastUndo.before) });
+    lastUndo = null; refreshUndo();
+    toast("되돌렸습니다");
+  } catch(e){ toast("되돌리기 실패: " + e.message); }
+};
+
+/* ── 소프트 락 ────────────────────────────────────── */
+let lockRef = null;
+function setLock(id){
+  lockRef = ref(db, LOCKS + "/" + id);
+  set(lockRef, { by:username, at:Date.now() }).catch(()=>{});
+  onDisconnect(lockRef).remove();
+}
+function clearLock(id){
+  const r = ref(db, LOCKS + "/" + id);
+  onDisconnect(r).cancel().catch(()=>{});
+  remove(r).catch(()=>{});
+  lockRef = null;
+}
+
+/* ── 로그 (보드 관례) ─────────────────────────────── */
+function recordLog(action, details){
+  set(ref(db, "logs/" + Date.now()), { user:username, action, details, timestamp:Date.now() }).catch(()=>{});
+}
+
+/* ── 툴바 ─────────────────────────────────────────── */
+document.getElementById("btnToday").onclick = () => {
+  const col = grid.querySelector(".names").offsetWidth;
+  chart.scrollLeft = Math.max(0, diffDays(range.from, todayYmd()) * dayW - chart.clientWidth / 2 + col);
+};
+document.getElementById("btnZoom").onclick = e => {
+  dayW = dayW >= 26 ? 14 : 40;
+  e.target.textContent = dayW >= 26 ? "주 보기" : "일 보기";
+  render();
+};
+document.getElementById("btnZoom").textContent = dayW >= 26 ? "주 보기" : "일 보기";
+
+/* ── 세부 편집 / 관리 시트 ───────────────────────── */
+const sheetBack = document.getElementById("sheetBack");
+const sheet     = document.getElementById("sheet");
+sheetBack.onclick = e => { if (e.target === sheetBack) closeSheet(); };
+function closeSheet(){ sheetBack.classList.remove("show"); }
+
+grid.addEventListener("click", e => {
+  const bar = e.target.closest(".bar-task");
+  if (!bar || drag) return;
+  if (e.target.closest("[data-h]")) return;
+  openTask(bar.dataset.id);
+});
+
+function openTask(id){
+  const t = tasks[id];
+  if (!t) return;
+  sheet.innerHTML =
+    '<h3><span class="dot" style="background:' + esc(t.color) + '"></span>' + esc(t.name) +
+      '<button class="x" id="sx">✕</button></h3>' +
+    '<div class="err" id="e1"></div>' +
+    '<div class="f2">' +
+      '<div class="fld"><label>시작일</label><input id="fStart" type="date" value="' + esc(t.start) + '"></div>' +
+      '<div class="fld"><label>기간(일)</label><input id="fDays" inputmode="numeric" value="' + t.days + '"></div>' +
+    '</div>' +
+    '<p class="note">종료 ' + esc(taskEnd(t)) + (settings.skipWeekend ? " · 주말 제외" : "") + '</p>' +
+    (canAdmin
+      ? '<div class="f2"><div class="fld"><label>이름</label><input id="fName" value="' + esc(t.name) + '"></div>' +
+        '<div class="fld"><label>색</label><input id="fColor" type="color" value="' + esc(t.color || "#5aa9e6") + '"></div></div>'
+      : "") +
+    '<div class="acts">' +
+      '<button class="btn primary" id="sSave">저장</button>' +
+      (canAdmin ? '<button class="btn danger" id="sDel">🗑 삭제</button>' : "") +
+      '<button class="btn" id="sCancel">취소</button>' +
+    '</div>';
+  sheetBack.classList.add("show");
+  document.getElementById("sx").onclick = closeSheet;
+  document.getElementById("sCancel").onclick = closeSheet;
+  document.getElementById("sSave").onclick = async () => {
+    const err = document.getElementById("e1");
+    const st = document.getElementById("fStart").value;
+    const dy = Number(document.getElementById("fDays").value);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(st)){ err.textContent = "시작일을 확인해 주세요."; err.classList.add("show"); return; }
+    if (!Number.isInteger(dy) || dy < 1 || dy > 365){ err.textContent = "기간은 1~365일 사이 정수입니다."; err.classList.add("show"); return; }
+    const work = JSON.parse(JSON.stringify(tasks));
+    work[id].start = snapStart(st);
+    work[id].days  = dy;
+    if (canAdmin){
+      work[id].name  = (document.getElementById("fName").value || "").trim().slice(0, 20) || work[id].name;
+      work[id].color = document.getElementById("fColor").value;
+      await update(ref(db, TASKS + "/" + id), { name: work[id].name, color: work[id].color });
+    }
+    rememberLag(work, id);
+    await commit(propagate(work, id), id, "GANTT_MOVE");
+    closeSheet();
+  };
+  if (canAdmin) document.getElementById("sDel").onclick = async () => {
+    if (!confirm(t.name + " 과목을 삭제할까요?\n이 과목에 걸린 의존 관계도 함께 정리됩니다.")) return;
+    const patch = { [id]: null };
+    Object.keys(tasks).forEach(k => {
+      if (k !== id && tasks[k].deps && tasks[k].deps[id] != null){
+        const nd = Object.assign({}, tasks[k].deps); delete nd[id];
+        // 삭제되는 과업의 선행을 물려받아 체인이 끊기지 않게 한다
+        Object.entries(tasks[id].deps || {}).forEach(([p, lag]) => { if (p !== k) nd[p] = lag; });
+        patch[k + "/deps"] = nd;
+      }
+    });
+    await update(ref(db, TASKS), patch);
+    recordLog("GANTT_STRUCTURE", { action:"delete", task:t.name });
+    closeSheet();
+  };
+}
+
+document.getElementById("btnAdmin").onclick = () => {
+  const ids = order();
+  sheet.innerHTML =
+    '<h3>⚙ 관리<button class="x" id="sx">✕</button></h3>' +
+    '<div class="fld"><label>이동 방식</label><select id="aMode">' +
+      '<option value="rigid"' + (settings.mode === "rigid" ? " selected" : "") + '>간격 유지 — 앞을 밀면 뒤도 밀리고, 당기면 같이 당겨짐</option>' +
+      '<option value="push"' + (settings.mode === "push" ? " selected" : "") + '>겹침 방지 — 겹칠 때만 밀림</option>' +
+    '</select></div>' +
+    '<div class="fld"><label>주말 처리</label><select id="aWeek">' +
+      '<option value="0"' + (!settings.skipWeekend ? " selected" : "") + '>주말 포함</option>' +
+      '<option value="1"' + (settings.skipWeekend ? " selected" : "") + '>주말 건너뛰기</option>' +
+    '</select></div>' +
+    '<div class="fld"><label>과목 추가</label><input id="aName" placeholder="예: 한국사 — 마지막 과목 뒤에 이어 붙습니다"></div>' +
+    '<div class="acts">' +
+      '<button class="btn primary" id="aSave">설정 저장</button>' +
+      '<button class="btn" id="aAdd">＋ 과목 추가</button>' +
+    '</div>' +
+    '<div class="acts"><button class="btn danger" id="aReset">전체 초기화(기본 5과목)</button></div>' +
+    '<p class="note">현재 순서: ' + ids.map(i => esc(tasks[i].name)).join(" → ") + '</p>';
+  sheetBack.classList.add("show");
+  document.getElementById("sx").onclick = closeSheet;
+
+  document.getElementById("aSave").onclick = async () => {
+    const s = { mode: document.getElementById("aMode").value,
+                skipWeekend: document.getElementById("aWeek").value === "1",
+                updatedAt: Date.now(), updatedBy: username };
+    await update(ref(db, SET), s);
+    recordLog("GANTT_STRUCTURE", { action:"settings", mode:s.mode, skipWeekend:s.skipWeekend });
+    closeSheet(); toast("설정을 저장했습니다");
+  };
+  document.getElementById("aAdd").onclick = async () => {
+    const nm = (document.getElementById("aName").value || "").trim().slice(0, 20);
+    if (!nm) return toast("과목 이름을 넣어주세요");
+    const ids2 = order();
+    const last = ids2[ids2.length - 1];
+    const id = "t" + Date.now().toString(36);
+    const start = last ? workAdd(taskEnd(tasks[last]), 1) : snapStart(todayYmd());
+    await set(ref(db, TASKS + "/" + id), {
+      name:nm, order:(ids2.length), start, days:4, color:"#8fa3b8",
+      deps: last ? { [last]: 0 } : {}, updatedAt:Date.now(), updatedBy:username
+    });
+    recordLog("GANTT_STRUCTURE", { action:"add", task:nm });
+    closeSheet(); toast(nm + " 추가됨");
+  };
+  document.getElementById("aReset").onclick = async () => {
+    if (!confirm("일정을 기본 5과목(오늘부터 순서대로)으로 초기화할까요?")) return;
+    await set(ref(db, TASKS), buildSeed());
+    recordLog("GANTT_STRUCTURE", { action:"reset" });
+    closeSheet(); toast("초기화했습니다");
+  };
+};
+
+/* ── 시드 ─────────────────────────────────────────── */
+function buildSeed(){
+  const out = {};
+  let cur = todayYmd();
+  const sw = settings.skipWeekend;
+  SEED.forEach((s, i) => {
+    let st = cur;
+    if (sw) while (isWeekend(st)) st = addDays(st, 1);
+    out[s.id] = { name:s.name, order:i, start:st, days:s.days, color:s.color,
+                  deps: i === 0 ? {} : { [SEED[i-1].id]: 0 },
+                  updatedAt:Date.now(), updatedBy:username };
+    let end = st, left = s.days - 1;
+    while (left > 0){ end = addDays(end, 1); if (!sw || !isWeekend(end)) left--; }
+    cur = addDays(end, 1);
+    if (sw) while (isWeekend(cur)) cur = addDays(cur, 1);
+  });
+  return out;
+}
+
+/* ── 구독 ─────────────────────────────────────────── */
+(async () => {
+  try {
+    const meSnap = await get(ref(db, "users/" + username));
+    if (meSnap.exists() && meSnap.val().ganttAdmin === true) canAdmin = true;
+  } catch(e){ /* 실패 시 기본 권한 유지 */ }
+  document.getElementById("btnAdmin").style.display = canAdmin ? "" : "none";
+
+  document.getElementById("hint").innerHTML = canAdmin
+    ? "블록을 끌어 일정을 옮기고, 오른쪽 끝을 끌어 기간을 조절합니다. 모바일에서는 <b>블록을 길게 눌러</b> 잡으세요. 앞 과목을 옮기면 뒤 과목이 자동으로 따라 움직입니다."
+    : "블록을 끌어 일정을 옮기고, 오른쪽 끝을 끌어 기간을 조절합니다. 모바일에서는 <b>블록을 길게 눌러</b> 잡으세요. 과목·순서 변경은 관리자만 가능합니다.";
+
+  onValue(ref(db, SET), s => {
+    const v = s.val();
+    if (v) settings = Object.assign(settings, v);
+    if (Object.keys(tasks).length) render();
+  });
+  onValue(ref(db, LOCKS), s => { locks = s.val() || {}; if (Object.keys(tasks).length) render(); });
+  onValue(ref(db, TASKS), async s => {
+    const v = s.val();
+    if (!v && !seeded){
+      seeded = true;
+      // 여러 명이 동시에 처음 열어도 한 번만 만들어지도록 트랜잭션으로 심는다
+      await runTransaction(ref(db, TASKS), cur => cur === null ? buildSeed() : undefined).catch(()=>{});
+      return;
+    }
+    tasks = v || {};
+    render();
+    if (!chart._centered && Object.keys(tasks).length){
+      chart._centered = true;
+      setTimeout(() => document.getElementById("btnToday").click(), 60);
+    }
+  });
+})();
+</script>
+</body>
+</html>

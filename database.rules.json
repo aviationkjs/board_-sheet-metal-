@@ -26,6 +26,21 @@
     "logs":                { ".read": true, ".write": true },
     "materialConsumption": { ".read": true, ".write": true },
     "fighterjet_scores":   { ".read": true, ".write": true },
+    "gantt": {
+      ".read": true,
+      ".write": true,
+      "tasks": {
+        "$id": {
+          "name":  { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "start": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+          "days":  { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 365" },
+          "order": { ".validate": "!newData.exists() || newData.isNumber()" },
+          "color": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 9)" },
+          "$other": { ".validate": true }
+        }
+      },
+      "$other": { ".validate": true }
+    },
     "drill_rows": {
       ".read": true,
       ".write": true,
