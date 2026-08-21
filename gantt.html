@@ -66,6 +66,11 @@
     border-top:1px solid var(--line);font-size:14px;font-weight:600}
   .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
   .nrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .nrow .cnt{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);
+    background:var(--panel-2);border-radius:9px;padding:1px 6px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}
+  .legend .lg{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text)}
+  .legend .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
 
   .todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);
     opacity:.75;z-index:20;pointer-events:none}
@@ -225,12 +230,14 @@ function snapStart(ymd){
 }
 
 /* ── 상태 ─────────────────────────────────────────── */
-const SEED = [
-  { id:"korean",  name:"국어", days:5, color:"#5aa9e6" },
-  { id:"math",    name:"수학", days:7, color:"#f0a04b" },
-  { id:"english", name:"영어", days:5, color:"#6fd08c" },
-  { id:"social",  name:"사회", days:4, color:"#b28ce8" },
-  { id:"science", name:"과학", days:4, color:"#4fd1c5" },
+/* 반(행) 5개. 각 반의 한 줄에 아래 과목이 순서대로 이어 붙는다. */
+const CLASSES  = [1, 2, 3, 4, 5];
+const SUBJECTS = [
+  { key:"korean",  name:"국어", days:5, color:"#5aa9e6" },
+  { key:"english", name:"영어", days:5, color:"#6fd08c" },
+  { key:"math",    name:"수학", days:7, color:"#f0a04b" },
+  { key:"social",  name:"사회", days:4, color:"#b28ce8" },
+  { key:"science", name:"과학", days:4, color:"#4fd1c5" },
 ];
 let tasks    = {};
 let settings = { mode:"rigid", skipWeekend:false };
@@ -248,7 +255,25 @@ function toast(msg){
   el.textContent = msg; el.classList.add("show");
   clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove("show"), 2200);
 }
-function order(){ return Object.keys(tasks).sort((a,b) => (tasks[a].order||0) - (tasks[b].order||0)); }
+/* 반 → 반 안의 순서 로 정렬한 전체 목록 */
+function order(){
+  return Object.keys(tasks).sort((a, b) =>
+    (clsOf(a) - clsOf(b)) || ((tasks[a].order || 0) - (tasks[b].order || 0)));
+}
+function clsOf(id){ return Number(tasks[id] && tasks[id].cls) || 1; }   // 구버전 데이터는 1반으로 본다
+/* 화면에 그릴 반 목록 */
+function classList(){
+  const set = new Set(Object.keys(tasks).map(clsOf));
+  CLASSES.forEach(c => set.add(c));
+  return [...set].sort((a, b) => a - b);
+}
+/* 특정 반의 과목들 (그 반 안의 순서대로) */
+function tasksOf(c){ return order().filter(id => clsOf(id) === c); }
+/* 구버전(반 정보 없는) 데이터인지 */
+function isLegacy(){
+  const ids = Object.keys(tasks);
+  return ids.length > 0 && ids.every(id => tasks[id].cls == null);
+}
 
 /* ── 전파 엔진 ───────────────────────────────────────
    의존은 { 선행id: 간격(일) } 맵이다. 후속 시작일 = 선행 종료 다음 날 + 간격.
@@ -323,6 +348,7 @@ function render(){
   calcRange();
   document.documentElement.style.setProperty("--day", dayW + "px");
   const ids = order();
+  const cls = classList();
   const today = todayYmd();
 
   let dates = '<div class="dates">';
@@ -339,7 +365,7 @@ function render(){
   dates += '</div>';
 
   let rows = '<div class="rowwrap">';
-  ids.forEach(() => {
+  cls.forEach(() => {
     rows += '<div class="row">';
     for (let i = 0; i < range.n; i++){
       const d = addDays(range.from, i);
@@ -349,10 +375,10 @@ function render(){
   });
   rows += '</div>';
 
-  let names = '<div class="names"><div class="nhead">과목</div>';
-  ids.forEach(id => {
-    names += '<div class="nrow"><span class="dot" style="background:' + esc(tasks[id].color || "#888") + '"></span>' +
-             '<span class="nm">' + esc(tasks[id].name) + '</span></div>';
+  let names = '<div class="names"><div class="nhead">반</div>';
+  cls.forEach(c => {
+    names += '<div class="nrow"><span class="nm">' + c + '반</span>' +
+             '<span class="cnt">' + tasksOf(c).length + '</span></div>';
   });
   names += '</div>';
 
@@ -365,8 +391,10 @@ function render(){
 
   // 블록
   const wrap = grid.querySelector(".rowwrap");
-  ids.forEach((id, i) => {
+  ids.forEach((id) => {
     const t = tasks[id];
+    const i = cls.indexOf(clsOf(id));            // 그 과목이 속한 반의 행 번호
+    if (i < 0) return;
     const left = diffDays(range.from, t.start) * dayW;
     const spanDays = diffDays(t.start, taskEnd(t)) + 1;
     const w = Math.max(dayW, spanDays * dayW);
@@ -376,6 +404,7 @@ function render(){
     b.dataset.id = id;
     b.style.cssText = "left:" + left + "px;width:" + (w - 4) + "px;top:" +
                       (i * rowH() + 6) + "px;background:" + (t.color || "#888");
+    b.title = clsOf(id) + "반 · " + t.name + " · " + t.start + " ~ " + taskEnd(t) + " (" + t.days + "일)";
     b.innerHTML = (lock ? '<span class="lockic">🔒</span>' : "") +
                   '<span class="nmv">' + esc(lock ? lock.by + " 수정 중" : t.name) + '</span>' +
                   (w > 92 ? '<span class="d">' + t.days + '일</span>' : "") +
@@ -642,7 +671,8 @@ function openTask(id){
   const t = tasks[id];
   if (!t) return;
   sheet.innerHTML =
-    '<h3><span class="dot" style="background:' + esc(t.color) + '"></span>' + esc(t.name) +
+    '<h3><span class="dot" style="background:' + esc(t.color) + '"></span>' +
+      clsOf(id) + '반 · ' + esc(t.name) +
       '<button class="x" id="sx">✕</button></h3>' +
     '<div class="err" id="e1"></div>' +
     '<div class="f2">' +
@@ -681,7 +711,7 @@ function openTask(id){
     closeSheet();
   };
   if (canAdmin) document.getElementById("sDel").onclick = async () => {
-    if (!confirm(t.name + " 과목을 삭제할까요?\n이 과목에 걸린 의존 관계도 함께 정리됩니다.")) return;
+    if (!confirm(clsOf(id) + "반의 " + t.name + " 을(를) 삭제할까요?\n그 반의 연결은 앞뒤가 이어지도록 정리됩니다.")) return;
     const patch = { [id]: null };
     Object.keys(tasks).forEach(k => {
       if (k !== id && tasks[k].deps && tasks[k].deps[id] != null){
@@ -698,7 +728,7 @@ function openTask(id){
 }
 
 document.getElementById("btnAdmin").onclick = () => {
-  const ids = order();
+  const cls = classList();
   sheet.innerHTML =
     '<h3>⚙ 관리<button class="x" id="sx">✕</button></h3>' +
     '<div class="fld"><label>이동 방식</label><select id="aMode">' +
@@ -709,13 +739,25 @@ document.getElementById("btnAdmin").onclick = () => {
       '<option value="0"' + (!settings.skipWeekend ? " selected" : "") + '>주말 포함</option>' +
       '<option value="1"' + (settings.skipWeekend ? " selected" : "") + '>주말 건너뛰기</option>' +
     '</select></div>' +
-    '<div class="fld"><label>과목 추가</label><input id="aName" placeholder="예: 한국사 — 마지막 과목 뒤에 이어 붙습니다"></div>' +
+    '<div class="f2">' +
+      '<div class="fld"><label>과목 추가 — 반</label><select id="aCls">' +
+        cls.map(c => '<option value="' + c + '">' + c + '반</option>').join("") +
+      '</select></div>' +
+      '<div class="fld"><label>과목 이름</label>' +
+        '<input id="aName" placeholder="예: 한국사"></div>' +
+    '</div>' +
     '<div class="acts">' +
       '<button class="btn primary" id="aSave">설정 저장</button>' +
       '<button class="btn" id="aAdd">＋ 과목 추가</button>' +
     '</div>' +
-    '<div class="acts"><button class="btn danger" id="aReset">전체 초기화(기본 5과목)</button></div>' +
-    '<p class="note">현재 순서: ' + ids.map(i => esc(tasks[i].name)).join(" → ") + '</p>';
+    '<div class="acts"><button class="btn danger" id="aReset">전체 초기화(5개 반 × 5과목)</button></div>' +
+    (isLegacy()
+      ? '<p class="note" style="color:#ffb4b4">구버전 데이터입니다(반 구분 없음). ' +
+        '전체 초기화를 하면 5개 반 구조로 바뀝니다.</p>'
+      : "") +
+    '<p class="note">' + cls.map(c =>
+        '<b>' + c + '반</b> ' + (tasksOf(c).map(i => esc(tasks[i].name)).join(" → ") || "(비어 있음)")
+      ).join("<br>") + '</p>';
   sheetBack.classList.add("show");
   document.getElementById("sx").onclick = closeSheet;
 
@@ -730,19 +772,20 @@ document.getElementById("btnAdmin").onclick = () => {
   document.getElementById("aAdd").onclick = async () => {
     const nm = (document.getElementById("aName").value || "").trim().slice(0, 20);
     if (!nm) return toast("과목 이름을 넣어주세요");
-    const ids2 = order();
-    const last = ids2[ids2.length - 1];
+    const c = Number(document.getElementById("aCls").value) || 1;
+    const inCls = tasksOf(c);                       // 그 반의 마지막 과목 뒤에 이어 붙인다
+    const last = inCls[inCls.length - 1];
     const id = "t" + Date.now().toString(36);
     const start = last ? workAdd(taskEnd(tasks[last]), 1) : snapStart(todayYmd());
     await set(ref(db, TASKS + "/" + id), {
-      name:nm, order:(ids2.length), start, days:4, color:"#8fa3b8",
+      cls:c, name:nm, order:inCls.length, start, days:4, color:"#8fa3b8",
       deps: last ? { [last]: 0 } : {}, updatedAt:Date.now(), updatedBy:username
     });
-    recordLog("GANTT_STRUCTURE", { action:"add", task:nm });
-    closeSheet(); toast(nm + " 추가됨");
+    recordLog("GANTT_STRUCTURE", { action:"add", cls:c, task:nm });
+    closeSheet(); toast(c + "반에 " + nm + " 추가됨");
   };
   document.getElementById("aReset").onclick = async () => {
-    if (!confirm("일정을 기본 5과목(오늘부터 순서대로)으로 초기화할까요?")) return;
+    if (!confirm("5개 반 × 5과목(국어→영어→수학→사회→과학)으로 초기화할까요?\n기존 일정은 사라집니다.")) return;
     await set(ref(db, TASKS), buildSeed());
     recordLog("GANTT_STRUCTURE", { action:"reset" });
     closeSheet(); toast("초기화했습니다");
@@ -750,20 +793,27 @@ document.getElementById("btnAdmin").onclick = () => {
 };
 
 /* ── 시드 ─────────────────────────────────────────── */
+/* 반마다 국어 → 영어 → 수학 → 사회 → 과학 을 한 줄로 이어 붙인다.
+   반끼리는 서로 독립이라 1반을 밀어도 2반은 움직이지 않는다. */
 function buildSeed(){
   const out = {};
-  let cur = todayYmd();
   const sw = settings.skipWeekend;
-  SEED.forEach((s, i) => {
-    let st = cur;
-    if (sw) while (isWeekend(st)) st = addDays(st, 1);
-    out[s.id] = { name:s.name, order:i, start:st, days:s.days, color:s.color,
-                  deps: i === 0 ? {} : { [SEED[i-1].id]: 0 },
+  CLASSES.forEach((cls, ci) => {
+    let cur = addDays(todayYmd(), ci * 2);   // 반마다 이틀씩 어긋나게 시작
+    let prev = null;
+    SUBJECTS.forEach((sub, i) => {
+      let st = cur;
+      if (sw) while (isWeekend(st)) st = addDays(st, 1);
+      const id = "c" + cls + "_" + sub.key;
+      out[id] = { cls, name:sub.name, order:i, start:st, days:sub.days, color:sub.color,
+                  deps: prev ? { [prev]: 0 } : {},
                   updatedAt:Date.now(), updatedBy:username };
-    let end = st, left = s.days - 1;
-    while (left > 0){ end = addDays(end, 1); if (!sw || !isWeekend(end)) left--; }
-    cur = addDays(end, 1);
-    if (sw) while (isWeekend(cur)) cur = addDays(cur, 1);
+      let end = st, left = sub.days - 1;
+      while (left > 0){ end = addDays(end, 1); if (!sw || !isWeekend(end)) left--; }
+      cur = addDays(end, 1);
+      if (sw) while (isWeekend(cur)) cur = addDays(cur, 1);
+      prev = id;
+    });
   });
   return out;
 }
@@ -776,9 +826,15 @@ function buildSeed(){
   } catch(e){ /* 실패 시 기본 권한 유지 */ }
   document.getElementById("btnAdmin").style.display = canAdmin ? "" : "none";
 
-  document.getElementById("hint").innerHTML = canAdmin
-    ? "블록을 끌어 일정을 옮기고, 오른쪽 끝을 끌어 기간을 조절합니다. 모바일에서는 <b>블록을 길게 눌러</b> 잡으세요. 앞 과목을 옮기면 뒤 과목이 자동으로 따라 움직입니다."
-    : "블록을 끌어 일정을 옮기고, 오른쪽 끝을 끌어 기간을 조절합니다. 모바일에서는 <b>블록을 길게 눌러</b> 잡으세요. 과목·순서 변경은 관리자만 가능합니다.";
+  const legend = SUBJECTS.map(sub =>
+    '<span class="lg"><i style="background:' + sub.color + '"></i>' + sub.name + '</span>').join("");
+  document.getElementById("hint").innerHTML =
+    '<div class="legend">' + legend + '</div>' +
+    "한 줄이 한 반입니다. 반마다 <b>국어 → 영어 → 수학 → 사회 → 과학</b> 순서로 이어 붙습니다.<br>" +
+    "블록을 끌어 일정을 옮기고, 오른쪽 끝을 끌어 기간을 조절합니다. " +
+    "모바일에서는 <b>블록을 길게 눌러</b> 잡으세요. " +
+    "앞 과목을 옮기면 <b>같은 반의 뒤 과목만</b> 따라 움직입니다(다른 반은 그대로)." +
+    (canAdmin ? "" : "<br>과목 추가·삭제는 관리자만 가능합니다.");
 
   onValue(ref(db, SET), s => {
     const v = s.val();
