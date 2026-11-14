@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성능기골 스티커 보드 - 인증</title>
+    <link rel="stylesheet" href="tokens.css?v=20261115">
     <style>
         * {
             margin: 0;
@@ -12,159 +13,205 @@
         }
 
         body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-family);
+            font-size: var(--font-size-base);
+            background: var(--color-background-body);
+            color: var(--color-text-primary);
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
+            padding: var(--spacing-4);
         }
 
         .auth-container {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            background: var(--color-background-surface);
+            border-radius: var(--radius-container);
+            box-shadow: var(--shadow-low);
             width: 100%;
             max-width: 400px;
-            padding: 40px;
+            padding: var(--spacing-8);
+        }
+
+        /* 제목 위 작은 표시 */
+        .brand-mark {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto var(--spacing-4);
+            border-radius: var(--radius-container);
+            background: var(--color-accent);
+            color: var(--color-on-accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-semibold);
+            letter-spacing: -0.5px;
         }
 
         .auth-container h1 {
             text-align: center;
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: #2c3e50;
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-semibold);
+            line-height: 32px;
+            margin-bottom: var(--spacing-1);
+            color: var(--color-text-primary);
         }
 
         .auth-container p {
             text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-            font-size: 14px;
+            color: var(--color-text-secondary);
+            margin-bottom: var(--spacing-6);
+            font-size: var(--font-size-base);
+            line-height: 20px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: var(--spacing-4);
         }
 
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-            font-size: 14px;
+            margin-bottom: var(--spacing-2);
+            font-weight: var(--font-weight-medium);
+            color: var(--color-text-primary);
+            font-size: var(--font-size-base);
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #eee;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: border-color 0.3s;
+            height: 44px;
+            padding: 0 var(--spacing-3);
+            border: 1px solid var(--color-border-emphasized);
+            border-radius: var(--radius-element);
+            background: var(--color-background-surface);
+            color: var(--color-text-primary);
+            font-family: inherit;
+            font-size: var(--font-size-input);
+            transition: border-color var(--duration-fast), box-shadow var(--duration-fast);
             letter-spacing: 0.5px;
         }
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--color-accent);
+            box-shadow: var(--shadow-focus);
         }
 
         .form-group input::placeholder {
-            color: #ccc;
+            color: var(--color-text-disabled);
             letter-spacing: normal;
         }
 
         .form-group input:disabled {
-            background: #f7f7f7;
-            color: #666;
+            background: var(--color-background-muted);
+            color: var(--color-text-secondary);
         }
 
         .button-group {
             display: flex;
-            gap: 10px;
-            margin-top: 30px;
+            gap: var(--spacing-2);
+            margin-top: var(--spacing-6);
         }
 
         .button-group button {
             flex: 1;
-            padding: 12px;
+            height: 44px;
+            padding: 0 var(--spacing-4);
             border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 600;
+            border-radius: var(--radius-element);
+            font-family: inherit;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background var(--duration-fast);
         }
 
         .btn-primary {
-            background: #667eea;
-            color: white;
+            background: var(--color-accent);
+            color: var(--color-on-accent);
         }
 
         .btn-primary:hover {
-            background: #5568d3;
+            background: var(--color-accent-hover);
         }
 
         .btn-primary:disabled {
-            background: #b7bdf0;
+            background: var(--color-neutral);
+            color: var(--color-text-disabled);
             cursor: not-allowed;
         }
 
         .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
+            background: transparent;
+            color: var(--color-text-accent);
         }
 
         .btn-secondary:hover {
-            background: #e0e0e0;
+            background: var(--color-hover);
         }
 
         .error-message {
-            color: #e74c3c;
-            font-size: 13px;
-            margin-top: 5px;
+            color: var(--color-text-error);
+            font-size: var(--font-size-sm);
+            line-height: 20px;
+            margin-top: var(--spacing-1);
             display: none;
         }
 
         .info-text {
-            background: #d1ecf1;
-            border: 1px solid #bee5eb;
-            color: #0c5460;
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 20px;
-            line-height: 1.5;
+            background: var(--color-accent-muted);
+            color: var(--color-text-info);
+            padding: var(--spacing-3);
+            border-radius: var(--radius-element);
+            font-size: var(--font-size-sm);
+            margin-bottom: var(--spacing-4);
+            line-height: 20px;
         }
 
         .info-text.setup {
-            background: #d4edda;
-            border-color: #c3e6cb;
-            color: #155724;
+            background: var(--color-success-muted);
+            color: var(--color-text-success);
         }
 
         .user-count {
-            background: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 10px;
-            border-radius: 6px;
-            font-size: 12px;
-            margin-bottom: 20px;
+            background: var(--color-background-muted);
+            color: var(--color-text-secondary);
+            padding: var(--spacing-2) var(--spacing-3);
+            border-radius: var(--radius-element);
+            font-size: var(--font-size-sm);
+            line-height: 20px;
+            margin-bottom: var(--spacing-4);
             text-align: center;
+        }
+
+        .user-count:empty {
+            display: none;
+        }
+
+        .user-count.full {
+            background: var(--color-error-muted);
+            color: var(--color-text-error);
         }
 
         .forgot-hint {
             text-align: center;
-            color: #aaa;
-            font-size: 12px;
-            margin-top: 18px;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+            margin-top: var(--spacing-4);
+        }
+
+        @media (max-width: 600px) {
+            .auth-container {
+                padding: var(--spacing-6);
+            }
         }
     </style>
 </head>
 <body>
     <div class="auth-container">
+        <div class="brand-mark" aria-hidden="true">성능</div>
         <h1>성능기골 스티커 보드</h1>
         <p>아이디와 PIN으로 접속하세요</p>
 
@@ -295,9 +342,7 @@
                 const el = document.getElementById('userCountDisplay');
                 el.textContent = '등록된 사용자: ' + count + ' / ' + MAX_USERS;
                 if (count >= MAX_USERS) {
-                    el.style.background = '#f8d7da';
-                    el.style.borderColor = '#f5c6cb';
-                    el.style.color = '#721c24';
+                    el.classList.add('full');
                     el.innerHTML += '<br><strong>정원이 찼습니다. 관리자에게 문의하세요.</strong>';
                 }
             } catch (e) {

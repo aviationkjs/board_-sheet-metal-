@@ -37,7 +37,7 @@ if (!username) {
   window.location.href = "auth.html";
 }
 
-usernameDiv.innerText = "👤 " + username;
+usernameDiv.innerText = username;
 
 /* 로그아웃 함수 */
 async function handleLogout() {
@@ -76,15 +76,24 @@ async function recordLog(action, details = {}) {
   }
 }
 
-/* 이름별 고유 색상 생성 */
+/* 이름별 스티커 색 (tokens.css 의 8색 중 하나로 고정 배정) */
+const NOTE_COLORS = ["blue", "cyan", "teal", "green", "yellow", "orange", "pink", "purple"];
 function colorFromName(name) {
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 70%, 80%)`;
+  return NOTE_COLORS[Math.abs(hash) % NOTE_COLORS.length];
 }
+
+/* 선 아이콘 (SVG를 직접 넣어 외부 파일 없이 동작) */
+const ICON_ATTRS = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
+const ICONS = {
+  pin: `<svg ${ICON_ATTRS}><path d="M9 4h6l-1 6 3 4H7l3-4-1-6z"/><path d="M12 14v6"/></svg>`,
+  pinned: `<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 4H7l3-4-1-6z"/><path d="M12 14v6"/></svg>`,
+  close: `<svg ${ICON_ATTRS}><path d="M6 6l12 12M18 6L6 18"/></svg>`,
+  like: `<svg ${ICON_ATTRS}><path d="M7 11v9H4v-9h3z"/><path d="M7 11l4-7c1.5 0 2.5 1 2.5 2.5V10h5a2 2 0 0 1 2 2.4l-1.2 6A2 2 0 0 1 17.3 20H7"/></svg>`
+};
 
 /* 스티커 추가 (한 명당 최대 2개) */
 const MAX_NOTES_PER_USER = 2;
@@ -184,7 +193,8 @@ onValue(notesRef, (snap) => {
   }
 
   if (!data) {
-    board.innerHTML = "<div style='grid-column: 1/-1; text-align: center; padding: 50px; color: #888;'>스티커가 없습니다.</div>";
+    board.innerHTML = "<div class='board-empty'><p>스티커가 없습니다.</p><button class='nav-btn accent' id='emptyAddBtn'>+ 스티커</button></div>";
+    document.getElementById("emptyAddBtn").onclick = window.addNote;
     return;
   }
 
@@ -212,19 +222,22 @@ onValue(notesRef, (snap) => {
     const note = document.createElement("div");
     note.className = "note";
     if (n.user === username) note.classList.add("mine");
-    note.style.backgroundColor = colorFromName(n.user);
+    note.classList.add("note-" + colorFromName(n.user));
     
     note.innerHTML = `
       <div class="note-header">
-        <b>${n.user}</b>
+        <div class="note-meta">
+          <b>${n.user}</b>
+          ${n.pin ? '<span class="pin-tag">고정</span>' : ''}
+        </div>
         <div class="note-actions">
-          <button class="action-btn pin-btn" title="${n.pin ? '고정 해제' : '고정'}">${n.pin ? '📌' : '📍'}</button>
-          <button class="action-btn delete-btn" title="삭제">❌</button>
+          <button class="action-btn pin-btn${n.pin ? ' pinned' : ''}" title="${n.pin ? '고정 해제' : '고정'}" aria-label="${n.pin ? '고정 해제' : '고정'}">${n.pin ? ICONS.pinned : ICONS.pin}</button>
+          <button class="action-btn delete-btn" title="삭제" aria-label="삭제">${ICONS.close}</button>
         </div>
       </div>
       <textarea placeholder="내용을 입력하세요...">${n.text || ""}</textarea>
       <div class="note-footer">
-        <div class="vote-badge${n.voters && n.voters[username] ? ' voted' : ''}" title="${n.voters && n.voters[username] ? '좋아요 취소' : '좋아요'}">👍 ${n.vote || 0}</div>
+        <div class="vote-badge${n.voters && n.voters[username] ? ' voted' : ''}" title="${n.voters && n.voters[username] ? '좋아요 취소' : '좋아요'}">${ICONS.like}<span>${n.vote || 0}</span></div>
       </div>
     `;
     board.appendChild(note);
@@ -235,7 +248,6 @@ onValue(notesRef, (snap) => {
     // 작성자만 수정 가능
     if (n.user !== username) {
       textarea.disabled = true;
-      textarea.style.opacity = '0.6';
       textarea.style.cursor = 'not-allowed';
       textarea.title = '작성자만 수정할 수 있습니다.';
     } else {

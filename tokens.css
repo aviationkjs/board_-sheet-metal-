@@ -1,0 +1,140 @@
+/*
+ * 성능보드판 디자인 토큰
+ * 값 출처: Astryx (https://github.com/meta/astryx) packages/core/src/theme/tokens.stylex.ts
+ * MIT License - Copyright (c) 2026 Meta Platforms, Inc.
+ * React 부품은 쓰지 않고 색·글자·간격·모서리 값만 CSS 변수로 옮겼습니다.
+ * 외부에서 불러오는 것이 없어 폐쇄망에서도 그대로 동작합니다.
+ */
+:root {
+  color-scheme: light dark;
+
+  /* 색 - 표면 */
+  --color-background-body: #F1F4F7;
+  --color-background-surface: #FFFFFF;
+  --color-background-popover: #FFFFFF;
+  --color-background-muted: rgba(5, 54, 89, 0.05);
+  --color-neutral: rgba(5, 54, 89, 0.1);
+  --color-hover: rgba(5, 54, 89, 0.06);
+
+  /* 색 - 글자 */
+  --color-text-primary: #0A1317;
+  --color-text-secondary: #4E606F;
+  --color-text-disabled: #A4B0BC;
+  --color-text-accent: #0064E0;
+
+  /* 색 - 강조와 상태 */
+  --color-accent: #0064E0;
+  --color-accent-hover: #0057C2;
+  --color-accent-muted: rgba(0, 130, 251, 0.2);
+  --color-on-accent: #FFFFFF;
+  --color-error: #E3193B;
+  --color-error-muted: rgba(227, 25, 59, 0.2);
+  --color-text-error: #AA071E;
+  --color-success-muted: rgba(11, 153, 31, 0.2);
+  --color-text-success: #0A5C1B;
+  --color-warning-muted: rgba(226, 164, 0, 0.2);
+  --color-text-warning: #6B4A00;
+  --color-text-info: #042F97;
+
+  /* 색 - 테두리 */
+  --color-border: rgba(5, 54, 89, 0.1);
+  --color-border-emphasized: #CCD3DB;
+
+  /* 스티커 8색: 바탕(20% 농도) / 띠 */
+  --note-blue-bg: rgba(1, 113, 227, 0.2);     --note-blue-line: #0064E0;
+  --note-cyan-bg: rgba(3, 167, 215, 0.2);     --note-cyan-line: #089DD0;
+  --note-teal-bg: rgba(13, 183, 175, 0.2);    --note-teal-line: #08A3A3;
+  --note-green-bg: rgba(36, 187, 94, 0.2);    --note-green-line: #0D8626;
+  --note-yellow-bg: rgba(226, 164, 0, 0.2);   --note-yellow-line: #C58600;
+  --note-orange-bg: rgba(242, 121, 2, 0.2);   --note-orange-line: #EB6E00;
+  --note-pink-bg: rgba(230, 56, 179, 0.2);    --note-pink-line: #F351C0;
+  --note-purple-bg: rgba(121, 82, 255, 0.2);  --note-purple-line: #9081FF;
+
+  /* 글자 */
+  --font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo',
+    'Malgun Gothic', 'Noto Sans KR', system-ui, Roboto, sans-serif;
+  --font-size-sm: 12px;
+  --font-size-base: 14px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  --font-size-input: 14px;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  /* 간격 (4px 배수) */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+
+  /* 모서리 */
+  --radius-inner: 4px;
+  --radius-element: 8px;
+  --radius-container: 12px;
+  --radius-full: 9999px;
+
+  /* 그림자 */
+  --shadow-low: 0 1px 1px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-med: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 12px rgba(0, 0, 0, 0.1);
+  --shadow-high: 0 2px 2px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.1);
+  --shadow-focus: inset 0 0 0 2px rgba(1, 113, 227, 0.5);
+
+  /* 움직임 */
+  --duration-fast: 175ms;
+}
+
+/* 다크 모드: 기기 설정을 따릅니다 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background-body: #111112;
+    --color-background-surface: #1F1F22;
+    --color-background-popover: #28292C;
+    --color-background-muted: rgba(17, 17, 18, 0.5);
+    --color-neutral: rgba(223, 226, 229, 0.2);
+    --color-hover: rgba(223, 226, 229, 0.1);
+
+    --color-text-primary: #DFE2E5;
+    --color-text-secondary: #AAAFB5;
+    --color-text-disabled: #6F747C;
+    --color-text-accent: #3E9EFB;
+
+    --color-accent: #0171E3;
+    --color-accent-hover: #2694FE;
+    --color-accent-muted: rgba(0, 130, 251, 0.25);
+    --color-error: #F5394F;
+    --color-error-muted: rgba(245, 57, 79, 0.25);
+    --color-text-error: #FFB3BC;
+    --color-success-muted: rgba(11, 153, 31, 0.25);
+    --color-text-success: #A6E3B0;
+    --color-warning-muted: rgba(226, 164, 0, 0.25);
+    --color-text-warning: #F5D98A;
+    --color-text-info: #AFD7FF;
+
+    --color-border: rgba(242, 244, 246, 0.1);
+    --color-border-emphasized: #494D53;
+
+    --note-blue-line: #2694FE;
+    --note-cyan-line: #0171A4;
+    --note-teal-line: #08767D;
+    --note-green-line: #0B991F;
+    --note-yellow-line: #B47700;
+    --note-orange-line: #B34A01;
+    --note-pink-line: #C02294;
+    --note-purple-line: #7340FE;
+
+    --shadow-low: 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-med: 0 1px 2px rgba(0, 0, 0, 0.2), 0 2px 12px rgba(0, 0, 0, 0.2);
+    --shadow-high: 0 2px 2px rgba(0, 0, 0, 0.2), 0 8px 24px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* 휴대폰: 입력 글자는 16px (입력할 때 화면이 확대되는 것을 막음) */
+@media (max-width: 600px) {
+  :root {
+    --font-size-input: 16px;
+  }
+}
