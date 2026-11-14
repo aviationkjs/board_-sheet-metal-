@@ -4,33 +4,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성능기골 스티커 보드</title>
-    <link rel="stylesheet" href="style.css?v=20261114">
-    <script type="module" src="app.js?v=20261114"></script>
+    <link rel="stylesheet" href="tokens.css?v=20261115">
+    <link rel="stylesheet" href="style.css?v=20261115">
+    <script type="module" src="app.js?v=20261115"></script>
 </head>
 <body>
     <header>
-        <div id="username"></div>
+        <div class="header-title">
+            <h1>성능보드판</h1>
+            <div id="username"></div>
+        </div>
         <div class="header-buttons">
-            <button id="addNoteBtn" class="nav-btn accent">🟨 스티커 추가</button>
+            <button id="addNoteBtn" class="nav-btn accent">+ 스티커</button>
             <div class="nav-item">
-                <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기">⋯</button>
+                <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기" aria-label="더보기">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+                </button>
                 <div class="dropdown dropdown-right" id="moreMenu">
+                    <div class="drop-label">사역</div>
                     <div class="drop-info">
                         <div class="drop-info-label">이번 순번</div>
                         <div class="drop-info-value" id="dutyCurrentName">-</div>
                     </div>
-                    <button id="dutyViewBtn" class="drop-item">📋 전체 사역표 보기</button>
-                    <button id="removeListBtn" class="drop-item" onclick="location.href='remove_list.html'">📦 자재소모</button>
-                    <button id="infoBtn" class="drop-item">📊 Fastener Drill Reference Table</button>
-                    <button id="huckViewBtn" class="drop-item">📖 FT-200_Guide</button>
-                    <button id="dividerBtn" class="drop-item" onclick="location.href='divider.html'">📐 균등분할 계산기</button>
-                    <button id="ganttBtn" class="drop-item" onclick="location.href='gantt.html'">📅 학습 간트차트</button>
-                    <button id="manualQaBtn" class="drop-item" onclick="location.href='https://aviationkjs.github.io/anual-flow-qa/'">📘 정비메뉴얼예시</button>
-                    <button id="takryuBtn" class="drop-item" onclick="location.href='takryu.html'">🎯 탁류 슈팅게임</button>
-                    <button id="usersBtn" class="drop-item" style="display: none;">👥 회원 관리</button>
-                    <button id="logsBtn" class="drop-item" style="display: none;">📋 로그 조회</button>
-                    <button id="deleteAllBtn" class="drop-item sep">🗑 전체삭제</button>
-                    <button id="logoutBtn" class="drop-item">🚪 로그아웃</button>
+                    <button id="dutyViewBtn" class="drop-item">전체 사역표 보기</button>
+
+                    <div class="drop-divider"></div>
+                    <div class="drop-label">업무 도구</div>
+                    <button id="removeListBtn" class="drop-item" onclick="location.href='remove_list.html'">자재소모</button>
+                    <button id="infoBtn" class="drop-item">Fastener Drill Reference Table</button>
+                    <button id="huckViewBtn" class="drop-item">FT-200 Guide</button>
+                    <button id="dividerBtn" class="drop-item" onclick="location.href='divider.html'">균등분할 계산기</button>
+                    <button id="manualQaBtn" class="drop-item" onclick="location.href='https://aviationkjs.github.io/anual-flow-qa/'">정비메뉴얼예시</button>
+
+                    <div class="drop-divider"></div>
+                    <div class="drop-label">학습·쉬어가기</div>
+                    <button id="ganttBtn" class="drop-item" onclick="location.href='gantt.html'">학습 간트차트</button>
+                    <button id="takryuBtn" class="drop-item" onclick="location.href='takryu.html'">탁류 슈팅게임</button>
+
+                    <div class="drop-divider"></div>
+                    <div class="drop-label">관리·계정</div>
+                    <button id="usersBtn" class="drop-item" style="display: none;">회원 관리</button>
+                    <button id="logsBtn" class="drop-item" style="display: none;">로그 조회</button>
+                    <button id="deleteAllBtn" class="drop-item danger">전체삭제</button>
+                    <button id="logoutBtn" class="drop-item">로그아웃</button>
                 </div>
             </div>
         </div>
