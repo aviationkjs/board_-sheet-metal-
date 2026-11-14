@@ -26,6 +26,12 @@
     "logs":                { ".read": true, ".write": true },
     "materialConsumption": { ".read": true, ".write": true },
     "fighterjet_scores":   { ".read": true, ".write": true },
+    "takryu_scores": {
+      ".read": true,
+      "$key": {
+        ".write": "root.child('users').child($key).exists()"
+      }
+    },
     "gantt": {
       ".read": true,
       ".write": true,

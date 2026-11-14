@@ -331,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   if (gameBtn) {
     gameBtn.onclick = () => {
-      window.location.href = "game.html";
+      window.location.href = "takryu.html";
     };
   }
 
