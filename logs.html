@@ -4,173 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>작업 로그 - 성능기골 스티커 보드</title>
+    <link rel="stylesheet" href="tokens.css?v=20261115">
+    <link rel="stylesheet" href="pages.css?v=20261115">
     <style>
-        body {
-            margin: 0;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background: #f4f7f9;
-            color: #333;
-        }
-        header {
-            padding: 15px 20px;
-            background: #2c3e50;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .back-btn {
-            padding: 8px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .container {
-            padding: 20px;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        h2 {
-            font-size: 1.2rem;
-            border-left: 4px solid #3498db;
-            padding-left: 10px;
-            margin-bottom: 20px;
-        }
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 800px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: bold;
-            color: #555;
-            white-space: nowrap;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        tr:hover {
-            background: #fcfcfc;
-        }
-        .action-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        .action-create {
-            background: #d4edda;
-            color: #155724;
-        }
-        .action-update {
-            background: #cce5ff;
-            color: #004085;
-        }
-        .action-delete {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        .action-login {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        .action-logout {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-        .action-other {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .timestamp {
-            color: #888;
-            font-size: 13px;
+        .container { max-width: 1200px; }
+        table { min-width: 800px; }
+        .log-details {
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
+            word-break: break-all;
         }
         .filter-group {
-            margin-bottom: 20px;
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
+            margin-bottom: var(--spacing-4);
+            background: var(--color-background-surface);
+            padding: var(--spacing-4);
+            border-radius: var(--radius-container);
+            box-shadow: var(--shadow-low);
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: var(--spacing-3);
             flex-wrap: wrap;
         }
         .filter-group label {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 14px;
+            gap: var(--spacing-2);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
         }
-        .filter-group input,
-        .filter-group select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        .filter-group button {
-            padding: 8px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .filter-group button:hover {
-            background: #2980b9;
-        }
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #888;
-        }
-        .no-data {
-            text-align: center;
-            padding: 50px;
-            color: #888;
+        @media (max-width: 600px) {
+            .filter-group label { width: 100%; }
+            .filter-group label .field { flex: 1; min-width: 0; }
         }
     </style>
 </head>
 <body>
     <header>
-        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
-        <div style="font-weight: bold;">📋 작업 로그</div>
-        <div style="width: 100px;"></div>
+        <a href="index.html" class="back-btn">← 보드</a>
+        <h1 class="page-title">로그 조회</h1>
+        <div></div>
     </header>
 
     <div class="container">
         <h2>작업 로그 조회</h2>
         
         <div class="filter-group">
-            <label>사용자: <input type="text" id="filterUser" placeholder="사용자명"></label>
+            <label>사용자: <input type="text" id="filterUser" class="field" placeholder="사용자명"></label>
             <label>작업: 
-                <select id="filterAction">
+                <select id="filterAction" class="field">
                     <option value="">전체</option>
                     <option value="LOGIN">로그인</option>
                     <option value="LOGOUT">로그아웃</option>
@@ -182,8 +63,8 @@
                     <option value="PIN_NOTE">고정</option>
                 </select>
             </label>
-            <button onclick="applyFilters()">필터 적용</button>
-            <button onclick="clearFilters()">초기화</button>
+            <button class="btn btn-primary" onclick="applyFilters()">필터 적용</button>
+            <button class="btn" onclick="clearFilters()">초기화</button>
         </div>
         
         <div class="table-wrapper">
@@ -217,12 +98,12 @@
         let allLogs = [];
         
         function getActionBadgeClass(action) {
-            if (action.includes('CREATE')) return 'action-create';
-            if (action.includes('UPDATE')) return 'action-update';
-            if (action.includes('DELETE')) return 'action-delete';
-            if (action === 'LOGIN') return 'action-login';
-            if (action === 'LOGOUT') return 'action-logout';
-            return 'action-other';
+            if (action.includes('CREATE')) return 'badge-success';
+            if (action.includes('UPDATE')) return 'badge-info';
+            if (action.includes('DELETE')) return 'badge-error';
+            if (action === 'LOGIN') return '';
+            if (action === 'LOGOUT') return '';
+            return 'badge-warning';
         }
         
         function formatDate(timestamp) {
@@ -257,8 +138,8 @@
                     <tr>
                         <td><span class="timestamp">${formatDate(log.timestamp)}</span></td>
                         <td><strong>${log.user}</strong></td>
-                        <td><span class="action-badge ${getActionBadgeClass(log.action)}">${log.action}</span></td>
-                        <td style="font-size: 12px; color: #666;">${details}</td>
+                        <td><span class="badge ${getActionBadgeClass(log.action)}">${log.action}</span></td>
+                        <td class="log-details">${details}</td>
                     </tr>
                 `;
             });
