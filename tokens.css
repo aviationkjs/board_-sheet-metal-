@@ -12,6 +12,7 @@
   --color-background-body: #F1F4F7;
   --color-background-surface: #FFFFFF;
   --color-background-popover: #FFFFFF;
+  --color-background-subtle: #F7F9FA;
   --color-background-muted: rgba(5, 54, 89, 0.05);
   --color-neutral: rgba(5, 54, 89, 0.1);
   --color-hover: rgba(5, 54, 89, 0.06);
@@ -30,6 +31,7 @@
   --color-error: #E3193B;
   --color-error-muted: rgba(227, 25, 59, 0.2);
   --color-text-error: #AA071E;
+  --color-success: #0D8626;
   --color-success-muted: rgba(11, 153, 31, 0.2);
   --color-text-success: #0A5C1B;
   --color-warning-muted: rgba(226, 164, 0, 0.2);
@@ -93,6 +95,7 @@
     --color-background-body: #111112;
     --color-background-surface: #1F1F22;
     --color-background-popover: #28292C;
+    --color-background-subtle: #28292C;
     --color-background-muted: rgba(17, 17, 18, 0.5);
     --color-neutral: rgba(223, 226, 229, 0.2);
     --color-hover: rgba(223, 226, 229, 0.1);

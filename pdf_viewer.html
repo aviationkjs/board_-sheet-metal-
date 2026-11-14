@@ -5,169 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FT-200 PowerPak Field Guide - PDF 뷰어</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <link rel="stylesheet" href="tokens.css?v=20261116">
+    <link rel="stylesheet" href="header.css?v=20261116">
+    <link rel="stylesheet" href="pages.css?v=20261116">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background: #f0f0f0;
-            color: #333;
-        }
-        
-        header {
-            background: #2c3e50;
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        .back-btn {
-            padding: 8px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        .back-btn:hover {
-            background: #2980b9;
-        }
-        
-        .title {
-            font-weight: bold;
-            font-size: 16px;
-        }
-        
+        .container { max-width: 900px; }
+        /* 페이지 넘기기 막대: 헤더 아래에 붙어 따라옵니다 */
         .controls {
+            position: sticky;
+            top: 61px;
+            z-index: 50;
             display: flex;
-            gap: 10px;
+            gap: var(--spacing-2);
             align-items: center;
+            justify-content: center;
             flex-wrap: wrap;
+            padding: var(--spacing-2) var(--spacing-4);
+            background: var(--color-background-surface);
+            border-bottom: 1px solid var(--color-border-emphasized);
         }
-        
-        .controls button {
-            padding: 8px 12px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-        }
-        
-        .controls button:hover {
-            background: #2980b9;
-        }
-        
-        .controls button:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-        }
-        
         .page-input-group {
             display: flex;
-            gap: 5px;
+            gap: var(--spacing-1);
             align-items: center;
         }
-        
-        .page-input-group input {
-            width: 60px;
-            padding: 6px 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 13px;
+        .page-input-group .field {
+            width: 92px;
             text-align: center;
         }
-        
         .page-info {
-            color: white;
-            font-size: 13px;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
             white-space: nowrap;
         }
-        
-        .container {
-            max-width: 900px;
-            margin: 20px auto;
-            padding: 0 10px;
-        }
-        
         #pdfContainer {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: #FFFFFF;
+            border-radius: var(--radius-container);
+            box-shadow: var(--shadow-low);
             overflow: hidden;
         }
-        
         #pdfCanvas {
             display: block;
             width: 100%;
             height: auto;
             margin: 0 auto;
         }
-        
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #888;
-        }
-        
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px;
+            background: var(--color-error-muted);
+            color: var(--color-text-error);
+            padding: var(--spacing-4);
+            border-radius: var(--radius-element);
+            margin: var(--spacing-4) 0;
         }
-        
         @media (max-width: 600px) {
-            header {
-                flex-direction: column;
-                gap: 10px;
-            }
-            
-            .controls {
-                width: 100%;
-                justify-content: center;
-            }
-            
-            .title {
-                font-size: 14px;
-            }
+            .controls { top: 53px; padding: var(--spacing-2) var(--spacing-3); }
         }
     </style>
 </head>
 <body>
     <header>
-        <a href="index.html" class="back-btn">🏠 보드로 돌아가기</a>
-        <div class="title">📖 FT-200 PowerPak Field Guide</div>
-        <div class="controls">
-            <button id="prevBtn" onclick="previousPage()">⬅ 이전</button>
-            <div class="page-input-group">
-                <input type="number" id="pageInput" min="1" placeholder="페이지">
-                <button onclick="goToPage()">이동</button>
-            </div>
-            <button id="nextBtn" onclick="nextPage()">다음 ➡</button>
-            <div class="page-info">
-                <span id="pageInfo">페이지 로딩 중...</span>
-            </div>
-        </div>
+        <a href="index.html" class="back-btn">← 보드</a>
+        <h1 class="page-title">FT-200 Guide</h1>
+        <div></div>
     </header>
-    
+
+    <div class="controls">
+        <button class="btn" id="prevBtn" onclick="previousPage()">← 이전</button>
+        <div class="page-input-group">
+            <input type="number" id="pageInput" class="field" min="1" placeholder="페이지">
+            <button class="btn" onclick="goToPage()">이동</button>
+        </div>
+        <button class="btn" id="nextBtn" onclick="nextPage()">다음 →</button>
+        <div class="page-info">
+            <span id="pageInfo">페이지 로딩 중...</span>
+        </div>
+    </div>
+
     <div class="container">
         <div id="pdfContainer">
             <canvas id="pdfCanvas"></canvas>
