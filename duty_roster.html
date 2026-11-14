@@ -4,293 +4,124 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>사역표 - 성능기골 스티커 보드</title>
+    <link rel="stylesheet" href="tokens.css?v=20261115">
+    <link rel="stylesheet" href="pages.css?v=20261115">
     <style>
-        body {
-            margin: 0;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            background: #f4f7f9;
-            color: #333;
-            line-height: 1.6;
-        }
-        header {
-            padding: 15px 20px;
-            background: #2c3e50;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .back-btn {
-            padding: 8px 15px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        .container {
-            padding: 20px;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        h2 {
-            font-size: 1.2rem;
-            border-left: 4px solid #3498db;
-            padding-left: 10px;
-            margin-bottom: 15px;
-        }
+        .container { max-width: 900px; }
+        table { min-width: 500px; }
+        td { white-space: nowrap; }
+        .table-wrapper { margin-bottom: var(--spacing-6); }
+
+        /* 이번 순번 카드 */
         .current-card {
-            background: #eaf3fb;
-            border: 1px solid #cfe4f7;
-            border-radius: 10px;
-            padding: 16px 20px;
+            background: var(--color-background-surface);
+            border-left: 4px solid var(--color-accent);
+            border-radius: var(--radius-container);
+            box-shadow: var(--shadow-low);
+            padding: var(--spacing-4) var(--spacing-6);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 25px;
+            margin-bottom: var(--spacing-6);
             flex-wrap: wrap;
-            gap: 10px;
+            gap: var(--spacing-3);
         }
         .current-card .label {
-            font-size: 12px;
-            color: #5f6c76;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
         }
         .current-card .name {
-            font-size: 20px;
-            font-weight: bold;
-            color: #2c3e50;
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-semibold);
+            line-height: 32px;
         }
-        .complete-btn {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 10px 18px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .complete-btn:hover {
-            background: #2980b9;
-        }
-        .complete-btn:disabled {
-            background: #b0bcc4;
-            cursor: not-allowed;
-        }
-        .table-wrapper {
-            width: 100%;
-            overflow-x: auto;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 500px;
-        }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        th {
-            background: #f8f9fa;
-            font-weight: bold;
-            color: #555;
-            white-space: nowrap;
-        }
-        tr:last-child td {
-            border-bottom: none;
-        }
-        tr.current-row {
-            background: #eaf3fb;
-        }
-        .status-badge {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: bold;
-            padding: 3px 10px;
-            border-radius: 10px;
-        }
-        .status-current {
-            background: #3498db;
-            color: white;
-        }
+        .complete-btn { height: 44px; padding: 0 var(--spacing-4); }
+
+        tr.current-row,
+        tbody tr.current-row:hover { background: var(--color-accent-muted); }
         .status-waiting {
-            color: #888;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
         }
-        .row-actions button {
-            border: none;
-            background: rgba(0,0,0,0.05);
-            border-radius: 6px;
-            width: 26px;
-            height: 26px;
-            cursor: pointer;
-            font-size: 13px;
-            margin-right: 4px;
-        }
-        .row-actions button:hover {
-            background: rgba(0,0,0,0.1);
-        }
-        .served-cell {
-            white-space: nowrap;
-        }
+        .row-actions { white-space: nowrap; }
+        .row-actions .btn { min-width: 32px; margin-right: var(--spacing-1); }
+        .served-cell { white-space: nowrap; }
         .served-cell .delta {
-            color: #8a949c;
-            font-size: 12px;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
         }
-        .edit-served {
-            border: none;
-            background: rgba(0,0,0,0.05);
-            border-radius: 6px;
-            width: 26px;
-            height: 26px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-left: 4px;
-            vertical-align: middle;
-        }
-        .edit-served:hover {
-            background: rgba(0,0,0,0.1);
-        }
+        .edit-served { margin-left: var(--spacing-1); vertical-align: middle; }
+
         .add-form {
             display: flex;
-            gap: 8px;
-            margin-bottom: 25px;
+            gap: var(--spacing-2);
+            margin-bottom: var(--spacing-6);
         }
-        .add-form input {
-            flex: 1;
-            padding: 10px 14px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 14px;
-        }
-        .add-form button {
-            padding: 10px 18px;
-            background: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            font-size: 14px;
-            cursor: pointer;
-        }
-        .history-list {
-            background: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .history-item {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
-            color: #555;
-        }
-        .history-item:last-child {
-            border-bottom: none;
-        }
-        .history-item .ts {
-            color: #999;
-        }
-        .empty {
-            text-align: center;
-            padding: 30px;
-            color: #888;
-        }
-        .more-btn {
-            display: block;
-            width: 100%;
-            margin: 10px 0;
-            padding: 10px;
-            background: #f4f7f9;
-            color: #5f6c76;
-            border: 1px solid #e3e9ee;
-            border-radius: 8px;
-            font-size: 13px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .more-btn:hover {
-            background: #e9eff4;
-        }
+        .add-form .field { flex: 1; min-width: 0; }
+
+        /* 최근 이력 */
         .hist-head {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 10px;
+            gap: var(--spacing-3);
             flex-wrap: wrap;
+            margin-bottom: var(--spacing-3);
         }
+        .hist-head h2 { margin-bottom: 0; }
         .hist-filter {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: var(--spacing-2);
             flex-wrap: wrap;
-            margin-bottom: 12px;
+            margin-bottom: var(--spacing-3);
         }
         .hist-filter label {
-            font-size: 13px;
-            color: #5f6c76;
-            font-weight: bold;
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-medium);
         }
-        .hist-filter select {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 20px;
-            font-size: 14px;
-            background: white;
-            color: #333;
-            min-width: 140px;
-        }
-        .hist-filter .clear-filter {
-            padding: 7px 13px;
-            background: #eef2f5;
-            color: #5f6c76;
-            border: 1px solid #dde3e8;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .hist-filter .clear-filter:hover {
-            background: #e2e8ed;
-        }
+        .hist-filter select { min-width: 140px; }
         .hist-count {
-            font-size: 12px;
-            color: #888;
+            font-size: var(--font-size-sm);
+            color: var(--color-text-secondary);
             margin-left: auto;
         }
-        .reset-btn {
-            background: #fde8e6;
-            color: #c0392b;
-            border: 1px solid #f0b7b1;
-            padding: 7px 13px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
+        .history-list {
+            background: var(--color-background-surface);
+            padding: var(--spacing-1) var(--spacing-4);
+            border-radius: var(--radius-container);
+            box-shadow: var(--shadow-low);
         }
-        .reset-btn:hover {
-            background: #f9d2ce;
+        .history-item {
+            padding: var(--spacing-3) 0;
+            border-bottom: 1px solid var(--color-border);
+            font-size: var(--font-size-base);
+            display: flex;
+            justify-content: space-between;
+            gap: var(--spacing-3);
+        }
+        .history-item:last-child { border-bottom: none; }
+        .history-item b { font-weight: var(--font-weight-semibold); }
+        .history-item .ts {
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-sm);
+            white-space: nowrap;
+        }
+        .more-btn {
+            width: 100%;
+            margin: var(--spacing-3) 0;
+        }
+        @media (max-width: 600px) {
+            .current-card { padding: var(--spacing-4); }
+            .history-item { flex-direction: column; gap: 0; }
         }
     </style>
 </head>
 <body>
     <header>
-        <a href="index.html" class="back-btn">⬅ 보드로 돌아가기</a>
-        <div style="font-weight: bold;">🔄 사역표</div>
-        <div style="width: 100px;"></div>
+        <a href="index.html" class="back-btn">← 보드</a>
+        <h1 class="page-title">사역표</h1>
+        <div></div>
     </header>
 
     <div class="container">
@@ -299,7 +130,7 @@
                 <div class="label">이번 순번</div>
                 <div class="name" id="currentName">-</div>
             </div>
-            <button class="complete-btn" id="completeBtn">✅ 완료 → 다음 순번</button>
+            <button class="btn btn-primary complete-btn" id="completeBtn">완료 → 다음 순번</button>
         </div>
 
         <h2>전체 로테이션</h2>
@@ -311,7 +142,7 @@
                         <th>이름</th>
                         <th>최근 수행일</th>
                         <th>상태</th>
-                        <th id="balanceColHead" style="display:none;" title="완료 처리로만 누적되는 횟수입니다. 인원 추가·삭제는 이 값을 바꾸지 않습니다.&#10;괄호 안은 최소 수행자 대비 차이(+는 초과 수행)이며, ✏️로 직접 수정할 수 있습니다.">완료 횟수</th>
+                        <th id="balanceColHead" style="display:none;" title="완료 처리로만 누적되는 횟수입니다. 인원 추가·삭제는 이 값을 바꾸지 않습니다.&#10;괄호 안은 최소 수행자 대비 차이(+는 초과 수행)이며, 수정 버튼으로 직접 고칠 수 있습니다.">완료 횟수</th>
                         <th id="adminColHead" style="display:none;">관리</th>
                     </tr>
                 </thead>
@@ -320,21 +151,21 @@
         </div>
 
         <div id="adminAddForm" class="add-form" style="display:none;">
-            <input type="text" id="newMemberInput" placeholder="이름을 입력하세요">
-            <button id="addMemberBtn">+ 인원 추가</button>
+            <input type="text" id="newMemberInput" class="field" placeholder="이름을 입력하세요">
+            <button id="addMemberBtn" class="btn btn-primary">+ 인원 추가</button>
         </div>
 
         <div class="hist-head">
-            <h2 style="margin-bottom:15px;">최근 이력</h2>
-            <button id="resetDutyBtn" class="reset-btn" style="display:none;">🗑 이력·기록 초기화</button>
+            <h2>최근 이력</h2>
+            <button id="resetDutyBtn" class="btn btn-sm btn-danger" style="display:none;">이력·기록 초기화</button>
         </div>
         <!-- 최근 이력은 권한과 무관하게 모든 사용자에게 공개되며, 이름으로 필터할 수 있다 -->
         <div class="hist-filter">
             <label for="historyNameFilter">이름 필터</label>
-            <select id="historyNameFilter">
+            <select id="historyNameFilter" class="field">
                 <option value="">전체</option>
             </select>
-            <button type="button" id="clearHistoryFilter" class="clear-filter" style="display:none;">필터 해제</button>
+            <button type="button" id="clearHistoryFilter" class="btn btn-sm clear-filter" style="display:none;">필터 해제</button>
             <span class="hist-count" id="historyCount"></span>
         </div>
         <div class="history-list" id="historyList">
@@ -467,19 +298,19 @@
                     <td>${m.name}</td>
                     <td>${formatDate(m.lastDone)}</td>
                     <td>${i === currentIndex
-                        ? '<span class="status-badge status-current">진행중</span>'
+                        ? '<span class="badge badge-accent">진행중</span>'
                         : '<span class="status-waiting">대기중</span>'}</td>
                     ${canManage ? `<td class="served-cell" title="완료 처리로만 누적됩니다 (인원 추가·삭제는 영향 없음)&#10;괄호 안은 최소 수행자 대비 차이">
                         <b>${servedOf(m)}</b>회
                         <span class="delta">(${servedOf(m) - base > 0 ? '+' : ''}${servedOf(m) - base})</span>
-                        <button data-act="setServed" data-i="${i}" class="edit-served" title="완료 횟수 직접 수정">✏️</button>
+                        <button data-act="setServed" data-i="${i}" class="btn btn-sm edit-served" title="완료 횟수 직접 수정">수정</button>
                     </td>` : ''}
                     <td class="row-actions">
                         ${canManage ? `
-                            <button data-act="up" data-i="${i}" title="위로">↑</button>
-                            <button data-act="down" data-i="${i}" title="아래로">↓</button>
-                            <button data-act="jump" data-i="${i}" title="이 사람 차례로 지정">🎯</button>
-                            <button data-act="remove" data-i="${i}" title="삭제">✕</button>
+                            <button class="btn btn-sm" data-act="up" data-i="${i}" title="위로">↑</button>
+                            <button class="btn btn-sm" data-act="down" data-i="${i}" title="아래로">↓</button>
+                            <button class="btn btn-sm" data-act="jump" data-i="${i}" title="이 사람 차례로 지정">지정</button>
+                            <button class="btn btn-sm btn-danger" data-act="remove" data-i="${i}" title="삭제">삭제</button>
                         ` : ''}
                     </td>
                 </tr>
@@ -563,7 +394,7 @@
                     <span class="ts">${new Date(h.timestamp).toLocaleString('ko-KR')}</span>
                 </div>
             `).join("") + (rest > 0
-                ? `<button type="button" id="moreHistoryBtn" class="more-btn">더 보기 (${rest}건 남음)</button>`
+                ? `<button type="button" id="moreHistoryBtn" class="btn more-btn">더 보기 (${rest}건 남음)</button>`
                 : "");
 
             const moreBtn = document.getElementById("moreHistoryBtn");
