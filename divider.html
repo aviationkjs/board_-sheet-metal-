@@ -4,46 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>균등분할 계산기</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
 <style>
+  /* 색은 tokens.css 의 값을 이 페이지 변수 이름에 연결해서 씁니다 */
   :root{
-    --bg:#16181c; --panel:#1e2127; --panel-2:#23272f; --line:#2c3038; --line-2:#363b45;
-    --text:#e6e8ec; --muted:#8b909a; --amber:#ffb020; --amber-dim:#3a2f14;
-    --danger:#ff5a52; --danger-dim:#3a1c1a; --ok:#4ade80; --ok-dim:#16301f;
-    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle);
+    --line:var(--color-border); --line-2:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --amber:var(--color-accent); --amber-dim:var(--color-accent-muted); --amber-text:var(--color-text-accent);
+    --danger:var(--color-error); --danger-dim:var(--color-error-muted); --danger-text:var(--color-text-error);
+    --ok:var(--color-success); --ok-dim:var(--color-success-muted); --ok-text:var(--color-text-success);
+    --sans:var(--font-family); --mono:var(--font-family);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
-
-  .statusbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
-    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
-    position:sticky;top:0;z-index:20}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
-  @keyframes pulse{50%{opacity:.35}}
-  .statusbar .sys{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .statusbar .sys b{color:var(--text);font-weight:600}
-  .statusbar .clock{margin-left:auto;color:var(--amber)}
+  
 
   .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 64px}
   .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-  .back{background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
-    font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
-  .back:hover{color:var(--text);border-color:var(--line-2)}
-  .toolbar h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
   .unit-toggle{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .unit-toggle button{background:var(--panel);border:none;color:var(--muted);font-family:var(--mono);
     font-size:12px;padding:9px 16px;cursor:pointer}
-  .unit-toggle button.on{background:var(--amber);color:#1a1400;font-weight:600}
+  .unit-toggle button.on{background:var(--amber);color:var(--color-on-accent);font-weight:600}
 
   .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
-  .panel h3{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);
-    text-transform:uppercase;margin-bottom:12px;font-weight:500}
+  .panel h3{font-family:var(--mono);font-size:11px;color:var(--muted);
+    ;margin-bottom:12px;font-weight:500}
 
   .inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px}
   .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
-  .field label .opt{color:var(--line-2)}
+  .field label .opt{color:var(--color-text-disabled)}
   .field input,.field select{width:100%;background:var(--panel-2);border:1px solid var(--line);
     color:var(--text);font-family:var(--mono);font-size:16px;padding:10px 12px;border-radius:8px;outline:none}
   .field input:focus,.field select:focus{border-color:var(--amber)}
@@ -56,31 +48,31 @@
 
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
-  .card .k{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase}
+  .card .k{font-family:var(--mono);font-size:11px;color:var(--muted)}
   .card .v{font-family:var(--mono);font-size:30px;font-weight:600;line-height:1.25;margin-top:6px}
   .card .s{font-family:var(--mono);font-size:12px;color:var(--muted)}
-  .card.hi{border-color:var(--amber)} .card.hi .v{color:var(--amber)}
+  .card.hi{border-color:var(--amber)} .card.hi .v{color:var(--amber-text)}
 
   .alerts{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
   .alert{font-size:13px;padding:10px 13px;border-radius:8px;border:1px solid}
-  .alert.warn{background:var(--amber-dim);color:var(--amber);border-color:#5a4a1e}
-  .alert.err{background:var(--danger-dim);color:var(--danger);border-color:#5a2a26}
+  .alert.warn{background:var(--amber-dim);color:var(--amber-text);border-color:transparent}
+  .alert.err{background:var(--danger-dim);color:var(--danger-text);border-color:transparent}
 
   .ruler-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
   .ruler-wrap svg{display:block;height:auto}
   .cap{font-family:var(--mono);font-size:14px;text-align:center;margin-top:12px;line-height:1.6}
-  .cap b{color:var(--amber);font-weight:600}
+  .cap b{color:var(--amber-text);font-weight:600}
   .hint{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:10px}
   .hint .sw{display:inline-block;width:9px;height:9px;border-radius:50%;vertical-align:-1px;margin-right:4px}
 
   .table-wrap{overflow-x:auto}
   table{width:100%;border-collapse:collapse;font-size:14px;min-width:420px}
   thead th{background:var(--panel-2);text-align:left;padding:10px 12px;font-family:var(--mono);
-    font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    font-size:11px;color:var(--muted);
     border-bottom:1px solid var(--line);white-space:nowrap}
   tbody td{padding:9px 12px;border-bottom:1px solid var(--line);font-family:var(--mono);white-space:nowrap}
   tbody tr:last-child td{border-bottom:none}
-  tbody tr.inner td.c-no{color:var(--amber)}
+  tbody tr.inner td.c-no{color:var(--amber-text)}
   tbody tr.end{color:var(--muted)}
   td.c-no{text-align:center;width:46px}
 
@@ -92,9 +84,8 @@
 
   .empty{font-size:14px;color:var(--muted);padding:26px 4px;text-align:center;font-family:var(--mono)}
 
-  @media (max-width:600px){
+   
     .wrap{padding:16px 10px 48px}
-    .toolbar h2{font-size:17px;width:100%;order:3}
     .unit-toggle{margin-left:auto}
     .card{padding:12px 13px}
     .card .v{font-size:24px}
@@ -102,22 +93,24 @@
     .panel{padding:13px}
     .cap{font-size:13px}
     table{min-width:330px}
-    thead th:nth-child(5),tbody td:nth-child(5){display:none}  /* 구분은 번호 색으로 구별 */
-  }
+    thead th:nth-child(5),tbody td:nth-child(5){display:none}       
+  
+
+  /* 공통 디자인 맞춤 */
+  body{font-variant-numeric:tabular-nums}
+  .toolbar{justify-content:flex-end}
 </style>
 </head>
 <body>
 
-<div class="statusbar">
-  <span class="dot"></span>
-  <span class="sys">SYSTEM · <b>균등분할 계산기</b></span>
-  <span class="clock" id="clock">--:--:--</span>
-</div>
+<header>
+  <a href="index.html" class="back-btn">← 보드</a>
+  <h1 class="page-title">균등분할 계산기</h1>
+  <div class="header-side"><span class="header-clock" id="clock">--:--:--</span></div>
+</header>
 
 <div class="wrap">
   <div class="toolbar">
-    <a class="back" href="index.html">← 스티커 보드로</a>
-    <h2>균등분할 계산기</h2>
     <div class="unit-toggle">
       <button id="uIn" class="on">inch</button>
       <button id="uMm">mm</button>
@@ -307,35 +300,35 @@ function renderRuler(r){
   let s = '';
 
   // 소재(평면선) + 구멍
-  s += '<rect x="' + (x0 - 16) + '" y="' + PLATE_Y + '" width="' + (plotW + 32) + '" height="' + PLATE_H + '" rx="5" fill="#23272f" stroke="#363b45"/>';
-  s += '<line x1="' + x0 + '" y1="' + HOLE_Y + '" x2="' + x1 + '" y2="' + HOLE_Y + '" stroke="#3d434e" stroke-width="1" stroke-dasharray="5 4"/>';
+  s += '<rect x="' + (x0 - 16) + '" y="' + PLATE_Y + '" width="' + (plotW + 32) + '" height="' + PLATE_H + '" rx="5" fill="var(--panel-2)" stroke="var(--line-2)"/>';
+  s += '<line x1="' + x0 + '" y1="' + HOLE_Y + '" x2="' + x1 + '" y2="' + HOLE_Y + '" stroke="var(--line-2)" stroke-width="1" stroke-dasharray="5 4"/>';
 
   const labelEvery = Math.max(1, Math.ceil(n / (plotW / 30)));
   r.pos.forEach((p, i) => {
     const x = X(p), inner = i >= r.innerFrom && i <= r.innerTo;
-    s += '<line x1="' + x.toFixed(1) + '" y1="' + HOLE_Y + '" x2="' + x.toFixed(1) + '" y2="' + RULE_Y + '" stroke="' + (inner ? 'rgba(255,176,32,.45)' : 'rgba(139,144,154,.3)') + '" stroke-width="1" stroke-dasharray="3 3"/>';
-    s += '<circle cx="' + x.toFixed(1) + '" cy="' + HOLE_Y + '" r="8" fill="' + (inner ? '#ffb020' : '#16181c') + '" stroke="' + (inner ? '#ffcf6b' : '#8b909a') + '" stroke-width="2"/>';
+    s += '<line x1="' + x.toFixed(1) + '" y1="' + HOLE_Y + '" x2="' + x.toFixed(1) + '" y2="' + RULE_Y + '" stroke="' + (inner ? 'var(--amber-text)' : 'var(--line-2)') + '" stroke-width="1" stroke-dasharray="3 3"/>';
+    s += '<circle cx="' + x.toFixed(1) + '" cy="' + HOLE_Y + '" r="8" fill="' + (inner ? 'var(--amber-text)' : 'var(--panel)') + '" stroke="' + (inner ? 'var(--amber-text)' : 'var(--muted)') + '" stroke-width="2"/>';
     if(i % labelEvery === 0 || i === n - 1)
-      s += txt(x, PLATE_Y - 9, String(i + 1), 11, inner ? '#ffb020' : '#8b909a');
+      s += txt(x, PLATE_Y - 9, String(i + 1), 11, inner ? 'var(--amber-text)' : 'var(--muted)');
   });
 
   // 간격 치수선
-  s += '<line x1="' + x0 + '" y1="' + DIM_Y + '" x2="' + x1 + '" y2="' + DIM_Y + '" stroke="#4a505c" stroke-width="1"/>';
+  s += '<line x1="' + x0 + '" y1="' + DIM_Y + '" x2="' + x1 + '" y2="' + DIM_Y + '" stroke="var(--line-2)" stroke-width="1"/>';
   r.pos.forEach(p => {
     const x = X(p);
-    s += '<line x1="' + x.toFixed(1) + '" y1="' + (DIM_Y - 5) + '" x2="' + x.toFixed(1) + '" y2="' + (DIM_Y + 5) + '" stroke="#8b909a" stroke-width="1.5"/>';
+    s += '<line x1="' + x.toFixed(1) + '" y1="' + (DIM_Y - 5) + '" x2="' + x.toFixed(1) + '" y2="' + (DIM_Y + 5) + '" stroke="var(--muted)" stroke-width="1.5"/>';
   });
   const pitchTxt = fmtU(r.pitch);
   if(gapPx >= 56){
     for(let i = 1; i < r.pos.length; i++){
       const cx = (X(r.pos[i-1]) + X(r.pos[i])) / 2;
-      s += '<rect x="' + (cx - 26) + '" y="' + (DIM_Y - 10) + '" width="52" height="20" rx="4" fill="#16181c"/>';
-      s += txt(cx, DIM_Y + 4, pitchTxt, 12, '#ffb020', 600);
+      s += '<rect x="' + (cx - 26) + '" y="' + (DIM_Y - 10) + '" width="52" height="20" rx="4" fill="var(--bg)"/>';
+      s += txt(cx, DIM_Y + 4, pitchTxt, 12, 'var(--amber-text)', 600);
     }
   } else if(r.pos.length > 1){
     const cx = (x0 + x1) / 2, label = pitchTxt + ' × ' + (r.pos.length - 1);
-    s += '<rect x="' + (cx - 58) + '" y="' + (DIM_Y - 11) + '" width="116" height="22" rx="5" fill="#16181c"/>';
-    s += txt(cx, DIM_Y + 4, label, 12, '#ffb020', 600);
+    s += '<rect x="' + (cx - 58) + '" y="' + (DIM_Y - 11) + '" width="116" height="22" rx="5" fill="var(--bg)"/>';
+    s += txt(cx, DIM_Y + 4, label, 12, 'var(--amber-text)', 600);
   }
 
   // 자 본체
@@ -372,8 +365,8 @@ function renderRuler(r){
     ' · 간격 <b>' + pitchTxt + '</b> · 구간 ' + r.spaces + '개';
 
   $('hint').innerHTML =
-    '<span class="sw" style="background:#ffb020"></span>새로 표시할 구멍 &nbsp; ' +
-    '<span class="sw" style="background:#16181c;box-shadow:0 0 0 2px #8b909a inset"></span>' +
+    '<span class="sw" style="background:var(--amber-text)"></span>새로 표시할 구멍 &nbsp; ' +
+    '<span class="sw" style="background:var(--panel);box-shadow:0 0 0 2px var(--muted) inset"></span>' +
     (mode === 'A' ? '기준(양 끝) 구멍' : '소재 끝단') +
     ' &nbsp;·&nbsp; 모든 값은 소수점 1자리 표시' + (n > 12 ? ' · 도면은 좌우로 스크롤됩니다' : '');
 }

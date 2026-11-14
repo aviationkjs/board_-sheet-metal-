@@ -4,92 +4,85 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>자재 재고 · 소모 관리</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
 <style>
+  /* 색은 tokens.css 의 값을 이 페이지 변수 이름에 연결해서 씁니다 */
   :root{
-    --bg:#16181c; --panel:#1e2127; --panel-2:#23272f; --line:#2c3038; --line-2:#363b45;
-    --text:#e6e8ec; --muted:#8b909a; --amber:#ffb020; --amber-dim:#3a2f14;
-    --danger:#ff5a52; --danger-dim:#3a1c1a; --ok:#4ade80; --ok-dim:#16301f;
-    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle);
+    --line:var(--color-border); --line-2:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --amber:var(--color-accent); --amber-dim:var(--color-accent-muted); --amber-text:var(--color-text-accent);
+    --danger:var(--color-error); --danger-dim:var(--color-error-muted); --danger-text:var(--color-text-error);
+    --ok:var(--color-success); --ok-dim:var(--color-success-muted); --ok-text:var(--color-text-success);
+    --sans:var(--font-family); --mono:var(--font-family);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
-
-  .statusbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
-    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
-    position:sticky;top:0;z-index:20}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
-  @keyframes pulse{50%{opacity:.35}}
-  .statusbar .sys{color:var(--muted)} .statusbar .sys b{color:var(--text);font-weight:600}
-  .statusbar .clock{margin-left:auto;color:var(--amber)}
+  
 
   .wrap{max-width:1180px;margin:0 auto;padding:22px 16px 64px}
   .toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
-  .back{background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
-    font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
-  .back:hover{color:var(--text);border-color:var(--line-2)}
-  .toolbar h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
   .count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);
-    border:1px solid var(--line);padding:5px 10px;border-radius:20px}
-  .role-tag{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:20px;
-    background:var(--amber-dim);color:var(--amber);letter-spacing:.04em}
-  .btn-add{margin-left:auto;background:var(--amber);color:#1a1400;font-weight:600;border:none;
+    border:1px solid var(--line);padding:5px 10px;border-radius:9999px}
+  .role-tag{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:9999px;
+    background:var(--amber-dim);color:var(--amber-text)}
+  .btn-add{margin-left:auto;background:var(--amber);color:var(--color-on-accent);font-weight:600;border:none;
     padding:11px 18px;border-radius:8px;cursor:pointer;font-size:14px}
   .legend{font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:14px}
-  .legend b{color:var(--danger)}
+  .legend b{color:var(--danger-text)}
 
   .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
   table{width:100%;border-collapse:collapse;font-size:14px;min-width:780px}
   thead th{background:var(--panel-2);text-align:left;padding:12px 14px;font-family:var(--mono);
-    font-size:11px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    font-size:11px;color:var(--muted);
     border-bottom:1px solid var(--line);white-space:nowrap}
   tbody td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
   tbody tr:last-child td{border-bottom:none}
-  tbody tr:hover{background:rgba(255,255,255,.02)}
+  tbody tr:hover{background:var(--color-hover)}
   .c-seq{font-family:var(--mono);color:var(--muted);text-align:center;width:44px}
   .c-mono{font-family:var(--mono)}
   .c-qty{font-family:var(--mono);font-size:16px;font-weight:600;color:var(--text)}
   .c-qty .unit{font-size:11px;color:var(--muted);margin-left:3px;font-weight:400}
-  tr.low .c-qty{color:var(--danger)}
+  tr.low .c-qty{color:var(--danger-text)}
   .low-badge{display:inline-block;margin-left:6px;font-size:10px;font-family:var(--mono);
-    background:var(--danger-dim);color:var(--danger);padding:2px 6px;border-radius:5px;letter-spacing:.04em}
+    background:var(--danger-dim);color:var(--danger-text);padding:2px 6px;border-radius:8px}
   .pending{display:flex;align-items:center;gap:8px}
-  .pending .num{font-family:var(--mono);font-weight:600;color:var(--amber);min-width:20px}
+  .pending .num{font-family:var(--mono);font-weight:600;color:var(--amber-text);min-width:20px}
   .spark{display:block}
-  .spark-empty{color:var(--line-2);font-family:var(--mono)}
+  .spark-empty{color:var(--color-text-disabled);font-family:var(--mono)}
 
-  .consume-btn{background:var(--amber);color:#1a1400;border:none;font-weight:700;font-size:14px;
+  .consume-btn{background:var(--amber);color:var(--color-on-accent);border:none;font-weight:700;font-size:14px;
     padding:8px 14px;border-radius:8px;cursor:pointer}
   .consume-btn:hover{filter:brightness(1.05)}
   .mine{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font-family:var(--mono);font-size:12px;color:var(--muted)}
   .cancel-btn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--text);
-    width:26px;height:26px;border-radius:6px;cursor:pointer;font-size:14px;line-height:1}
+    width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1}
 
   .mgr-pending{display:flex;flex-direction:column;gap:5px;margin-bottom:6px}
   .mgr-req{display:flex;align-items:center;gap:6px;font-size:12px}
   .mgr-req .w{font-family:var(--mono);color:var(--text)}
-  .mgr-req .n{font-family:var(--mono);color:var(--amber)}
-  .mini{border:none;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer}
-  .mini.ok{background:var(--ok-dim);color:var(--ok)}
-  .mini.ok:hover{background:#1c3d28}
-  .mini.rej{background:var(--danger-dim);color:var(--danger)}
+  .mgr-req .n{font-family:var(--mono);color:var(--amber-text)}
+  .mini{border:none;border-radius:8px;padding:3px 8px;font-size:11px;font-weight:600;cursor:pointer}
+  .mini.ok{background:var(--ok-dim);color:var(--ok-text)}
+  .mini.ok:hover{filter:brightness(.95)}
+  .mini.rej{background:var(--danger-dim);color:var(--danger-text)}
   .mgr-item{display:flex;gap:6px;margin-top:2px}
   .mini.edit{background:var(--panel-2);color:var(--muted);border:1px solid var(--line-2)}
-  .mini.del{background:var(--danger-dim);color:var(--danger)}
-  .no-pending{color:var(--line-2);font-family:var(--mono);font-size:12px}
+  .mini.del{background:var(--danger-dim);color:var(--danger-text)}
+  .no-pending{color:var(--color-text-disabled);font-family:var(--mono);font-size:12px}
 
   .empty{padding:56px 20px;text-align:center;color:var(--muted)}
-  .empty .ico{font-size:38px;opacity:.5} .empty p{margin-top:12px;font-size:14px} .empty span{color:var(--amber)}
+  .empty .ico{font-size:38px;opacity:.5} .empty p{margin-top:12px;font-size:14px} .empty span{color:var(--amber-text)}
 
   .hist{margin-top:26px}
   .hist-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-  .hist h3{font-size:13px;font-family:var(--mono);color:var(--muted);text-transform:uppercase;
-    letter-spacing:.08em}
-  .hist-reset{background:var(--danger-dim);color:var(--danger);border:1px solid var(--danger);
-    font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:8px;cursor:pointer;letter-spacing:.04em}
-  .hist-reset:hover{background:#4a2320}
+  .hist h3{font-size:13px;font-family:var(--mono);color:var(--muted);
+    }
+  .hist-reset{background:var(--danger-dim);color:var(--danger-text);border:1px solid var(--danger);
+    font-family:var(--mono);font-size:11px;padding:6px 12px;border-radius:8px;cursor:pointer}
+  .hist-reset:hover{filter:brightness(.95)}
   .hist-list{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 16px}
   .hist-item{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
   .hist-item:last-child{border-bottom:none}
@@ -99,41 +92,48 @@
   .overlay{position:fixed;inset:0;background:rgba(8,9,11,.72);backdrop-filter:blur(3px);
     display:none;align-items:flex-end;justify-content:center;z-index:50}
   .overlay.open{display:flex}
-  .modal{background:var(--panel);border:1px solid var(--line-2);border-radius:16px 16px 0 0;
+  .modal{background:var(--panel);border:1px solid var(--line-2);border-radius:12px 12px 0 0;
     width:100%;max-width:520px;padding:24px 20px 28px}
   .modal h3{font-size:18px;margin-bottom:20px}
   .field{margin-bottom:16px}
   .field label{display:block;font-size:12px;color:var(--muted);font-family:var(--mono);
-    letter-spacing:.05em;margin-bottom:7px;text-transform:uppercase}
+    ;margin-bottom:7px}
   .field input{width:100%;background:var(--bg);border:1px solid var(--line-2);color:var(--text);
-    padding:12px 13px;border-radius:9px;font-size:15px;font-family:var(--sans)}
+    padding:12px 13px;border-radius:8px;font-size:15px;font-family:var(--sans)}
   .field input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px var(--amber-dim)}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .modal-actions{display:flex;gap:10px;margin-top:22px}
-  .modal-actions button{flex:1;padding:13px;border-radius:9px;font-size:15px;font-weight:600;cursor:pointer;border:none}
+  .modal-actions button{flex:1;padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;border:none}
   .cancel{background:var(--panel-2);color:var(--text);border:1px solid var(--line-2)!important}
-  .save{background:var(--amber);color:#1a1400}
+  .save{background:var(--amber);color:var(--color-on-accent)}
 
-  @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:16px}}
+  @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:12px}}
+
+  /* 공통 디자인 맞춤 */
+  body{font-variant-numeric:tabular-nums}
+  .table-wrap,.hist-list{border:none;box-shadow:var(--shadow-low)}
+  thead th{background:transparent;border-bottom-color:var(--line-2);font-size:12px;font-weight:500}
+  .modal{box-shadow:var(--shadow-high)}
+  .field input:focus{box-shadow:var(--shadow-focus)}
+  .hist h3{font-size:17px;font-weight:600;color:var(--text)}
+  .hist-reset{border:none}
 </style>
 </head>
 <body>
 
-<div class="statusbar">
-  <span class="dot"></span>
-  <span class="sys">SYSTEM · <b>자재 재고·소모</b> · 작업자 <b id="sbUser">—</b></span>
-  <span class="clock" id="clock">--:--:--</span>
-</div>
+<header>
+  <a href="index.html" class="back-btn">← 보드</a>
+  <h1 class="page-title">자재소모</h1>
+  <div class="header-side"><span class="user-chip" id="sbUser"></span><span class="header-clock" id="clock">--:--:--</span></div>
+</header>
 
 <div class="wrap">
   <div class="toolbar">
-    <a class="back" href="index.html">← 스티커 보드로</a>
-    <h2>자재 재고 · 소모</h2>
     <span class="count" id="count">0 항목</span>
     <span class="role-tag" id="roleTag" style="display:none;">담당자</span>
     <button class="btn-add" id="addBtn" style="display:none;">＋ 항목 추가</button>
   </div>
-  <div class="legend">소모자: <b style="color:var(--amber)">[소모]</b> 1회=1개 누적 · 잘못 눌렀으면 취소(−1) · 담당자 <b style="color:var(--ok)">[확인·감산]</b> 시 전체수량 차감 · 저재고 기준 <b>≤ 3</b></div>
+  <div class="legend">소모자: <b style="color:var(--amber-text)">[소모]</b> 1회=1개 누적 · 잘못 눌렀으면 취소(−1) · 담당자 <b style="color:var(--ok-text)">[확인·감산]</b> 시 전체수량 차감 · 저재고 기준 <b>≤ 3</b></div>
 
   <div class="table-wrap">
     <table>
@@ -155,7 +155,7 @@
   <div class="hist">
     <div class="hist-head">
       <h3>최근 소모 이력 (승인·감산)</h3>
-      <button id="resetHistBtn" class="hist-reset" style="display:none;">🗑 이력 초기화</button>
+      <button id="resetHistBtn" class="hist-reset" style="display:none;">이력 초기화</button>
     </div>
     <div class="hist-list"><div id="histBody" class="hist-empty">이력이 없습니다.</div></div>
   </div>
@@ -281,7 +281,7 @@ function render(){
     const low = (Number(it.qty)||0) <= LOW_STOCK;
 
     const mine = myCount>0
-      ? `<span class="mine">내 소모 <b style="color:var(--amber)">${myCount}</b>
+      ? `<span class="mine">내 소모 <b style="color:var(--amber-text)">${myCount}</b>
            <button class="cancel-btn" data-act="cancel" data-id="${it.id}" title="취소 -1">−</button></span>`
       : "";
 
@@ -334,7 +334,7 @@ function renderHistory(){
   el.className="";
   el.innerHTML = entries.map(h=>`
     <div class="hist-item">
-      <span><b>${esc(h.worker)}</b> — ${esc(h.stockNo)} / ${esc(h.partNo)} <b style="color:var(--amber)">${Number(h.qty)||0}</b> 소모 <span style="color:var(--muted)">(승인: ${esc(h.approver)})</span></span>
+      <span><b>${esc(h.worker)}</b> — ${esc(h.stockNo)} / ${esc(h.partNo)} <b style="color:var(--amber-text)">${Number(h.qty)||0}</b> 소모 <span style="color:var(--muted)">(승인: ${esc(h.approver)})</span></span>
       <span class="ts">${fmt(h.timestamp)}</span>
     </div>`).join("");
 }

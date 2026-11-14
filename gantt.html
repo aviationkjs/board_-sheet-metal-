@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>학습 간트차트</title>
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
 <style>
   :root{
-    --bg:#0f1720; --panel:#16212e; --panel-2:#1b2836; --line:#2a3a4d;
-    --text:#e8eef6; --muted:#8ea3ba; --accent:#3498db; --amber:#f0b400;
-    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-    --sans:'Pretendard',-apple-system,BlinkMacSystemFont,system-ui,Roboto,sans-serif;
+    /* 색은 tokens.css 의 값을 이 페이지 변수 이름에 연결해서 씁니다 */
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle); --line:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --accent:var(--color-accent); --accent-text:var(--color-text-accent);
+    --amber:var(--color-text-warning); --amber-line:#E9AF08;
+    --mono:var(--font-family); --sans:var(--font-family);
     --col:120px;   /* 과목 열 너비 */
     --day:40px;    /* 하루 폭 */
     --rowh:44px;
@@ -18,22 +23,19 @@
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans);
     -webkit-text-size-adjust:100%}
 
-  header{display:flex;justify-content:space-between;align-items:center;gap:8px;
-    padding:12px 16px;background:#2c3e50;position:sticky;top:0;z-index:60;
-    box-shadow:0 2px 10px rgba(0,0,0,.25)}
-  .back-btn{padding:8px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;
-    text-decoration:none;font-size:14px;font-weight:700;white-space:nowrap}
-  .head-t{font-weight:700}
-  .me{font-size:13px;color:#cfe0f2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32vw}
+
+
+
+
 
   .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;
-    background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:56px;z-index:55}
+    background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:61px;z-index:55}
   .btn{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;
     padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;min-height:38px}
-  .btn:hover{background:#22364a}
+  .btn:hover{background:var(--color-hover)}
   .btn:disabled{opacity:.4;cursor:default}
-  .btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn.danger{border-color:#7d3b3b;color:#ff9b9b}
+  .btn.on{background:var(--accent);border-color:var(--accent);color:var(--color-on-accent)}
+  .btn.danger{border-color:var(--color-error);color:var(--color-text-error)}
   .spacer{flex:1}
   .stat{font-size:12px;color:var(--muted);font-family:var(--mono)}
 
@@ -46,16 +48,16 @@
   .dcell{flex:0 0 var(--day);width:var(--day);text-align:center;padding:6px 0;
     border-left:1px solid var(--line);font-family:var(--mono);font-size:10px;color:var(--muted);
     line-height:1.35}
-  .dcell.we{background:#141d28;color:#6f8299}
-  .dcell.today{background:rgba(240,180,0,.16);color:var(--amber);font-weight:700}
+  .dcell.we{background:var(--color-background-muted);color:var(--color-text-disabled)}
+  .dcell.today{background:var(--color-warning-muted);color:var(--amber-text);font-weight:700}
   .dcell b{display:block;font-size:12px;color:var(--text)}
-  .dcell.today b{color:var(--amber)}
-  .dcell .mo{display:block;font-size:9px;color:var(--accent);height:11px}
+  .dcell.today b{color:var(--amber-text)}
+  .dcell .mo{display:block;font-size:9px;color:var(--accent-text);height:11px}
 
   .rowwrap{position:relative}
   .row{display:flex;height:var(--rowh);border-top:1px solid var(--line);position:relative}
-  .cell{flex:0 0 var(--day);width:var(--day);border-left:1px solid rgba(42,58,77,.55)}
-  .cell.we{background:rgba(0,0,0,.22)}
+  .cell{flex:0 0 var(--day);width:var(--day);border-left:1px solid var(--color-border)}
+  .cell.we{background:var(--color-background-muted)}
 
   /* 좌측 고정 과목 열 */
   .names{position:absolute;left:0;top:0;z-index:40;width:var(--col);
@@ -64,24 +66,24 @@
     font-size:11px;color:var(--muted);font-family:var(--mono);border-bottom:1px solid var(--line)}
   .nrow{height:var(--rowh);display:flex;align-items:center;gap:7px;padding:0 10px;
     border-top:1px solid var(--line);font-size:14px;font-weight:600}
-  .dot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+  .dot{width:10px;height:10px;border-radius:4px;flex:0 0 auto}
   .nrow .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .nrow .cnt{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--muted);
-    background:var(--panel-2);border-radius:9px;padding:1px 6px}
+    background:var(--panel-2);border-radius:8px;padding:1px 6px}
   .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}
   .legend .lg{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text)}
-  .legend .lg i{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .legend .lg i{width:11px;height:11px;border-radius:4px;display:inline-block}
 
-  .todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--amber);
+  .todayline{position:absolute;top:0;bottom:0;width:2px;background:var(--amber-line);
     opacity:.75;z-index:20;pointer-events:none}
 
   /* ── 블록 ─────────────────────────────────────────── */
   .bar-task{position:absolute;height:calc(var(--rowh) - 12px);top:6px;border-radius:8px;
     display:flex;align-items:center;padding:0 10px;gap:6px;color:#08131d;font-weight:700;
     font-size:13px;cursor:grab;user-select:none;-webkit-user-select:none;touch-action:pan-x;
-    box-shadow:0 2px 6px rgba(0,0,0,.35);z-index:25;overflow:hidden;white-space:nowrap}
+    box-shadow:var(--shadow-low);z-index:25;overflow:hidden;white-space:nowrap}
   .bar-task .d{font-family:var(--mono);font-size:11px;opacity:.75}
-  .bar-task.dragging{cursor:grabbing;z-index:35;box-shadow:0 8px 20px rgba(0,0,0,.5);
+  .bar-task.dragging{cursor:grabbing;z-index:35;box-shadow:var(--shadow-high);
     filter:brightness(1.08)}
   .bar-task.willmove{outline:2px dashed rgba(255,255,255,.85);outline-offset:-3px;opacity:.72}
   .bar-task.locked{cursor:not-allowed;opacity:.55}
@@ -93,8 +95,8 @@
 
   .hint{padding:10px 16px 26px;color:var(--muted);font-size:12px;line-height:1.6}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:22px;z-index:200;
-    background:#0b1420;border:1px solid var(--line);color:var(--text);padding:10px 16px;
-    border-radius:10px;font-size:13px;font-family:var(--mono);box-shadow:0 8px 24px rgba(0,0,0,.5);
+    background:var(--color-background-popover);border:1px solid var(--line);color:var(--text);padding:10px 16px;
+    border-radius:8px;font-size:13px;font-family:var(--mono);box-shadow:var(--shadow-high);
     opacity:0;pointer-events:none;transition:opacity .15s}
   .toast.show{opacity:1}
 
@@ -103,7 +105,7 @@
   .back.show{display:block}
   .sheet{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
     width:calc(100% - 32px);max-width:420px;background:var(--panel);border:1px solid var(--line);
-    border-radius:14px;padding:16px;max-height:86vh;overflow:auto}
+    border-radius:12px;padding:16px;max-height:86vh;overflow:auto}
   .sheet h3{margin:0 0 12px;font-size:17px;display:flex;align-items:center;gap:8px}
   .sheet h3 .x{margin-left:auto;background:none;border:none;color:var(--muted);font-size:18px;
     cursor:pointer;width:32px;height:32px;border-radius:8px}
@@ -114,30 +116,32 @@
   .f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .acts{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
   .acts .btn{flex:1;justify-content:center;min-width:96px}
-  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .err{display:none;background:#3a1c1c;border:1px solid #7d3b3b;color:#ffb4b4;
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--color-on-accent)}
+  .err{display:none;background:var(--color-error-muted);border:1px solid transparent;color:var(--color-text-error);
     padding:9px 12px;border-radius:8px;font-size:13px;margin-bottom:10px}
   .err.show{display:block}
   .note{font-size:12px;color:var(--muted);line-height:1.6;margin:2px 0 12px}
 
   @media (max-width:640px){
     :root{--col:88px;--rowh:40px}
-    header{padding:10px 10px}
-    .head-t{font-size:14px}
-    .back-btn{padding:6px 10px;font-size:12px}
-    .bar{padding:8px 10px;top:50px}
+    .bar{padding:8px 10px;top:53px}
     .btn{padding:7px 10px;font-size:12px;min-height:36px}
     .nrow{font-size:13px;padding:0 8px}
     .bar-task{font-size:12px;padding:0 7px}
     .hint{padding:10px 10px 30px}
   }
+
+  /* 공통 디자인 맞춤 */
+  body{font-variant-numeric:tabular-nums}
+  .sheet{box-shadow:var(--shadow-high)}
+  .bar-task.willmove{outline-color:var(--color-text-primary)}
 </style>
 </head>
 <body>
   <header>
-    <a href="index.html" class="back-btn">⬅ 보드로</a>
-    <div class="head-t">📅 학습 간트차트</div>
-    <div class="me" id="me"></div>
+    <a href="index.html" class="back-btn">← 보드</a>
+    <h1 class="page-title">학습 간트차트</h1>
+    <div class="header-side"><span class="user-chip" id="me"></span></div>
   </header>
 
   <div class="bar">
@@ -178,7 +182,7 @@ const db = getDatabase(app);
 /* 보드와 동일한 로그인 방식 */
 const username = localStorage.getItem("username");
 if (!username) location.href = "auth.html";
-document.getElementById("me").textContent = "👤 " + username;
+document.getElementById("me").textContent = username;
 
 const G      = "gantt";
 const TASKS  = G + "/tasks";
@@ -752,7 +756,7 @@ document.getElementById("btnAdmin").onclick = () => {
     '</div>' +
     '<div class="acts"><button class="btn danger" id="aReset">전체 초기화(5개 반 × 5과목)</button></div>' +
     (isLegacy()
-      ? '<p class="note" style="color:#ffb4b4">구버전 데이터입니다(반 구분 없음). ' +
+      ? '<p class="note" style="color:var(--color-text-error)">구버전 데이터입니다(반 구분 없음). ' +
         '전체 초기화를 하면 5개 반 구조로 바뀝니다.</p>'
       : "") +
     '<p class="note">' + cls.map(c =>

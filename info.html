@@ -6,15 +6,19 @@
 <!-- 자주 고치는 사내 참조표라 폰이 옛 화면을 붙들지 않게 한다 -->
 <meta http-equiv="Cache-Control" content="no-cache, must-revalidate">
 <title>Fastener Drill Reference Table</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
 <style>
+  /* 색은 tokens.css 의 값을 이 페이지 변수 이름에 연결해서 씁니다 */
   :root{
-    --bg:#16181c; --panel:#1e2127; --panel-2:#23272f; --line:#2c3038; --line-2:#363b45;
-    --text:#e6e8ec; --muted:#8b909a; --amber:#ffb020; --amber-dim:#3a2f14;
-    --danger:#ff5a52; --ok:#4ade80; --ok-dim:#16301f;
-    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle);
+    --line:var(--color-border); --line-2:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --amber:var(--color-accent); --amber-dim:var(--color-accent-muted); --amber-text:var(--color-text-accent);
+    --danger:var(--color-error); --danger-dim:var(--color-error-muted); --danger-text:var(--color-text-error);
+    --ok:var(--color-success); --ok-dim:var(--color-success-muted); --ok-text:var(--color-text-success);
+    --sans:var(--font-family); --mono:var(--font-family);
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;
@@ -22,27 +26,24 @@
   body.locked{overflow:hidden}
 
   /* ── 상태바 ─────────────────────────────────────────── */
-  .statusbar{display:flex;align-items:center;gap:14px;padding:10px 16px;background:var(--panel);
-    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.04em;
-    position:sticky;top:0;z-index:20}
-  .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:pulse 2.4s infinite}
-  @keyframes pulse{50%{opacity:.35}}
-  .statusbar .sys{color:var(--muted);white-space:nowrap;min-width:0}
-  .statusbar .sys b{color:var(--text);font-weight:600;letter-spacing:.02em}
-  .statusbar .clock{margin-left:auto;color:var(--amber)}
+
+
+  
+
+
+
 
   .wrap{max-width:1180px;margin:0 auto;padding:20px 16px 72px}
 
   /* ── 툴바 ───────────────────────────────────────────── */
   .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px}
-  .back{background:none;border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
-    font-size:12px;padding:9px 14px;border-radius:8px;cursor:pointer;text-decoration:none}
-  .back:hover{color:var(--text);border-color:var(--line-2)}
-  .toolbar h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+
+
+
   .title-row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-  @media(max-width:619px){.toolbar h1{font-size:17px}}
+  
   .count{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);
-    border:1px solid var(--line);padding:5px 10px;border-radius:20px}
+    border:1px solid var(--line);padding:5px 10px;border-radius:9999px}
 
   /* ── 컨트롤 ─────────────────────────────────────────── */
   .controls{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;
@@ -61,25 +62,25 @@
   .seg{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:0 0 auto}
   .seg button{background:none;border:none;color:var(--muted);font-family:var(--mono);font-size:12px;
     padding:10px 14px;cursor:pointer;white-space:nowrap;min-height:42px}
-  .seg button.on{background:var(--amber);color:#1a1400;font-weight:700}
+  .seg button.on{background:var(--amber);color:var(--color-on-accent);font-weight:700}
   select.sort{background:var(--panel);border:1px solid var(--line);color:var(--text);
     font-family:var(--mono);font-size:12px;padding:10px 12px;border-radius:8px;cursor:pointer;min-height:42px}
   select.sort:disabled{opacity:.4;cursor:not-allowed}
 
   .chips{display:flex;gap:6px;flex-wrap:wrap}
   .chip{background:var(--panel);border:1px solid var(--line);color:var(--muted);font-family:var(--mono);
-    font-size:11px;padding:7px 12px;border-radius:20px;cursor:pointer;letter-spacing:.03em}
-  .chip.on{background:var(--amber-dim);border-color:var(--amber);color:var(--amber)}
+    font-size:11px;padding:7px 12px;border-radius:9999px;cursor:pointer}
+  .chip.on{background:var(--amber-dim);border-color:var(--amber);color:var(--amber-text)}
 
   /* ── 최근접 안내 ───────────────────────────────────── */
-  .nearest{display:none;background:var(--panel);border:1px solid var(--amber);border-radius:10px;
+  .nearest{display:none;background:var(--panel);border:1px solid var(--amber);border-radius:8px;
     padding:12px 14px;margin-bottom:14px}
   .nearest.show{display:block}
-  .nearest .nh{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.06em;margin-bottom:8px}
+  .nearest .nh{font-family:var(--mono);font-size:11px;color:var(--amber-text);margin-bottom:8px}
   .nearest .nlist{display:flex;gap:8px;flex-wrap:wrap}
   .npill{background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;padding:8px 12px;
     font-family:var(--mono);font-size:13px;cursor:pointer;text-align:left}
-  .npill b{color:var(--amber);font-weight:600}
+  .npill b{color:var(--amber-text);font-weight:600}
   .npill i{color:var(--muted);font-style:normal;font-size:11px;margin-left:6px}
 
   table{width:100%;border-collapse:collapse}
@@ -91,27 +92,27 @@
   .table-wrap{background:var(--panel);border:1px solid var(--line);border-radius:12px}
   .detail{font-size:14px}
   .detail thead th{background:var(--panel-2);text-align:left;padding:11px 12px;font-family:var(--mono);
-    font-size:10px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;
+    font-size:10px;color:var(--muted);
     border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:var(--sticky-top,0px);z-index:5}
   .detail thead th:first-child{border-top-left-radius:11px}
   .detail thead th:last-child{border-top-right-radius:11px}
   .detail tbody td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
   .detail tbody tr:last-child td{border-bottom:none}
   .detail tbody tr{cursor:pointer}
-  .detail tbody tr:hover,.detail tbody tr:focus-visible{background:rgba(255,176,32,.07);outline:none}
+  .detail tbody tr:hover,.detail tbody tr:focus-visible{background:var(--color-hover);outline:none}
   .detail .ph-ic{display:none;margin-left:8px;background:var(--panel-2);border:1px solid var(--line-2);
-    color:var(--amber);border-radius:7px;padding:0 10px;min-height:30px;min-width:40px;font-size:13px;
+    color:var(--amber-text);border-radius:8px;padding:0 10px;min-height:30px;min-width:40px;font-size:13px;
     cursor:pointer;align-items:center;justify-content:center;vertical-align:middle}
   .detail .ph-ic:hover{border-color:var(--amber)}
   .detail .m{font-family:var(--mono)}
   /* 넘버·분수는 기본 글자색 — INCH 하나만 앰버로 띄우기 위해서다 */
   .detail .lbl{font-family:var(--mono);font-weight:600;color:var(--text)}
   /* ★ INCH — 이 표에서 가장 중요한 값. 유일하게 앰버로 강조한다 */
-  .detail .c-in{color:var(--amber);font-weight:700;font-size:15px;letter-spacing:-.01em}
-  .detail thead th.h-in{color:var(--amber)}
+  .detail .c-in{color:var(--amber-text);font-weight:700;font-size:15px;letter-spacing:-.01em}
+  .detail thead th.h-in{color:var(--amber-text)}
   /* 허용 범위가 있는 행 표시 — 앰버 숫자 뒤의 흐린 물결 */
   .rng{color:var(--muted);font-weight:400;margin-left:1px}
-  .row .v.rng-v{color:var(--amber)}
+  .row .v.rng-v{color:var(--amber-text)}
   .detail .dim{color:var(--muted)}
   .detail .memo{white-space:normal;min-width:120px}
   /* 좁은 화면(≤767px): 구분 · mm · 클리코 · 사진 열을 접고
@@ -135,22 +136,22 @@
     .detail.admin .memo{font-size:12px}
     .ebtn{padding:5px 7px;min-width:30px}
   }
-  .tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:5px;letter-spacing:.04em}
-  .tag.no{background:#1f2b3a;color:#7fb3e8}
-  .tag.frac{background:var(--amber-dim);color:var(--amber)}
-  .tag.custom{background:var(--ok-dim);color:var(--ok)}
-  .tag.hid{background:#3a1c1a;color:var(--danger)}
+  .tag{display:inline-block;font-family:var(--mono);font-size:10px;padding:2px 7px;border-radius:8px}
+  .tag.no{background:var(--color-accent-muted);color:var(--color-text-info)}
+  .tag.frac{background:var(--color-warning-muted);color:var(--color-text-warning)}
+  .tag.custom{background:var(--ok-dim);color:var(--ok-text)}
+  .tag.hid{background:var(--danger-dim);color:var(--danger-text)}
   .detail .c-no{white-space:nowrap}
   .detail .c-ed{width:52px;text-align:center}
   .ebtn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--muted);cursor:pointer;
-    border-radius:7px;padding:6px 9px;font-size:13px;min-height:32px;min-width:36px}
-  .ebtn:hover{border-color:var(--amber);color:var(--amber)}
+    border-radius:8px;padding:6px 9px;font-size:13px;min-height:32px;min-width:36px}
+  .ebtn:hover{border-color:var(--amber);color:var(--amber-text)}
   /* 관리자가 고친 기본 행 = 앰버 띠, 숨긴 행 = 흐리게 */
   .detail tbody tr.is-edited td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
   .detail tbody tr.is-hidden{opacity:.42}
   .detail tbody tr.is-hidden .lbl{text-decoration:line-through}
   .note-base{background:var(--amber-dim);border:1px solid var(--amber);border-radius:8px;
-    padding:10px 12px;font-size:12.5px;color:var(--amber);margin-bottom:12px;line-height:1.6}
+    padding:10px 12px;font-size:12.5px;color:var(--amber-text);margin-bottom:12px;line-height:1.6}
   .note-base b{color:var(--text)}
   /* 관리자가 추가한 행 표시 — 왼쪽 초록 띠 */
   .detail tbody tr.is-custom td:first-child{box-shadow:inset 3px 0 0 var(--ok)}
@@ -161,38 +162,38 @@
   /* ── 관리자 ────────────────────────────────────────── */
   .admin-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
   .admin-bar[hidden]{display:none}   /* display:flex 가 hidden 속성을 덮지 않도록 */
-  .badge-admin{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:20px;
-    background:var(--ok-dim);color:var(--ok);letter-spacing:.04em}
-  .btn-add{background:var(--amber);color:#1a1400;font-weight:700;border:none;
+  .badge-admin{font-family:var(--mono);font-size:11px;padding:5px 10px;border-radius:9999px;
+    background:var(--ok-dim);color:var(--ok-text)}
+  .btn-add{background:var(--amber);color:var(--color-on-accent);font-weight:700;border:none;
     padding:11px 16px;border-radius:8px;cursor:pointer;font-size:14px;min-height:42px}
   .btn-add:hover{filter:brightness(1.05)}
   .form-rows{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
   .fld{display:flex;flex-direction:column;gap:5px}
-  .fld label{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em}
-  .fld label .req{color:var(--amber)}
+  .fld label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .fld label .req{color:var(--amber-text)}
   .fld input,.fld select{background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px;
     color:var(--text);font-family:var(--mono);font-size:14px;padding:11px 12px;min-height:44px;width:100%}
   .fld input:focus,.fld select:focus{outline:none;border-color:var(--amber)}
   .fld .hint{font-size:11px;color:var(--muted);font-family:var(--sans)}
   .fld-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .form-err{background:rgba(255,90,82,.12);border:1px solid var(--danger);color:var(--danger);
+  .form-err{background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger-text);
     border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:12px;display:none}
   .form-err.show{display:block}
   .form-act{display:flex;gap:8px}
   .btn{border:none;border-radius:8px;padding:12px 16px;font-size:14px;font-weight:600;
     cursor:pointer;min-height:46px;font-family:var(--sans)}
-  .btn.primary{background:var(--amber);color:#1a1400;flex:1}
+  .btn.primary{background:var(--amber);color:var(--color-on-accent);flex:1}
   .btn.ghost{background:var(--panel-2);border:1px solid var(--line-2);color:var(--text)}
-  .btn.danger{background:rgba(255,90,82,.14);border:1px solid var(--danger);color:var(--danger)}
+  .btn.danger{background:var(--danger-dim);border:1px solid var(--danger);color:var(--danger-text)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .sheet .form-act{margin-top:4px}
   .preview{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;
     font-family:var(--mono);font-size:13px;color:var(--muted);margin-bottom:14px}
-  .preview b{color:var(--amber)}
+  .preview b{color:var(--amber-text)}
   .cl{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);font-family:var(--mono)}
   .sw{width:12px;height:12px;border-radius:50%;border:1px solid var(--line-2);flex:0 0 auto}
-  .pbtn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--amber);cursor:pointer;
-    border-radius:7px;padding:7px 11px;font-size:13px;min-height:34px;min-width:44px}
+  .pbtn{background:var(--panel-2);border:1px solid var(--line-2);color:var(--amber-text);cursor:pointer;
+    border-radius:8px;padding:7px 11px;font-size:13px;min-height:34px;min-width:44px}
   .pbtn:hover{border-color:var(--amber)}
   .empty{padding:36px 16px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:13px}
 
@@ -204,59 +205,62 @@
   .sheet-back.show,.modal-back.show{display:block}
   .modal-back{z-index:70}
   .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--panel);border-top:1px solid var(--line-2);
-    border-radius:16px 16px 0 0;padding:8px 18px 26px;max-height:82vh;overflow-y:auto;
+    border-radius:12px 12px 0 0;padding:8px 18px 26px;max-height:82vh;overflow-y:auto;
     animation:up .18s ease-out}
   @keyframes up{from{transform:translateY(14px);opacity:.6}}
   @media(min-width:700px){
     .sheet{left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);width:440px;
-      border-radius:14px;border:1px solid var(--line-2);animation:none}
+      border-radius:12px;border:1px solid var(--line-2);animation:none}
   }
-  .grip{width:38px;height:4px;border-radius:2px;background:var(--line-2);margin:4px auto 14px}
+  .grip{width:38px;height:4px;border-radius:4px;background:var(--line-2);margin:4px auto 14px}
   @media(min-width:700px){.grip{display:none}}
   .sheet-h{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-  .sheet-h .big{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--amber);letter-spacing:-.02em}
+  .sheet-h .big{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--amber-text);letter-spacing:-.02em}
   .x{margin-left:auto;background:var(--panel-2);border:1px solid var(--line-2);color:var(--muted);
     width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:15px;line-height:1}
   .x:hover{color:var(--text)}
   .rows{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line);
-    border-radius:10px;overflow:hidden;margin-bottom:14px}
+    border-radius:8px;overflow:hidden;margin-bottom:14px}
   .row{display:flex;align-items:center;gap:12px;background:var(--panel-2);padding:11px 13px}
-  .row .k{font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:.04em;flex:0 0 84px}
+  .row .k{font-family:var(--mono);font-size:11px;color:var(--muted);flex:0 0 84px}
   .row .v{font-family:var(--mono);font-size:14px;color:var(--text);text-align:right;margin-left:auto;
     word-break:break-word}
-  .row .v.big-in{color:var(--amber);font-weight:700;font-size:19px;letter-spacing:-.01em}
+  .row .v.big-in{color:var(--amber-text);font-weight:700;font-size:19px;letter-spacing:-.01em}
   .row .v.vwrap{font-family:var(--sans);text-align:left;margin-left:0;padding:0;max-width:none}
   .sheet .pbtn{width:100%;padding:13px;font-family:var(--mono);font-size:13px;min-height:46px}
 
   /* ── 사진 팝업 ─────────────────────────────────────── */
   .modal{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(100% - 28px);
     max-width:620px;max-height:88vh;overflow-y:auto;background:var(--panel);
-    border:1px solid var(--line-2);border-radius:14px;padding:16px}
+    border:1px solid var(--line-2);border-radius:12px;padding:16px}
   .modal-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-  .modal-h .t{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--amber)}
-  .media{background:#101215;border:1px solid var(--line);border-radius:10px;overflow:hidden;
+  .modal-h .t{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--amber-text)}
+  .media{background:#101215;border:1px solid var(--line);border-radius:8px;overflow:hidden;
     min-height:180px;display:flex;align-items:center;justify-content:center}
   .media img{display:block;width:100%;height:auto;max-height:62vh;object-fit:contain}
   .ph{padding:34px 20px;text-align:center;color:var(--muted);font-family:var(--mono);font-size:12px;line-height:2}
   .ph .ic{font-size:30px;display:block;margin-bottom:6px}
-  .ph code{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;padding:2px 7px;
-    color:var(--amber);font-size:11px}
+  .ph code{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:2px 7px;
+    color:var(--amber-text);font-size:11px}
   .cap{margin-top:12px;font-size:13px;color:var(--muted);line-height:1.7}
+
+  /* 공통 디자인 맞춤 */
+  body{font-variant-numeric:tabular-nums}
+  .search:focus-within{box-shadow:var(--shadow-focus)}
+  .detail thead th{font-size:12px;font-weight:500}
 </style>
 </head>
 <body>
 
-<div class="statusbar">
-  <div class="dot"></div>
-  <div class="sys" id="sys"><b>Fastener Drill Reference Table</b></div>
-  <div class="clock" id="clock">--:--:--</div>
-</div>
+<header class="statusbar">
+  <a href="index.html" class="back-btn">← 보드</a>
+  <h1 class="page-title sys" id="sys"><b>Fastener Drill Reference Table</b></h1>
+  <div class="header-side"><span class="header-clock" id="clock">--:--:--</span></div>
+</header>
 
 <div class="wrap">
   <div class="toolbar">
-    <a href="index.html" class="back">← 보드로</a>
     <div class="title-row">
-      <h1>Fastener Drill Reference Table</h1>
       <span class="count" id="count"></span>
     </div>
   </div>

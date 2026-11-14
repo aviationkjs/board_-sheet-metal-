@@ -1,0 +1,105 @@
+/* 모든 하위 페이지가 함께 쓰는 헤더
+   색·글자·간격·모서리 값은 tokens.css 에서 가져옵니다 */
+
+header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-6);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border-emphasized);
+  box-shadow: none;
+  font-family: var(--font-family);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.page-title {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: 24px;
+  letter-spacing: normal;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.page-title b {
+  font-weight: inherit;
+}
+
+.back-btn {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--spacing-3);
+  background: var(--color-neutral);
+  color: var(--color-text-primary);
+  border: none;
+  border-radius: var(--radius-element);
+  cursor: pointer;
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  transition: background var(--duration-fast);
+}
+
+.back-btn:hover {
+  background: var(--color-border-emphasized);
+}
+
+/* 헤더 오른쪽: 이름 칩, 시계 */
+.header-side {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.user-chip {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: 20px;
+  color: var(--color-text-secondary);
+  background: var(--color-neutral);
+  padding: 2px var(--spacing-2);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 32vw;
+}
+
+.user-chip:empty {
+  display: none;
+}
+
+.header-clock {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  header {
+    padding: var(--spacing-2) var(--spacing-3);
+    gap: var(--spacing-2);
+  }
+
+  .page-title {
+    font-size: var(--font-size-base);
+  }
+
+  .header-clock {
+    display: none;
+  }
+}
