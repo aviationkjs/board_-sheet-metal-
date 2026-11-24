@@ -89,7 +89,7 @@ function setTab(name) {
   $("board").hidden         = name !== "board";
 
   $("addNoticeBtn").hidden = !(name === "notice" && canManage);
-  $("addEventBtn").hidden  = !(name === "calendar" && canManage);
+  $("addEventBtn").hidden  = name !== "calendar";          // 일정 등록은 전원
   $("addNoteBtn").hidden   = name !== "board";
   $("noticeBar").hidden    = !(name === "notice" && canManage);
 }
@@ -385,7 +385,7 @@ function itemsOn(key) {
       const to = ev.endDate || ev.date;
       if (key >= ev.date && key <= to) {
         out.push({ kind: "event", id, title: ev.title || "(제목 없음)", color: ev.color || "blue",
-                   start: key === ev.date, from: ev.date, to });
+                   start: key === ev.date, from: ev.date, to, author: ev.author || "" });
       }
     }
   }
@@ -436,7 +436,7 @@ function renderCalendar() {
       e.stopPropagation();
       selected = chip.closest(".cal-cell").dataset.day;
       if (chip.dataset.kind === "notice") gotoNotice(chip.dataset.id);
-      else if (canManage) openEventDlg(chip.dataset.id);
+      else if (canEditEvent(chip.dataset.id)) openEventDlg(chip.dataset.id);
       else renderCalendar();
     };
   });
@@ -456,16 +456,17 @@ function renderDayPanel() {
       // 누를 수 있을 때만 단추를 답니다 (공지는 누구나 열람, 일정 수정은 담당자만)
       const btn = it.kind === "notice"
         ? `<button class="chip go-btn" data-kind="notice" data-id="${esc(it.id)}">공지 보기</button>`
-        : (canManage
+        : (canEditEvent(it.id)
             ? `<button class="chip go-btn" data-kind="event" data-id="${esc(it.id)}">수정</button>`
             : "");
       const span = (it.to && it.to !== it.from)
         ? `<span class="kind">${esc(rangeLabel(it.from, it.to))}</span>` : "";
+      const who = it.author ? `<span class="kind">${esc(it.author)}</span>` : "";
       return `
       <div class="day-item" style="--chip-color:${COLOR[it.color] || COLOR.blue}">
         <span class="kind">${it.kind === "notice" ? "공지" : "일정"}</span>
         <span class="t">${esc(it.title)}</span>
-        ${span}${btn}
+        ${span}${who}${btn}
       </div>`;
     }).join("");
   }
@@ -474,7 +475,7 @@ function renderDayPanel() {
   $("dayPanel").querySelectorAll(".go-btn").forEach(btn => {
     btn.onclick = () => {
       if (btn.dataset.kind === "notice") gotoNotice(btn.dataset.id);
-      else if (canManage) openEventDlg(btn.dataset.id);
+      else if (canEditEvent(btn.dataset.id)) openEventDlg(btn.dataset.id);
     };
   });
 }
@@ -488,10 +489,16 @@ function gotoNotice(id) {
 }
 
 /* ── 일정 작성 · 수정 ──────────────────────────── */
+/* 등록은 전원, 고치고 지우는 것은 올린 사람과 담당자만 */
 let editingEvent = null;
 
+function canEditEvent(id) {
+  const ev = events[id];
+  return !!ev && (canManage || ev.author === username);
+}
+
 function openEventDlg(id) {
-  if (!canManage) return;
+  if (id && !canEditEvent(id)) return;
   editingEvent = id || null;
   const ev = id ? events[id] : null;
   $("eventDlgTitle").textContent = id ? "일정 수정" : "일정 추가";
@@ -510,6 +517,8 @@ $("eventForm").addEventListener("submit", async e => {
   if (!title || !date) return;
   let endDate = $("eTo").value || null;
   if (endDate && endDate < date) endDate = date;
+
+  if (editingEvent && !canEditEvent(editingEvent)) return;
 
   const data = { title, date, endDate, color: $("eColor").value, updatedAt: Date.now(), updatedBy: username };
   try {
@@ -533,7 +542,7 @@ $("eventForm").addEventListener("submit", async e => {
 });
 
 $("eventDelete").onclick = async () => {
-  if (!editingEvent) return;
+  if (!editingEvent || !canEditEvent(editingEvent)) return;
   const ev = events[editingEvent] || {};
   if (!confirm(`'${ev.title || ""}' 일정을 삭제할까요?`)) return;
   try {
