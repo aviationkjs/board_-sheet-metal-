@@ -1,0 +1,22 @@
+{
+  "name": "성능보드판",
+  "short_name": "성능보드판",
+  "description": "공지·달력·사역표·자재소모·작업 도구를 한곳에서 보는 정비 작업 보드",
+  "lang": "ko",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F1F4F7",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "공지", "short_name": "공지", "url": "./index.html" },
+    { "name": "자재소모", "short_name": "자재소모", "url": "./remove_list.html" },
+    { "name": "사역표", "short_name": "사역표", "url": "./duty_roster.html" }
+  ]
+}

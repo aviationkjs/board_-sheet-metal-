@@ -3,6 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#1F1F22" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="성능보드판">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <link rel="icon" href="assets/icon-192.png">
+    <script src="pwa.js?v=20261124" defer></script>
     <title>성능기골 스티커 보드</title>
     <link rel="stylesheet" href="tokens.css?v=20261124">
     <link rel="stylesheet" href="style.css?v=20261124">
@@ -46,6 +55,7 @@
 
                     <div class="drop-divider"></div>
                     <div class="drop-label">관리·계정</div>
+                    <button id="installBtn" class="drop-item" hidden>홈 화면에 앱 설치</button>
                     <button id="usersBtn" class="drop-item" style="display: none;">회원 관리</button>
                     <button id="logsBtn" class="drop-item" style="display: none;">로그 조회</button>
                     <button id="deleteAllBtn" class="drop-item danger">전체삭제</button>
