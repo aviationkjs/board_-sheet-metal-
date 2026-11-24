@@ -110,7 +110,8 @@
                 const roleCell = id === 'admin'
                     ? '<span class="role-main">주관리자</span>'
                     : `<button class="btn btn-sm role-btn ${u.dutyAdmin===true?'role-on':''}" data-role="duty" data-id="${safeId}" data-on="${u.dutyAdmin===true}">사역표</button>
-                       <button class="btn btn-sm role-btn ${u.materialAdmin===true?'role-on':''}" data-role="material" data-id="${safeId}" data-on="${u.materialAdmin===true}">자재소모</button>`;
+                       <button class="btn btn-sm role-btn ${u.materialAdmin===true?'role-on':''}" data-role="material" data-id="${safeId}" data-on="${u.materialAdmin===true}">자재소모</button>
+                       <button class="btn btn-sm role-btn ${u.noticeAdmin===true?'role-on':''}" data-role="notice" data-id="${safeId}" data-on="${u.noticeAdmin===true}">공지</button>`;
                 html += `<tr>
                     <td><strong>${id}</strong></td>
                     <td>${badge}</td>
@@ -185,8 +186,11 @@
         }
 
         async function setRole(id, area, on) {
-            const field = area === 'duty' ? 'dutyAdmin' : 'materialAdmin';
-            const areaLabel = area === 'duty' ? '사역표' : '자재소모';
+            const FIELDS = { duty: 'dutyAdmin', material: 'materialAdmin', notice: 'noticeAdmin' };
+            const LABELS = { duty: '사역표', material: '자재소모', notice: '공지' };
+            const field = FIELDS[area];
+            const areaLabel = LABELS[area];
+            if (!field) return;
             if (on && !confirm(`'${id}' 님을 ${areaLabel} 부관리자로 지정할까요?\n(기존 ${areaLabel} 담당자는 자동 해제됩니다)`)) return;
             try {
                 const updates = {};

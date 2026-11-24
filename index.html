@@ -4,9 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>성능기골 스티커 보드</title>
-    <link rel="stylesheet" href="tokens.css?v=20261116">
-    <link rel="stylesheet" href="style.css?v=20261115">
-    <script type="module" src="app.js?v=20261115"></script>
+    <link rel="stylesheet" href="tokens.css?v=20261124">
+    <link rel="stylesheet" href="style.css?v=20261124">
+    <script type="module" src="app.js?v=20261124"></script>
+    <script type="module" src="notice.js?v=20261124"></script>
 </head>
 <body>
     <header>
@@ -15,7 +16,9 @@
             <div id="username"></div>
         </div>
         <div class="header-buttons">
-            <button id="addNoteBtn" class="nav-btn accent">+ 스티커</button>
+            <button id="addNoticeBtn" class="nav-btn accent" hidden>+ 공지</button>
+            <button id="addEventBtn" class="nav-btn accent" hidden>+ 일정</button>
+            <button id="addNoteBtn" class="nav-btn accent" hidden>+ 스티커</button>
             <div class="nav-item">
                 <button id="moreMenuBtn" class="nav-btn icon-btn" title="더보기" aria-label="더보기">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
@@ -51,6 +54,100 @@
             </div>
         </div>
     </header>
-    <div id="board"></div>
+
+    <nav class="tabs" id="tabs" role="tablist" aria-label="보드 화면">
+        <button class="tab is-on" data-tab="notice" role="tab" aria-selected="true">
+            공지<span class="tab-badge" id="noticeBadge" hidden>0</span>
+        </button>
+        <button class="tab" data-tab="calendar" role="tab" aria-selected="false">달력</button>
+        <button class="tab" data-tab="board" role="tab" aria-selected="false">스티커</button>
+    </nav>
+
+    <main class="main">
+        <!-- 공지 -->
+        <section id="panelNotice" class="tab-panel">
+            <div class="panel-bar" id="noticeBar" hidden>
+                <button class="link-btn" id="archiveToggle">보관함 보기</button>
+            </div>
+            <div id="noticeList"></div>
+        </section>
+
+        <!-- 달력 -->
+        <section id="panelCalendar" class="tab-panel" hidden>
+            <div class="cal-head">
+                <div class="cal-nav">
+                    <button class="action-btn" id="calPrev" aria-label="이전 달">‹</button>
+                    <strong id="calTitle">—</strong>
+                    <button class="action-btn" id="calNext" aria-label="다음 달">›</button>
+                    <button class="nav-btn" id="calToday">오늘</button>
+                </div>
+                <div class="cal-layers">
+                    <label><input type="checkbox" id="layerNotice" checked> 공지 일정</label>
+                    <label><input type="checkbox" id="layerEvent" checked> 일정</label>
+                </div>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+            <div class="day-panel" id="dayPanel"></div>
+        </section>
+
+        <!-- 스티커 (기존 보드) -->
+        <div id="board" class="tab-panel" hidden></div>
+    </main>
+
+    <!-- 공지 작성·수정 -->
+    <dialog id="noticeDlg" class="dlg">
+        <form class="dlg-form" id="noticeForm" method="dialog">
+            <h2 id="noticeDlgTitle">공지 작성</h2>
+            <label class="f"><span>제목</span>
+                <input id="nTitle" maxlength="60" required placeholder="한 줄로 요약해 주세요">
+            </label>
+            <label class="f"><span>내용</span>
+                <textarea id="nBody" rows="6" maxlength="2000" placeholder="공지 내용"></textarea>
+            </label>
+            <div class="f-row">
+                <label class="chk"><input type="checkbox" id="nImportant"> 중요</label>
+                <label class="chk"><input type="checkbox" id="nPinned"> 상단 고정</label>
+            </div>
+            <div class="f-row">
+                <label class="f"><span>일정 시작 <i>선택</i></span><input type="date" id="nFrom"></label>
+                <label class="f"><span>일정 종료 <i>선택</i></span><input type="date" id="nTo"></label>
+            </div>
+            <p class="dlg-hint">날짜를 넣으면 달력에도 함께 표시됩니다.</p>
+            <div class="dlg-actions">
+                <button type="submit" value="cancel" class="nav-btn" formnovalidate>취소</button>
+                <button type="submit" value="ok" class="nav-btn accent">저장</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- 일정 작성·수정 -->
+    <dialog id="eventDlg" class="dlg">
+        <form class="dlg-form" id="eventForm" method="dialog">
+            <h2 id="eventDlgTitle">일정 추가</h2>
+            <label class="f"><span>제목</span>
+                <input id="eTitle" maxlength="40" required placeholder="예) 정기 검사">
+            </label>
+            <div class="f-row">
+                <label class="f"><span>시작</span><input type="date" id="eFrom" required></label>
+                <label class="f"><span>종료 <i>선택</i></span><input type="date" id="eTo"></label>
+            </div>
+            <label class="f"><span>색</span>
+                <select id="eColor">
+                    <option value="blue">파랑</option>
+                    <option value="green">초록</option>
+                    <option value="orange">주황</option>
+                    <option value="pink">분홍</option>
+                    <option value="purple">보라</option>
+                    <option value="teal">청록</option>
+                </select>
+            </label>
+            <div class="dlg-actions">
+                <button type="button" class="link-btn danger" id="eventDelete" hidden>삭제</button>
+                <span class="grow"></span>
+                <button type="submit" value="cancel" class="nav-btn" formnovalidate>취소</button>
+                <button type="submit" value="ok" class="nav-btn accent">저장</button>
+            </div>
+        </form>
+    </dialog>
 </body>
 </html>

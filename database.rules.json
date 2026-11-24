@@ -22,6 +22,53 @@
       }
     },
     "notes":               { ".read": true, ".write": true },
+    "notices": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        "title":      { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+        "body":       { ".validate": "newData.isString() && newData.val().length <= 2000" },
+        "author":     { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+        "level":      { ".validate": "newData.val() === 'normal' || newData.val() === 'important'" },
+        "pinned":     { ".validate": "newData.isBoolean()" },
+        "archived":   { ".validate": "newData.isBoolean()" },
+        "dateFrom":   { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "dateTo":     { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "createdAt":  { ".validate": "newData.isNumber()" },
+        "updatedAt":  { ".validate": "newData.isNumber()" },
+        "replyCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "readers": {
+          "$user": { ".validate": "newData.isNumber()" }
+        },
+        "$other": { ".validate": true }
+      }
+    },
+    "replies": {
+      ".read": true,
+      "$noticeId": {
+        "$id": {
+          ".write": true,
+          "user":      { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+          "text":      { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "$other":    { ".validate": true }
+        }
+      }
+    },
+    "events": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
+        "date":      { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "endDate":   { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "color":     { ".validate": "newData.isString() && newData.val().length <= 10" },
+        "author":    { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other":    { ".validate": true }
+      }
+    },
     "duty":                { ".read": true, ".write": true },
     "logs":                { ".read": true, ".write": true },
     "materialConsumption": { ".read": true, ".write": true },

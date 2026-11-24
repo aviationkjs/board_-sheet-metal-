@@ -1,7 +1,10 @@
 # Firebase 실시간 데이터베이스 규칙 — 복사·붙여넣기용
 
-`저장에 실패했습니다` 오류는 **콘솔에 배포된 규칙에 `drill_rows` 가 없어서** 납니다.
+`저장에 실패했습니다` 오류는 **콘솔에 배포된 규칙에 그 경로가 없어서** 납니다.
 Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 전부 거부합니다.
+
+> **2026-11-24 — 공지·답글·달력을 추가했습니다.** `notices` / `replies` / `events` 세 경로가 새로 필요합니다.
+> 아래 A안을 다시 붙여넣고 게시하지 않으면 **공지 작성·답글·일정 저장이 전부 거부**됩니다.
 
 붙여넣는 곳: [Firebase 콘솔](https://console.firebase.google.com/) → 프로젝트 `board-sheet-metal`
 → 왼쪽 **Realtime Database** → 상단 **규칙(Rules)** 탭 → 전체 선택 후 덮어쓰기 → **게시(Publish)**
@@ -10,7 +13,7 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
 
 ## A안 — 지금 바로 (권장 · 현재 앱 그대로 동작)
 
-기존 규칙에 `drill_rows` 만 더한 **완성본**입니다. 아래 전체를 그대로 복사해 붙여넣고 게시하면 저장이 됩니다.
+저장소의 `database.rules.json` 과 **똑같은 완성본**입니다. 아래 전체를 그대로 복사해 붙여넣고 게시하면 저장이 됩니다.
 **코드는 하나도 바꾸지 않아도 됩니다.**
 
 ```json
@@ -38,10 +41,78 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
       }
     },
     "notes":               { ".read": true, ".write": true },
+    "notices": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        "title":      { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 60" },
+        "body":       { ".validate": "newData.isString() && newData.val().length <= 2000" },
+        "author":     { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+        "level":      { ".validate": "newData.val() === 'normal' || newData.val() === 'important'" },
+        "pinned":     { ".validate": "newData.isBoolean()" },
+        "archived":   { ".validate": "newData.isBoolean()" },
+        "dateFrom":   { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "dateTo":     { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "createdAt":  { ".validate": "newData.isNumber()" },
+        "updatedAt":  { ".validate": "newData.isNumber()" },
+        "replyCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
+        "readers": {
+          "$user": { ".validate": "newData.isNumber()" }
+        },
+        "$other": { ".validate": true }
+      }
+    },
+    "replies": {
+      ".read": true,
+      "$noticeId": {
+        "$id": {
+          ".write": true,
+          "user":      { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+          "text":      { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 500" },
+          "createdAt": { ".validate": "newData.isNumber()" },
+          "$other":    { ".validate": true }
+        }
+      }
+    },
+    "events": {
+      ".read": true,
+      "$id": {
+        ".write": true,
+        "title":     { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 40" },
+        "date":      { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "endDate":   { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+        "color":     { ".validate": "newData.isString() && newData.val().length <= 10" },
+        "author":    { ".validate": "newData.isString() && newData.val().length <= 40 && (!data.exists() || data.val() === newData.val())" },
+        "createdAt": { ".validate": "newData.isNumber()" },
+        "updatedAt": { ".validate": "newData.isNumber()" },
+        "$other":    { ".validate": true }
+      }
+    },
     "duty":                { ".read": true, ".write": true },
     "logs":                { ".read": true, ".write": true },
     "materialConsumption": { ".read": true, ".write": true },
     "fighterjet_scores":   { ".read": true, ".write": true },
+    "takryu_scores": {
+      ".read": true,
+      "$key": {
+        ".write": "root.child('users').child($key).exists()"
+      }
+    },
+    "gantt": {
+      ".read": true,
+      ".write": true,
+      "tasks": {
+        "$id": {
+          "name":  { ".validate": "newData.isString() && newData.val().length <= 20" },
+          "start": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)" },
+          "days":  { ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 365" },
+          "order": { ".validate": "!newData.exists() || newData.isNumber()" },
+          "color": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 9)" },
+          "$other": { ".validate": true }
+        }
+      },
+      "$other": { ".validate": true }
+    },
     "drill_rows": {
       ".read": true,
       ".write": true,
@@ -51,6 +122,8 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
         "no":    { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "nose":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
+        "gun":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
         "cleco": { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
         "photo": { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }
@@ -66,6 +139,8 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
         "no":     { ".validate": "!newData.exists() || (newData.isNumber() && newData.val() >= 1 && newData.val() <= 200)" },
         "frac":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 12)" },
         "memo":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 200)" },
+        "nose":   { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
+        "gun":    { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 60)" },
         "cleco":  { ".validate": "!newData.exists() || newData.val() === 'silver' || newData.val() === 'copper' || newData.val() === 'black' || newData.val() === 'brass'" },
         "photo":  { ".validate": "!newData.exists() || (newData.isString() && newData.val().length <= 120)" },
         "$other": { ".validate": true }

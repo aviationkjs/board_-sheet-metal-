@@ -76,6 +76,12 @@ async function recordLog(action, details = {}) {
   }
 }
 
+/* 화면에 끼워 넣는 글자 안전 처리 (이름에 < 가 있거나 본문에 </textarea> 가 들어가도 깨지지 않게) */
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g,
+    c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
 /* 이름별 스티커 색 (tokens.css 의 8색 중 하나로 고정 배정) */
 const NOTE_COLORS = ["blue", "cyan", "teal", "green", "yellow", "orange", "pink", "purple"];
 function colorFromName(name) {
@@ -227,7 +233,7 @@ onValue(notesRef, (snap) => {
     note.innerHTML = `
       <div class="note-header">
         <div class="note-meta">
-          <b>${n.user}</b>
+          <b>${esc(n.user)}</b>
           ${n.pin ? '<span class="pin-tag">고정</span>' : ''}
         </div>
         <div class="note-actions">
@@ -235,7 +241,7 @@ onValue(notesRef, (snap) => {
           <button class="action-btn delete-btn" title="삭제" aria-label="삭제">${ICONS.close}</button>
         </div>
       </div>
-      <textarea placeholder="내용을 입력하세요...">${n.text || ""}</textarea>
+      <textarea placeholder="내용을 입력하세요...">${esc(n.text)}</textarea>
       <div class="note-footer">
         <div class="vote-badge${n.voters && n.voters[username] ? ' voted' : ''}" title="${n.voters && n.voters[username] ? '좋아요 취소' : '좋아요'}">${ICONS.like}<span>${n.vote || 0}</span></div>
       </div>
