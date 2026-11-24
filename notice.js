@@ -390,6 +390,46 @@ async function delReply(id, rid) {
 /* ── 공지 작성 · 수정 · 보관 ───────────────────── */
 let editingNotice = null;
 
+/* 투표 선택지 칸 — 한 칸에 하나씩, ＋ 로 늘리고 － 로 지웁니다 (최대 6칸) */
+const POLL_MAX = 6;
+
+function pollRowHtml(text) {
+  return `<div class="poll-row">
+    <input type="text" maxlength="30" value="${esc(text || "")}" placeholder="예) 참석">
+    <button type="button" class="action-btn row-del" title="이 칸 지우기" aria-label="이 칸 지우기">－</button>
+  </div>`;
+}
+
+function setPollRows(list) {
+  $("pollRows").innerHTML = (list || []).map(pollRowHtml).join("");
+  wirePollRows();
+}
+
+function addPollRow(n) {
+  const box = $("pollRows");
+  for (let i = 0; i < (n || 1); i++) {
+    if (box.children.length >= POLL_MAX) break;
+    box.insertAdjacentHTML("beforeend", pollRowHtml(""));
+  }
+  wirePollRows();
+  const last = box.querySelector(".poll-row:last-child input");
+  if (last) last.focus();
+}
+
+function wirePollRows() {
+  const box = $("pollRows");
+  box.querySelectorAll(".row-del").forEach(btn => {
+    btn.onclick = () => { btn.closest(".poll-row").remove(); wirePollRows(); };
+  });
+  // 칸이 꽉 차면 추가 단추를 숨깁니다.
+  $("pollAdd").hidden = box.children.length >= POLL_MAX;
+}
+
+function pollValues() {
+  return [...$("pollRows").querySelectorAll("input")]
+    .map(i => i.value.trim()).filter(Boolean).slice(0, POLL_MAX);
+}
+
 function openNoticeDlg(id) {
   if (!canManage) return;
   editingNotice = id || null;
@@ -401,7 +441,7 @@ function openNoticeDlg(id) {
   $("nPinned").checked = !!(n && n.pinned);
   $("nFrom").value = (n && n.dateFrom) || "";
   $("nTo").value = (n && n.dateTo) || "";
-  $("nPoll").value = (n && n.poll && n.poll.options) ? Object.values(n.poll.options).join("\n") : "";
+  setPollRows((n && n.poll && n.poll.options) ? Object.values(n.poll.options) : []);
   $("noticeDlg").showModal();
 }
 
@@ -415,8 +455,13 @@ $("noticeForm").addEventListener("submit", async e => {
   if (!from && to) { from = to; to = null; }          // 종료일만 넣은 경우
   if (from && to && to < from) to = from;             // 거꾸로 넣은 경우
 
-  // 투표 선택지 (한 줄에 하나, 2개 이상일 때만 투표를 붙입니다)
-  const lines = $("nPoll").value.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6);
+  // 투표 선택지 (2개 이상일 때만 투표를 붙입니다)
+  const lines = pollValues();
+  if (lines.length === 1) {
+    e.preventDefault();     // 창을 닫지 않고 고치게 둡니다
+    alert("투표를 넣으려면 선택지가 2개 이상이어야 합니다.\n한 칸만 쓰려면 그 칸을 비우거나 지워 주세요.");
+    return;
+  }
   const prev = editingNotice && notices[editingNotice] ? notices[editingNotice].poll : null;
   const prevTxt = (prev && prev.options) ? Object.values(prev.options).join("\n") : "";
   const nowTxt = lines.length >= 2 ? lines.join("\n") : "";
@@ -759,6 +804,8 @@ $("eventDelete").onclick = async () => {
 /* ── 연결 ──────────────────────────────────────── */
 if (username) {
   document.querySelectorAll(".tab").forEach(b => { b.onclick = () => setTab(b.dataset.tab); });
+
+  $("pollAdd").onclick = () => addPollRow($("pollRows").children.length === 0 ? 2 : 1);
 
   $("addNoticeBtn").onclick = () => openNoticeDlg(null);
   $("addEventBtn").onclick = () => openEventDlg(null);

@@ -122,10 +122,12 @@
                 <label class="f"><span>일정 시작 <i>선택</i></span><input type="date" id="nFrom"></label>
                 <label class="f"><span>일정 종료 <i>선택</i></span><input type="date" id="nTo"></label>
             </div>
-            <label class="f"><span>투표 선택지 <i>선택 · 한 줄에 하나, 2개 이상</i></span>
-                <textarea id="nPoll" rows="3" placeholder="예)&#10;참석&#10;불참"></textarea>
-            </label>
-            <p class="dlg-hint">날짜를 넣으면 달력에도 함께 표시됩니다. 선택지를 넣으면 공지에 투표가 붙습니다.</p>
+            <div class="f">
+                <span>투표 선택지 <i>선택 · 2개 이상이면 공지에 투표가 붙습니다</i></span>
+                <div class="poll-rows" id="pollRows"></div>
+                <button type="button" class="add-row" id="pollAdd">＋ 선택지 추가</button>
+            </div>
+            <p class="dlg-hint">날짜를 넣으면 달력에도 함께 표시됩니다.</p>
             <div class="dlg-actions">
                 <button type="submit" value="cancel" class="nav-btn" formnovalidate>취소</button>
                 <button type="submit" value="ok" class="nav-btn accent">저장</button>

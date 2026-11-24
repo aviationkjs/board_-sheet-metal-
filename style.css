@@ -881,6 +881,51 @@ header {
 
 .f-row { display: flex; gap: var(--spacing-3); flex-wrap: wrap; }
 
+/* 투표 선택지 칸 */
+.poll-rows { display: flex; flex-direction: column; gap: var(--spacing-2); }
+
+.poll-row { display: flex; align-items: center; gap: var(--spacing-2); }
+
+.poll-row input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-input);
+  outline: none;
+}
+
+.poll-row input:focus { border-color: var(--color-accent); }
+
+.row-del {
+  flex-shrink: 0;
+  font-size: 18px;
+  line-height: 1;
+  border: 1px solid var(--color-border-emphasized);
+}
+
+.row-del:hover { color: var(--color-text-error); border-color: var(--color-error); }
+
+.add-row {
+  align-self: flex-start;
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px dashed var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background: transparent;
+  color: var(--color-text-accent);
+  font-family: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.add-row:hover { background: var(--color-hover); border-color: var(--color-accent); }
+
 .chk {
   display: inline-flex;
   align-items: center;
