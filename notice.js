@@ -63,6 +63,8 @@ async function recordLog(action, details = {}) {
 let canManage = username === "admin";   // 관리자 또는 공지 부관리자
 let notices = {};
 let events = {};
+let roster = {};            // 전체 계정 목록 (읽음·투표 '안 한 사람' 집계용)
+let todoShown = false;      // 접속 직후 안내는 한 번만
 let showArchived = false;
 let openId = null;          // 펼쳐 둔 공지
 let replyUnsub = null;      // 그 공지의 답글 구독 해제 함수
@@ -136,6 +138,21 @@ function cardHtml(n) {
         : `<button class="chip edit-btn">수정</button><button class="chip archive-btn">보관</button>`)
     : "";
 
+  const total = rosterCount();
+  // 담당자는 칩을 눌러 누가 읽었는지·투표했는지 명단을 봅니다.
+  const readChip = canManage
+    ? `<button class="chip roster-btn" data-view="read">읽음 ${readers.length}/${total}</button>`
+    : `<span class="chip plain">읽음 ${readers.length}/${total}</span>`;
+
+  let pollChip = "";
+  if (n.poll && n.poll.options) {
+    const voted = n.votes ? Object.keys(n.votes).length : 0;
+    const label = `투표 ${voted}/${total}` + (n.poll.closed ? " · 마감" : "");
+    pollChip = canManage
+      ? `<button class="chip roster-btn" data-view="poll">${label}</button>`
+      : `<span class="chip plain">${label}</span>`;
+  }
+
   return `
   <article class="${cls.join(" ")}" data-id="${esc(n.id)}">
     <div class="notice-head">
@@ -144,14 +161,84 @@ function cardHtml(n) {
     </div>
     <div class="notice-sub">${esc(n.author || "?")} · ${esc(dateLabel(n.createdAt))}${edited}</div>
     <div class="notice-body">${esc(n.body || "")}</div>
+    ${pollHtml(n)}
     <div class="notice-foot">
-      <span class="chip plain" title="${esc(readers.join(", "))}">읽음 ${readers.length}</span>
+      ${readChip}
       <button class="chip reply-chip">답글 ${n.replyCount || 0}</button>
+      ${pollChip}
       <span class="grow"></span>
       ${manage}
     </div>
     <div class="replies" ${open ? "" : "hidden"}></div>
   </article>`;
+}
+
+/* ── 투표 ──────────────────────────────────────── */
+function rosterCount() {
+  const n = Object.keys(roster).length;
+  return n || "-";
+}
+
+function pollHtml(n) {
+  const poll = n.poll;
+  if (!poll || !poll.options) return "";
+  const votes = n.votes || {};
+  const mine = votes[username] || null;
+  const totalVotes = Object.keys(votes).length;
+  const closed = !!poll.closed;
+
+  const rows = Object.entries(poll.options).map(([oid, text]) => {
+    const cnt = Object.values(votes).filter(v => v === oid).length;
+    const pct = totalVotes ? Math.round(cnt / totalVotes * 100) : 0;
+    const on = mine === oid;
+    return `
+      <button class="poll-opt${on ? " on" : ""}${closed ? " closed" : ""}" data-oid="${esc(oid)}"
+              ${closed ? "disabled" : ""}>
+        <span class="poll-bar" style="width:${pct}%"></span>
+        <span class="poll-text">${on ? "✓ " : ""}${esc(text)}</span>
+        <span class="poll-num">${cnt}명 · ${pct}%</span>
+      </button>`;
+  }).join("");
+
+  const state = closed
+    ? "마감된 투표입니다."
+    : (mine ? "다시 누르면 선택을 바꿀 수 있습니다." : "아직 투표하지 않았습니다.");
+
+  const toggle = canManage
+    ? `<button class="link-btn poll-close">${closed ? "마감 해제" : "투표 마감"}</button>` : "";
+
+  return `<div class="poll${mine ? "" : " todo"}">
+    <div class="poll-head">
+      <strong>투표</strong>
+      <span class="poll-state">${state}</span>
+      <span class="grow"></span>${toggle}
+    </div>
+    ${rows}
+  </div>`;
+}
+
+async function castVote(id, oid) {
+  const n = notices[id];
+  if (!n || !n.poll || n.poll.closed) return;
+  const same = n.votes && n.votes[username] === oid;
+  try {
+    await update(ref(db, "notices/" + id + "/votes"), { [username]: same ? null : oid });
+    recordLog(same ? "VOTE_CANCEL_NOTICE" : "VOTE_NOTICE", { noticeId: id, option: oid });
+  } catch (e) {
+    alert("투표를 저장하지 못했습니다: " + e.message);
+  }
+}
+
+async function togglePollClosed(id) {
+  if (!canManage) return;
+  const n = notices[id];
+  if (!n || !n.poll) return;
+  try {
+    await update(ref(db, "notices/" + id + "/poll"), { closed: n.poll.closed ? null : true });
+    recordLog("POLL_CLOSE", { noticeId: id, closed: !n.poll.closed });
+  } catch (e) {
+    alert("처리하지 못했습니다: " + e.message);
+  }
 }
 
 function renderNotices() {
@@ -177,6 +264,15 @@ function renderNotices() {
     if (ab) ab.onclick = () => archiveNotice(id, true);
     const rb = card.querySelector(".restore-btn");
     if (rb) rb.onclick = () => archiveNotice(id, false);
+
+    card.querySelectorAll(".poll-opt").forEach(o => {
+      o.onclick = () => castVote(id, o.dataset.oid);
+    });
+    const pc = card.querySelector(".poll-close");
+    if (pc) pc.onclick = () => togglePollClosed(id);
+    card.querySelectorAll(".roster-btn").forEach(btn => {
+      btn.onclick = () => openRoster(id, btn.dataset.view);
+    });
   });
 
   if (openId) renderReplies(openId);
@@ -305,6 +401,7 @@ function openNoticeDlg(id) {
   $("nPinned").checked = !!(n && n.pinned);
   $("nFrom").value = (n && n.dateFrom) || "";
   $("nTo").value = (n && n.dateTo) || "";
+  $("nPoll").value = (n && n.poll && n.poll.options) ? Object.values(n.poll.options).join("\n") : "";
   $("noticeDlg").showModal();
 }
 
@@ -318,6 +415,23 @@ $("noticeForm").addEventListener("submit", async e => {
   if (!from && to) { from = to; to = null; }          // 종료일만 넣은 경우
   if (from && to && to < from) to = from;             // 거꾸로 넣은 경우
 
+  // 투표 선택지 (한 줄에 하나, 2개 이상일 때만 투표를 붙입니다)
+  const lines = $("nPoll").value.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 6);
+  const prev = editingNotice && notices[editingNotice] ? notices[editingNotice].poll : null;
+  const prevTxt = (prev && prev.options) ? Object.values(prev.options).join("\n") : "";
+  const nowTxt = lines.length >= 2 ? lines.join("\n") : "";
+
+  let poll = null;
+  if (lines.length >= 2) {
+    poll = { options: {} };
+    lines.forEach((t, i) => { poll.options["o" + (i + 1)] = t.slice(0, 30); });
+    if (prev && prev.closed && prevTxt === nowTxt) poll.closed = true;   // 마감 상태 유지
+  }
+
+  const hadVotes = editingNotice && notices[editingNotice] && notices[editingNotice].votes;
+  if (editingNotice && prevTxt !== nowTxt && hadVotes &&
+      !confirm("선택지를 바꾸면 지금까지의 투표가 모두 지워집니다. 계속할까요?")) return;
+
   const data = {
     title,
     body: $("nBody").value.trim(),
@@ -325,9 +439,11 @@ $("noticeForm").addEventListener("submit", async e => {
     pinned: $("nPinned").checked,
     dateFrom: from,
     dateTo: to,
+    poll: poll,
     updatedAt: Date.now(),
     updatedBy: username
   };
+  if (prevTxt !== nowTxt) data.votes = null;   // 선택지가 바뀌면 투표는 초기화
 
   try {
     if (editingNotice) {
@@ -362,6 +478,92 @@ async function archiveNotice(id, on) {
   } catch (e) {
     alert("처리하지 못했습니다: " + e.message);
   }
+}
+
+/* ── 읽음·투표 명단 (담당자 전용) ──────────────── */
+function nameList(names) {
+  return names.length
+    ? `<div class="roster-names">${names.map(n => `<span>${esc(n)}</span>`).join("")}</div>`
+    : `<div class="roster-none">없음</div>`;
+}
+
+function openRoster(id, view) {
+  if (!canManage) return;
+  const n = notices[id];
+  if (!n) return;
+  const all = Object.keys(roster).sort();
+  const readers = n.readers ? Object.keys(n.readers) : [];
+  const votes = n.votes || {};
+  let h = "";
+
+  // 읽음
+  const unreadNames = all.filter(u => !readers.includes(u));
+  h += `<section>
+    <h3>읽음 <b>${readers.length}</b> / ${all.length}</h3>
+    <div class="roster-sub">읽은 사람</div>${nameList(readers.slice().sort())}
+    <div class="roster-sub">안 읽은 사람</div>${nameList(unreadNames)}
+  </section>`;
+
+  // 투표
+  if (n.poll && n.poll.options) {
+    const voters = Object.keys(votes);
+    h += `<section>
+      <h3>투표 <b>${voters.length}</b> / ${all.length}${n.poll.closed ? " · 마감" : ""}</h3>`;
+    for (const [oid, text] of Object.entries(n.poll.options)) {
+      const who = voters.filter(u => votes[u] === oid).sort();
+      h += `<div class="roster-sub">${esc(text)} <b>${who.length}명</b></div>${nameList(who)}`;
+    }
+    h += `<div class="roster-sub">투표 안 한 사람</div>${nameList(all.filter(u => !voters.includes(u)))}</section>`;
+  }
+
+  $("rosterTitle").textContent = n.title || "현황";
+  $("rosterBody").innerHTML = h;
+  $("rosterDlg").showModal();
+  // 투표 칩으로 열었으면 투표 쪽이 먼저 보이게 합니다.
+  if (view === "poll") {
+    const secs = $("rosterBody").querySelectorAll("section");
+    if (secs[1]) secs[1].scrollIntoView({ block: "start" });
+  }
+}
+
+/* ── 접속 직후 안내 ────────────────────────────── */
+function todoItems() {
+  return Object.entries(notices)
+    .map(([id, n]) => Object.assign({ id }, n))
+    .filter(n => !n.archived)
+    .map(n => {
+      const unread = !(n.readers && n.readers[username]);
+      const needVote = !!(n.poll && n.poll.options && !n.poll.closed && !(n.votes && n.votes[username]));
+      return (unread || needVote) ? { id: n.id, title: n.title, unread, needVote, pinned: n.pinned } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+}
+
+function maybeShowTodo() {
+  if (todoShown) return;
+  try { if (sessionStorage.getItem("todoShown")) { todoShown = true; return; } } catch (e) {}
+  const items = todoItems();
+  if (!items.length) return;
+
+  todoShown = true;
+  try { sessionStorage.setItem("todoShown", "1"); } catch (e) {}
+
+  $("todoTitle").textContent = `확인할 공지가 ${items.length}건 있습니다`;
+  $("todoBody").innerHTML = items.map(it => `
+    <button class="todo-item" data-id="${esc(it.id)}">
+      ${it.unread ? '<span class="badge new">새 글</span>' : ""}
+      ${it.needVote ? '<span class="badge vote">투표</span>' : ""}
+      <span class="t">${esc(it.title || "(제목 없음)")}</span>
+    </button>`).join("");
+
+  $("todoBody").querySelectorAll(".todo-item").forEach(btn => {
+    btn.onclick = () => {
+      $("todoDlg").close();
+      gotoNotice(btn.dataset.id);
+    };
+  });
+  $("todoDlg").showModal();
 }
 
 /* ── 달력 ──────────────────────────────────────── */
@@ -575,11 +777,21 @@ if (username) {
     renderNotices();
   }).catch(() => {});
 
+  $("rosterClose").onclick = () => $("rosterDlg").close();
+  $("todoClose").onclick = () => $("todoDlg").close();
+
+  // 전체 계정 목록 — '안 읽은 사람 / 투표 안 한 사람'을 세는 기준
+  onValue(ref(db, "users"), snap => {
+    roster = snap.val() || {};
+    renderNotices();
+  }, e => console.error("사용자 읽기 오류:", e));
+
   onValue(ref(db, "notices"), snap => {
     notices = snap.val() || {};
     updateBadge();
     renderNotices();
     renderCalendar();
+    maybeShowTodo();
   }, e => console.error("공지 읽기 오류:", e));
 
   onValue(ref(db, "events"), snap => {

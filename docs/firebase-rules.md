@@ -3,7 +3,7 @@
 `저장에 실패했습니다` 오류는 **콘솔에 배포된 규칙에 그 경로가 없어서** 납니다.
 Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 전부 거부합니다.
 
-> **2026-11-24 — 공지·답글·달력을 추가했습니다.** `notices` / `replies` / `events` 세 경로가 새로 필요합니다.
+> **2026-11-24 — 공지·답글·달력·투표를 추가했습니다.** `notices`(투표 `poll`·`votes` 포함) / `replies` / `events` 경로가 새로 필요합니다.
 > 아래 A안을 다시 붙여넣고 게시하지 않으면 **공지 작성·답글·일정 저장이 전부 거부**됩니다.
 
 붙여넣는 곳: [Firebase 콘솔](https://console.firebase.google.com/) → 프로젝트 `board-sheet-metal`
@@ -58,6 +58,16 @@ Realtime Database 는 규칙에 선언되지 않은 경로에 대한 쓰기를 �
         "replyCount": { ".validate": "newData.isNumber() && newData.val() >= 0" },
         "readers": {
           "$user": { ".validate": "newData.isNumber()" }
+        },
+        "poll": {
+          "closed":  { ".validate": "newData.isBoolean()" },
+          "options": {
+            "$oid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30" }
+          },
+          "$other": { ".validate": true }
+        },
+        "votes": {
+          "$user": { ".validate": "newData.isString() && newData.val().length <= 20" }
         },
         "$other": { ".validate": true }
       }

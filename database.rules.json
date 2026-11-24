@@ -40,6 +40,16 @@
         "readers": {
           "$user": { ".validate": "newData.isNumber()" }
         },
+        "poll": {
+          "closed":  { ".validate": "newData.isBoolean()" },
+          "options": {
+            "$oid": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 30" }
+          },
+          "$other": { ".validate": true }
+        },
+        "votes": {
+          "$user": { ".validate": "newData.isString() && newData.val().length <= 20" }
+        },
         "$other": { ".validate": true }
       }
     },

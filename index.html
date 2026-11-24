@@ -122,12 +122,37 @@
                 <label class="f"><span>일정 시작 <i>선택</i></span><input type="date" id="nFrom"></label>
                 <label class="f"><span>일정 종료 <i>선택</i></span><input type="date" id="nTo"></label>
             </div>
-            <p class="dlg-hint">날짜를 넣으면 달력에도 함께 표시됩니다.</p>
+            <label class="f"><span>투표 선택지 <i>선택 · 한 줄에 하나, 2개 이상</i></span>
+                <textarea id="nPoll" rows="3" placeholder="예)&#10;참석&#10;불참"></textarea>
+            </label>
+            <p class="dlg-hint">날짜를 넣으면 달력에도 함께 표시됩니다. 선택지를 넣으면 공지에 투표가 붙습니다.</p>
             <div class="dlg-actions">
                 <button type="submit" value="cancel" class="nav-btn" formnovalidate>취소</button>
                 <button type="submit" value="ok" class="nav-btn accent">저장</button>
             </div>
         </form>
+    </dialog>
+
+    <!-- 읽음·투표 현황 (관리자·공지 부관리자 전용) -->
+    <dialog id="rosterDlg" class="dlg">
+        <div class="dlg-form">
+            <h2 id="rosterTitle">현황</h2>
+            <div id="rosterBody" class="roster"></div>
+            <div class="dlg-actions">
+                <button class="nav-btn" id="rosterClose">닫기</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- 접속 직후 안내: 안 읽은 공지 · 투표 안 한 공지 -->
+    <dialog id="todoDlg" class="dlg">
+        <div class="dlg-form">
+            <h2 id="todoTitle">확인할 공지</h2>
+            <div id="todoBody" class="todo-list"></div>
+            <div class="dlg-actions">
+                <button class="nav-btn" id="todoClose">나중에</button>
+            </div>
+        </div>
     </dialog>
 
     <!-- 일정 작성·수정 -->
