@@ -373,7 +373,8 @@ function itemsOn(key) {
       if (!n || n.archived || !n.dateFrom) continue;
       const to = n.dateTo || n.dateFrom;
       if (key >= n.dateFrom && key <= to) {
-        out.push({ kind: "notice", id, title: n.title || "(제목 없음)", color: "accent", start: key === n.dateFrom });
+        out.push({ kind: "notice", id, title: n.title || "(제목 없음)", color: "accent",
+                   start: key === n.dateFrom, from: n.dateFrom, to });
       }
     }
   }
@@ -383,7 +384,8 @@ function itemsOn(key) {
       if (!ev || !ev.date) continue;
       const to = ev.endDate || ev.date;
       if (key >= ev.date && key <= to) {
-        out.push({ kind: "event", id, title: ev.title || "(제목 없음)", color: ev.color || "blue", start: key === ev.date });
+        out.push({ kind: "event", id, title: ev.title || "(제목 없음)", color: ev.color || "blue",
+                   start: key === ev.date, from: ev.date, to });
       }
     }
   }
@@ -450,13 +452,22 @@ function renderDayPanel() {
   if (!items.length) {
     h += `<div class="reply-who">이 날에는 일정이 없습니다.</div>`;
   } else {
-    h += items.map(it => `
+    h += items.map(it => {
+      // 누를 수 있을 때만 단추를 답니다 (공지는 누구나 열람, 일정 수정은 담당자만)
+      const btn = it.kind === "notice"
+        ? `<button class="chip go-btn" data-kind="notice" data-id="${esc(it.id)}">공지 보기</button>`
+        : (canManage
+            ? `<button class="chip go-btn" data-kind="event" data-id="${esc(it.id)}">수정</button>`
+            : "");
+      const span = (it.to && it.to !== it.from)
+        ? `<span class="kind">${esc(rangeLabel(it.from, it.to))}</span>` : "";
+      return `
       <div class="day-item" style="--chip-color:${COLOR[it.color] || COLOR.blue}">
         <span class="kind">${it.kind === "notice" ? "공지" : "일정"}</span>
         <span class="t">${esc(it.title)}</span>
-        <button class="chip go-btn" data-kind="${it.kind}" data-id="${esc(it.id)}">${
-          it.kind === "notice" ? "공지 보기" : (canManage ? "수정" : "보기")}</button>
-      </div>`).join("");
+        ${span}${btn}
+      </div>`;
+    }).join("");
   }
   $("dayPanel").innerHTML = h;
 
