@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F1F22" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="성능보드판">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-192.png">
+<script src="pwa.js?v=20261124" defer></script>
+<title>사다리 타기</title>
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
+<style>
+  :root{
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle);
+    --line:var(--color-border); --line-2:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --amber:var(--color-accent); --amber-dim:var(--color-accent-muted); --amber-text:var(--color-text-accent);
+    --sans:var(--font-family);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+  button{font-family:inherit}
+
+  .wrap{max-width:760px;margin:0 auto;padding:22px 16px 64px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+  .panel-head{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .panel-head h3{font-size:11px;color:var(--muted);font-weight:500}
+  .grow{flex:1}
+
+  .btn{height:36px;padding:0 14px;border:none;border-radius:var(--radius-element);background:var(--color-neutral);
+    color:var(--text);font-size:14px;font-weight:var(--font-weight-medium);cursor:pointer;white-space:nowrap;flex-shrink:0}
+  .btn:hover{background:var(--line-2)}
+  .btn.accent{background:var(--amber);color:var(--color-on-accent)}
+  .btn.sm{height:30px;padding:0 10px;font-size:13px}
+  .btn:disabled{opacity:.45;cursor:default}
+
+  /* 인원 */
+  .stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .stepper button{width:36px;height:34px;border:none;background:var(--panel-2);color:var(--text);font-size:18px;cursor:pointer}
+  .stepper span{min-width:52px;text-align:center;font-size:15px;font-weight:600}
+
+  .presets{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+
+  .rows{display:grid;grid-template-columns:24px 1fr 1fr;gap:6px 8px;align-items:center}
+  .rows .h{font-size:11px;color:var(--muted)}
+  .rows .no{font-size:12px;color:var(--muted);text-align:center}
+  .rows input{width:100%;min-width:0;background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+    font-family:inherit;font-size:16px;padding:8px 10px;border-radius:8px;outline:none}
+  .rows input:focus{border-color:var(--amber)}
+
+  /* 사다리 */
+  .cols{display:grid;gap:4px}
+  .who,.res{min-width:0;height:40px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+    color:var(--text);font-size:13px;font-weight:600;padding:0 2px;cursor:pointer;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;line-height:38px}
+  .who{border-color:var(--c);box-shadow:inset 0 -3px 0 var(--c)}
+  .who.done{background:var(--c);color:#fff}
+  .who:disabled{cursor:default}
+  .res{cursor:default;color:var(--muted);font-weight:500}
+  .res.show{color:var(--text);font-weight:600;border-color:var(--c);background:var(--panel)}
+  .res.hidden-txt{letter-spacing:1px}
+
+  .stage{position:relative;height:clamp(280px,52vh,460px);margin:8px 0}
+  .stage svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+  .stage .rail{stroke:var(--line-2);stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke}
+  .stage .trail{fill:none;stroke-width:5;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+  .stage .cover{position:absolute;inset:0;background:var(--panel);border-radius:8px;display:flex;align-items:center;
+    justify-content:center;color:var(--muted);font-size:13px;border:1px dashed var(--line-2);transition:opacity .3s}
+  .stage .cover.off{opacity:0;pointer-events:none}
+  .dot{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:var(--c);
+    box-shadow:0 0 0 3px var(--panel);pointer-events:none}
+
+  .tip{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+
+  .summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+  .sum{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:8px;background:var(--panel-2);
+    border-left:4px solid var(--c);font-size:14px;min-width:0}
+  .sum .n{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sum .a{color:var(--muted)}
+  .sum .r{margin-left:auto;font-weight:600;color:var(--amber-text);white-space:nowrap}
+  .empty{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="back-btn">← 보드</a>
+  <h1 class="page-title">사다리 타기</h1>
+  <div class="header-side"><span class="header-clock" id="clock">--:--:--</span></div>
+</header>
+
+<div class="wrap">
+  <!-- 설정 -->
+  <div class="panel">
+    <div class="panel-head">
+      <h3>참가자 · 결과</h3>
+      <span class="grow"></span>
+      <div class="stepper" aria-label="인원">
+        <button id="minus" aria-label="한 명 빼기">－</button>
+        <span id="count">4명</span>
+        <button id="plus" aria-label="한 명 더하기">＋</button>
+      </div>
+    </div>
+    <div class="presets">
+      <button class="btn sm" data-preset="win1">당첨 1 · 나머지 꽝</button>
+      <button class="btn sm" data-preset="order">순번 1~N</button>
+      <button class="btn sm" data-preset="duty">사역 · 면제</button>
+      <button class="btn sm" data-preset="clear">결과 비우기</button>
+    </div>
+    <div class="rows" id="rows"></div>
+  </div>
+
+  <!-- 사다리 -->
+  <div class="panel">
+    <div class="panel-head">
+      <h3>사다리</h3>
+      <span class="grow"></span>
+      <button class="btn sm" id="shuffle">새 사다리</button>
+      <button class="btn sm accent" id="all">전체 공개</button>
+    </div>
+    <div class="cols" id="top"></div>
+    <div class="stage" id="stage">
+      <svg id="svg" preserveAspectRatio="none"></svg>
+      <div class="cover" id="cover">이름을 누르면 사다리가 드러납니다</div>
+    </div>
+    <div class="cols" id="bottom"></div>
+    <div class="tip" id="tip">위쪽 이름을 눌러 한 명씩 타 보세요</div>
+  </div>
+
+  <!-- 결과 -->
+  <div class="panel">
+    <div class="panel-head">
+      <h3>결과</h3>
+      <span class="grow"></span>
+      <button class="btn sm" id="copy" disabled>결과 복사</button>
+    </div>
+    <div class="summary" id="summary"><div class="empty">아직 아무도 타지 않았습니다.</div></div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
+  c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+const MIN = 2, MAX = 10, ROWS = 12;
+const COLORS = ["--note-blue-line","--note-orange-line","--note-green-line","--note-pink-line","--note-purple-line",
+                "--note-teal-line","--note-yellow-line","--note-cyan-line","--color-accent","--color-text-error"];
+const col = i => `var(${COLORS[i % COLORS.length]})`;
+const KEY = "ladderSetup";
+
+let names = [], results = [];
+let rungs = [];          // rungs[r][i] = true 이면 r번째 줄에서 i ↔ i+1 연결
+let done = {};           // 참가자 번호 → 도착 칸
+let slot = [];           // 아래 칸 j 에 놓인 결과 번호 (매번 섞어서 설정 순서로 짐작하지 못하게)
+let busy = false;
+let gen = 0;            // 사다리를 새로 만들면 진행 중이던 애니메이션은 버립니다
+
+/* ── 저장 / 복원 ── */
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ names, results })); } catch (e) {} }
+function restore() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s && Array.isArray(s.names) && s.names.length >= MIN) { names = s.names.slice(0, MAX); results = s.results || []; }
+  } catch (e) {}
+  if (!names.length) {
+    const me = localStorage.getItem("username");
+    names = [me || "", "", "", ""];
+    results = ["당첨", "꽝", "꽝", "꽝"];
+  }
+  while (results.length < names.length) results.push("");
+  results.length = names.length;
+}
+
+const nameOf = i => (names[i] || "").trim() || (i + 1) + "번";
+const resOf  = j => (results[slot[j]] || "").trim() || "-";   // j = 아래 칸 위치
+
+/* ── 설정 칸 ── */
+function renderRows() {
+  $("count").textContent = names.length + "명";
+  $("minus").disabled = names.length <= MIN;
+  $("plus").disabled = names.length >= MAX;
+  let h = `<span></span><span class="h">이름</span><span class="h">결과</span>`;
+  names.forEach((n, i) => {
+    h += `<span class="no">${i + 1}</span>
+      <input data-k="n" data-i="${i}" maxlength="10" value="${esc(n)}" placeholder="${i + 1}번">
+      <input data-k="r" data-i="${i}" maxlength="10" value="${esc(results[i])}" placeholder="결과">`;
+  });
+  $("rows").innerHTML = h;
+  $("rows").querySelectorAll("input").forEach(inp => {
+    inp.oninput = () => {
+      (inp.dataset.k === "n" ? names : results)[+inp.dataset.i] = inp.value;
+      save(); renderLabels();
+    };
+  });
+}
+
+function setCount(n) {
+  n = Math.max(MIN, Math.min(MAX, n));
+  while (names.length < n) { names.push(""); results.push(results.includes("당첨") ? "꽝" : ""); }
+  names.length = n; results.length = n;
+  save(); renderRows(); newLadder();
+}
+
+function preset(kind) {
+  const n = names.length;
+  if (kind === "win1")  results = Array.from({ length: n }, (_, i) => i === 0 ? "당첨" : "꽝");
+  if (kind === "order") results = Array.from({ length: n }, (_, i) => (i + 1) + "번");
+  if (kind === "duty")  results = Array.from({ length: n }, (_, i) => i === 0 ? "사역" : "면제");
+  if (kind === "clear") results = Array.from({ length: n }, () => "");
+  save(); renderRows(); newLadder();
+}
+
+/* ── 사다리 만들기 ── */
+function newLadder() {
+  const n = names.length;
+  rungs = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    for (let i = 0; i < n - 1; i++) row.push(!row[i - 1] && Math.random() < 0.45);
+    rungs.push(row);
+  }
+  // 칸 사이마다 가로대가 최소 2개는 있도록 채웁니다
+  for (let i = 0; i < n - 1; i++) {
+    let c = rungs.filter(row => row[i]).length, tries = 0;
+    while (c < 2 && tries++ < 50) {
+      const r = Math.floor(Math.random() * ROWS);
+      if (!rungs[r][i] && !rungs[r][i - 1] && !rungs[r][i + 1]) { rungs[r][i] = true; c++; }
+    }
+  }
+  done = {};
+  busy = false;
+  gen++;
+  slot = names.map((_, k) => k);
+  for (let k = slot.length - 1; k > 0; k--) { const r = Math.floor(Math.random() * (k + 1)); [slot[k], slot[r]] = [slot[r], slot[k]]; }
+  drawRails();
+  $("cover").classList.remove("off");
+  renderLabels();
+  renderSummary();
+}
+
+/* 좌표: 가로는 칸 가운데 (i+0.5)*100, 세로는 0~1000 */
+const X = i => (i + 0.5) * 100;
+const Y = r => (r + 1) * 1000 / (ROWS + 1);
+
+function drawRails() {
+  const n = names.length;
+  const svg = $("svg");
+  svg.setAttribute("viewBox", `0 0 ${n * 100} 1000`);
+  let h = "";
+  for (let i = 0; i < n; i++) h += `<line class="rail" x1="${X(i)}" y1="0" x2="${X(i)}" y2="1000"/>`;
+  rungs.forEach((row, r) => row.forEach((on, i) => {
+    if (on) h += `<line class="rail" x1="${X(i)}" y1="${Y(r)}" x2="${X(i + 1)}" y2="${Y(r)}"/>`;
+  }));
+  svg.innerHTML = h + `<g id="trails"></g>`;
+  $("stage").querySelectorAll(".dot").forEach(d => d.remove());
+}
+
+function pathOf(start) {
+  let c = start;
+  const pts = [[X(c), 0]];
+  rungs.forEach((row, r) => {
+    if (row[c]) { pts.push([X(c), Y(r)]); c++; pts.push([X(c), Y(r)]); }
+    else if (row[c - 1]) { pts.push([X(c), Y(r)]); c--; pts.push([X(c), Y(r)]); }
+  });
+  pts.push([X(c), 1000]);
+  return { pts, end: c };
+}
+
+/* ── 위·아래 칸 ── */
+function renderLabels() {
+  const n = names.length;
+  const tpl = `repeat(${n}, minmax(0, 1fr))`;
+  $("top").style.gridTemplateColumns = tpl;
+  $("bottom").style.gridTemplateColumns = tpl;
+
+  $("top").innerHTML = names.map((_, i) =>
+    `<button class="who${i in done ? " done" : ""}" style="--c:${col(i)}" data-i="${i}" title="${esc(nameOf(i))}">${esc(nameOf(i))}</button>`
+  ).join("");
+
+  const owner = {};
+  for (const k in done) owner[done[k]] = +k;
+  $("bottom").innerHTML = results.map((_, j) => {
+    const show = j in owner;
+    return `<div class="res${show ? " show" : " hidden-txt"}" ${show ? `style="--c:${col(owner[j])}"` : ""}
+              title="${show ? esc(resOf(j)) : ""}">${show ? esc(resOf(j)) : "?"}</div>`;
+  }).join("");
+
+  $("top").querySelectorAll(".who").forEach(b => { b.onclick = () => run(+b.dataset.i); });
+  $("all").disabled = Object.keys(done).length === n;
+}
+
+/* ── 타기 애니메이션 ── */
+function run(i, fast) {
+  if (busy || i in done) return Promise.resolve();
+  busy = true;
+  $("cover").classList.add("off");
+  const { pts, end } = pathOf(i);
+  const n = names.length;
+  const stage = $("stage");
+
+  const trail = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  trail.setAttribute("class", "trail");
+  trail.style.stroke = col(i);
+  $("trails").appendChild(trail);
+
+  const dot = document.createElement("div");
+  dot.className = "dot";
+  dot.style.setProperty("--c", col(i));
+  stage.appendChild(dot);
+
+  // 화면 크기 기준으로 길이를 재서 일정한 속도로 움직입니다
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const sx = W / (n * 100), sy = H / 1000;
+  const seg = [];
+  let total = 0;
+  for (let k = 1; k < pts.length; k++) {
+    const d = Math.hypot((pts[k][0] - pts[k - 1][0]) * sx, (pts[k][1] - pts[k - 1][1]) * sy);
+    seg.push(d); total += d;
+  }
+  const speed = fast ? 1.4 : 0.55;   // px / ms
+  const t0 = performance.now();
+  const g = gen;
+
+  return new Promise(resolve => {
+    function frame(now) {
+      if (g !== gen) { dot.remove(); resolve(); return; }
+      const finished = (now - t0) * speed >= total;
+      let dist = finished ? Infinity : (now - t0) * speed;
+      const out = [pts[0]];
+      let k = 0;
+      while (k < seg.length && dist >= seg[k]) { dist -= seg[k]; out.push(pts[k + 1]); k++; }
+      let cur = out[out.length - 1];
+      if (k < seg.length) {
+        const a = pts[k], b = pts[k + 1], f = seg[k] ? dist / seg[k] : 0;
+        cur = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+        out.push(cur);
+      }
+      trail.setAttribute("points", out.map(p => p.join(",")).join(" "));
+      dot.style.left = (cur[0] / (n * 100) * 100) + "%";
+      dot.style.top = (cur[1] / 10) + "%";
+      if (!finished) { requestAnimationFrame(frame); return; }
+      done[i] = end;
+      busy = false;
+      renderLabels();
+      renderSummary();
+      resolve();
+    }
+    requestAnimationFrame(frame);
+  });
+}
+
+async function runAll() {
+  if (busy) return;
+  const g = gen;
+  for (let i = 0; i < names.length; i++) {
+    if (g !== gen) return;
+    if (!(i in done)) await run(i, true);
+  }
+}
+
+/* ── 결과 목록 ── */
+function renderSummary() {
+  const ids = Object.keys(done).map(Number).sort((a, b) => a - b);
+  $("copy").disabled = !ids.length;
+  $("tip").textContent = ids.length === names.length
+    ? "모두 탔습니다. ‘새 사다리’로 다시 할 수 있어요."
+    : "위쪽 이름을 눌러 한 명씩 타 보세요";
+  if (!ids.length) { $("summary").innerHTML = `<div class="empty">아직 아무도 타지 않았습니다.</div>`; return; }
+  $("summary").innerHTML = ids.map(i =>
+    `<div class="sum" style="--c:${col(i)}"><span class="n">${esc(nameOf(i))}</span><span class="a">→</span>
+       <span class="r">${esc(resOf(done[i]))}</span></div>`).join("");
+}
+
+function copyResult() {
+  const txt = "[사다리 타기 결과]\n" + Object.keys(done).map(Number).sort((a, b) => a - b)
+    .map(i => nameOf(i) + " → " + resOf(done[i])).join("\n");
+  const ok = () => { $("copy").textContent = "✓ 복사됨"; setTimeout(() => $("copy").textContent = "결과 복사", 1400); };
+  if (navigator.clipboard) navigator.clipboard.writeText(txt).then(ok, ok);
+  else {
+    const ta = document.createElement("textarea");
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta); ok();
+  }
+}
+
+/* ── 연결 ── */
+$("minus").onclick = () => setCount(names.length - 1);
+$("plus").onclick = () => setCount(names.length + 1);
+document.querySelectorAll("[data-preset]").forEach(b => { b.onclick = () => preset(b.dataset.preset); });
+$("shuffle").onclick = () => { if (!busy) newLadder(); };
+$("all").onclick = runAll;
+$("copy").onclick = copyResult;
+
+setInterval(() => { $("clock").textContent = new Date().toTimeString().slice(0, 8); }, 1000);
+$("clock").textContent = new Date().toTimeString().slice(0, 8);
+
+restore();
+renderRows();
+newLadder();
+</script>
+</body>
+</html>
