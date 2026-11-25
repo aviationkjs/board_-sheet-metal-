@@ -602,9 +602,17 @@ header {
 
 .notice-foot {
   display: flex;
+  flex-wrap: wrap;            /* 칩이 많으면 글씨를 접지 않고 다음 줄로 */
   align-items: center;
   gap: var(--spacing-2);
   margin-top: var(--spacing-3);
+}
+
+/* 수정·보관·삭제 묶음 — 항상 오른쪽 끝, 줄이 넘치면 통째로 다음 줄 오른쪽 */
+.notice-manage {
+  display: inline-flex;
+  gap: var(--spacing-2);
+  margin-left: auto;
 }
 
 .chip {
@@ -621,6 +629,8 @@ header {
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .chip:hover { background: var(--color-border-emphasized); }

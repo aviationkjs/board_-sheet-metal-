@@ -168,8 +168,7 @@ function cardHtml(n) {
       ${readChip}
       <button class="chip reply-chip">답글 ${n.replyCount || 0}</button>
       ${pollChip}
-      <span class="grow"></span>
-      ${manage}
+      ${manage ? `<span class="notice-manage">${manage}</span>` : ""}
     </div>
     <div class="replies" ${open ? "" : "hidden"}></div>
   </article>`;

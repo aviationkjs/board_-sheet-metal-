@@ -8,7 +8,7 @@
  *   - Firebase 실시간 데이터( *.firebaseio.com ) : 항상 실시간으로 주고받아야 함
  *   - FT-200 PDF (13MB) : 용량이 커서 제외
  */
-const VERSION = "v20261125-1";
+const VERSION = "v20261125-2";
 const CACHE = "board-" + VERSION;
 
 /* 처음 설치할 때 미리 받아 두는 화면들 (쿼리 ?v= 없이 적습니다) */
