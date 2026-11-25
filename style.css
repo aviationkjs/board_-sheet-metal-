@@ -626,6 +626,7 @@ header {
 .chip:hover { background: var(--color-border-emphasized); }
 .chip.plain { cursor: default; }
 .chip.plain:hover { background: var(--color-neutral); }
+.chip.danger { color: var(--color-text-error); }
 
 /* 답글 */
 .replies {

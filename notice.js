@@ -60,7 +60,8 @@ async function recordLog(action, details = {}) {
 }
 
 /* ── 상태 ──────────────────────────────────────── */
-let canManage = username === "admin";   // 관리자 또는 공지 부관리자
+const isAdmin = username === "admin";   // 관리자 (완전 삭제는 관리자만)
+let canManage = isAdmin;                // 관리자 또는 공지 부관리자
 let notices = {};
 let events = {};
 let roster = {};            // 전체 계정 목록 (읽음·투표 '안 한 사람' 집계용)
@@ -134,7 +135,8 @@ function cardHtml(n) {
 
   const manage = canManage
     ? (n.archived
-        ? `<button class="chip restore-btn">보관 해제</button>`
+        ? `<button class="chip restore-btn">보관 해제</button>` +
+          (isAdmin ? `<button class="chip danger delete-btn">삭제</button>` : "")
         : `<button class="chip edit-btn">수정</button><button class="chip archive-btn">보관</button>`)
     : "";
 
@@ -264,6 +266,8 @@ function renderNotices() {
     if (ab) ab.onclick = () => archiveNotice(id, true);
     const rb = card.querySelector(".restore-btn");
     if (rb) rb.onclick = () => archiveNotice(id, false);
+    const db2 = card.querySelector(".delete-btn");
+    if (db2) db2.onclick = () => deleteNotice(id);
 
     card.querySelectorAll(".poll-opt").forEach(o => {
       o.onclick = () => castVote(id, o.dataset.oid);
@@ -522,6 +526,25 @@ async function archiveNotice(id, on) {
     recordLog(on ? "ARCHIVE_NOTICE" : "RESTORE_NOTICE", { noticeId: id, title: n.title });
   } catch (e) {
     alert("처리하지 못했습니다: " + e.message);
+  }
+}
+
+/* 보관함에 있는 공지만, 관리자만 완전히 지웁니다 (답글도 함께) */
+async function deleteNotice(id) {
+  if (!isAdmin) return;
+  const n = notices[id];
+  if (!n || !n.archived) return;
+  if (!confirm(`'${n.title || ""}' 공지를 완전히 삭제할까요?\n답글·투표·읽음 기록까지 모두 지워지며 되돌릴 수 없습니다.`)) return;
+  try {
+    // 규칙상 replies/{공지}/{답글} 단위로만 지울 수 있어 한 번에 여러 경로를 비웁니다.
+    const paths = { ["notices/" + id]: null };
+    const rs = await get(ref(db, "replies/" + id));
+    if (rs.exists()) Object.keys(rs.val()).forEach(rid => { paths["replies/" + id + "/" + rid] = null; });
+    if (openId === id) closeOpen();
+    await update(ref(db), paths);
+    recordLog("DELETE_NOTICE", { noticeId: id, title: n.title });
+  } catch (e) {
+    alert("삭제하지 못했습니다: " + e.message);
   }
 }
 
