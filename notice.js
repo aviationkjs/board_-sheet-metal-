@@ -563,16 +563,18 @@ function openRoster(id, view) {
   const votes = n.votes || {};
   let h = "";
 
-  // 읽음
+  const isPoll = view === "poll" && n.poll && n.poll.options;
+
+  // 읽음 (읽음 칩으로 열었을 때만)
   const unreadNames = all.filter(u => !readers.includes(u));
-  h += `<section>
+  if (!isPoll) h += `<section>
     <h3>읽음 <b>${readers.length}</b> / ${all.length}</h3>
     <div class="roster-sub">읽은 사람</div>${nameList(readers.slice().sort())}
     <div class="roster-sub">안 읽은 사람</div>${nameList(unreadNames)}
   </section>`;
 
-  // 투표
-  if (n.poll && n.poll.options) {
+  // 투표 (투표 칩으로 열었을 때만)
+  if (isPoll) {
     const voters = Object.keys(votes);
     h += `<section>
       <h3>투표 <b>${voters.length}</b> / ${all.length}${n.poll.closed ? " · 마감" : ""}</h3>`;
@@ -583,14 +585,10 @@ function openRoster(id, view) {
     h += `<div class="roster-sub">투표 안 한 사람</div>${nameList(all.filter(u => !voters.includes(u)))}</section>`;
   }
 
-  $("rosterTitle").textContent = n.title || "현황";
+  $("rosterTitle").textContent = (isPoll ? "투표 현황 · " : "읽음 현황 · ") + (n.title || "");
   $("rosterBody").innerHTML = h;
+  $("rosterBody").scrollTop = 0;
   $("rosterDlg").showModal();
-  // 투표 칩으로 열었으면 투표 쪽이 먼저 보이게 합니다.
-  if (view === "poll") {
-    const secs = $("rosterBody").querySelectorAll("section");
-    if (secs[1]) secs[1].scrollIntoView({ block: "start" });
-  }
 }
 
 /* ── 접속 직후 안내 ────────────────────────────── */
