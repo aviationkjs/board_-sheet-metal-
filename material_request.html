@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1F1F22" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="성능보드판">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="icon" href="assets/icon-192.png">
+<script src="pwa.js?v=20261124" defer></script>
+<title>자재청구 현황</title>
+<link rel="stylesheet" href="tokens.css?v=20261116">
+<link rel="stylesheet" href="header.css?v=20261116">
+<style>
+  /* 색은 tokens.css 의 값을 이 페이지 변수 이름에 연결해서 씁니다 (자재소모와 같은 방식) */
+  :root{
+    --bg:var(--color-background-body); --panel:var(--color-background-surface);
+    --panel-2:var(--color-background-subtle);
+    --line:var(--color-border); --line-2:var(--color-border-emphasized);
+    --text:var(--color-text-primary); --muted:var(--color-text-secondary);
+    --amber:var(--color-accent); --amber-dim:var(--color-accent-muted); --amber-text:var(--color-text-accent);
+    --danger:var(--color-error); --danger-dim:var(--color-error-muted); --danger-text:var(--color-text-error);
+    --ok-dim:var(--color-success-muted); --ok-text:var(--color-text-success);
+    --warn-dim:var(--color-warning-muted); --warn-text:var(--color-text-warning);
+    --sans:var(--font-family);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 16px 64px}
+  .toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .count{font-size:12px;color:var(--muted);background:var(--panel);
+    padding:5px 10px;border-radius:9999px;box-shadow:var(--shadow-low)}
+  .count b{color:var(--amber-text)}
+  .role-tag{font-size:11px;padding:5px 10px;border-radius:9999px;background:var(--amber-dim);color:var(--amber-text)}
+  .btn-add{margin-left:auto;background:var(--amber);color:var(--color-on-accent);font-weight:600;border:none;
+    padding:11px 18px;border-radius:8px;cursor:pointer;font-size:14px}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .chip{border:1px solid var(--line-2);background:var(--panel);color:var(--muted);font-size:13px;
+    padding:6px 12px;border-radius:9999px;cursor:pointer;font-family:inherit}
+  .chip.on{background:var(--amber-dim);color:var(--amber-text);border-color:transparent;font-weight:600}
+  .filters select,.filters input{background:var(--panel);border:1px solid var(--line-2);color:var(--text);
+    padding:7px 10px;border-radius:8px;font-size:13px;font-family:inherit}
+  .filters input{flex:1;min-width:150px}
+  .filters input:focus,.filters select:focus{outline:none;border-color:var(--amber)}
+
+  .table-wrap{background:var(--panel);border-radius:12px;overflow-x:auto;box-shadow:var(--shadow-low)}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:560px}
+  thead th{text-align:left;padding:12px 14px;font-size:12px;font-weight:500;color:var(--muted);
+    border-bottom:1px solid var(--line-2);white-space:nowrap}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:var(--color-hover)}
+  .c-no{font-weight:600;white-space:nowrap}
+  .c-pn{white-space:nowrap}
+  .c-qty{font-weight:600;white-space:nowrap}
+  .c-qty .unit{font-size:11px;color:var(--muted);margin-left:3px;font-weight:400}
+  .who{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+
+  .st{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:9999px;white-space:nowrap}
+  .st-requested{background:var(--color-neutral);color:var(--text)}
+  .st-received{background:var(--amber-dim);color:var(--amber-text)}
+  .st-inProgress{background:var(--warn-dim);color:var(--warn-text)}
+  .st-done{background:var(--ok-dim);color:var(--ok-text)}
+  .st-rejected{background:var(--danger-dim);color:var(--danger-text)}
+
+  .empty{padding:56px 20px;text-align:center;color:var(--muted);font-size:14px}
+  .empty span{color:var(--amber-text)}
+
+  .overlay{position:fixed;inset:0;background:rgba(8,9,11,.72);backdrop-filter:blur(3px);
+    display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .overlay.open{display:flex}
+  .modal{background:var(--panel);border-radius:12px 12px 0 0;box-shadow:var(--shadow-high);
+    width:100%;max-width:520px;padding:24px 20px 28px;max-height:92vh;overflow-y:auto}
+  .modal h3{font-size:18px;margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}
+  .field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--line-2);color:var(--text);
+    padding:12px 13px;border-radius:8px;font-size:15px;font-family:var(--sans)}
+  .field textarea{min-height:70px;resize:vertical}
+  .field input:focus,.field textarea:focus{outline:none;border-color:var(--amber);box-shadow:var(--shadow-focus)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-actions{display:flex;gap:10px;margin-top:20px}
+  .modal-actions button{flex:1;padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;border:none}
+  .cancel{background:var(--panel-2);color:var(--text);border:1px solid var(--line-2)!important}
+  .save{background:var(--amber);color:var(--color-on-accent)}
+
+  .dl{display:grid;grid-template-columns:88px 1fr;gap:9px 12px;font-size:14px;margin-bottom:6px}
+  .dl dt{color:var(--muted);font-size:13px}
+  .dl dd{word-break:break-all}
+  .dl .reason{color:var(--danger-text)}
+  .sec-label{font-size:12px;color:var(--muted);margin:18px 0 8px}
+  .st-btns{display:flex;flex-wrap:wrap;gap:8px}
+  .st-btns button{border:none;cursor:pointer;font-family:inherit;padding:9px 14px;font-size:14px}
+  .st-btns button.cur{outline:2px solid var(--amber);outline-offset:1px}
+  .own-btns{display:flex;gap:8px;flex-wrap:wrap}
+  .own-btns button{background:var(--panel-2);border:1px solid var(--line-2);color:var(--text);
+    padding:9px 14px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
+  .own-btns button.del{background:var(--danger-dim);color:var(--danger-text);border-color:transparent}
+
+  @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:12px}}
+
+  /* 폰: 5칸이 가로 스크롤 없이 한 화면에 들어오게 */
+  @media(max-width:559px){
+    .wrap{padding:16px 10px 56px}
+    table{min-width:0;font-size:13px}
+    thead th{padding:10px 6px;font-size:11px}
+    tbody td{padding:10px 6px}
+    thead th:first-child,tbody td:first-child{padding-left:12px}
+    thead th:last-child,tbody td:last-child{padding-right:12px;text-align:right}
+    .c-pn{white-space:normal;word-break:break-all}
+    .st{font-size:11px;padding:3px 8px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="back-btn">← 보드</a>
+  <h1 class="page-title">자재청구</h1>
+  <div class="header-side"><span class="user-chip" id="sbUser"></span><span class="header-clock" id="clock">--:--:--</span></div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <span class="count" id="count">0건</span>
+    <span class="role-tag" id="roleTag" style="display:none;">담당자</span>
+    <button class="btn-add" id="addBtn">＋ 청구</button>
+  </div>
+
+  <div class="filters">
+    <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <select id="monthSel" aria-label="월 선택"><option value="">전체 기간</option></select>
+    <input type="search" id="searchIn" placeholder="넘버 · 공정 · PN 검색">
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>넘버</th><th>공정</th><th>PN</th><th>수량</th><th>처리결과</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="empty" id="empty" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- 청구 등록·수정 -->
+<div class="overlay" id="formOv">
+  <div class="modal">
+    <h3 id="formTitle">자재 청구</h3>
+    <div class="row2">
+      <div class="field"><label>넘버</label><input type="text" id="fNo" maxlength="30" placeholder="예: 26-118"></div>
+      <div class="field"><label>공정</label><input type="text" id="fProc" maxlength="30" list="procList" placeholder="예: 스킨 교체"></div>
+    </div>
+    <div class="field"><label>PN</label><input type="text" id="fPn" maxlength="40" placeholder="예: MS20470AD4-5" autocapitalize="characters"></div>
+    <div class="row2">
+      <div class="field"><label>수량</label><input type="number" id="fQty" min="1" step="any" inputmode="decimal"></div>
+      <div class="field"><label>단위</label><input type="text" id="fUnit" maxlength="30" list="unitList" placeholder="EA, ft, 장 …"></div>
+    </div>
+    <div class="field"><label>비고 (선택)</label><textarea id="fNote" maxlength="200"></textarea></div>
+    <datalist id="procList"></datalist>
+    <datalist id="unitList"></datalist>
+    <div class="modal-actions">
+      <button class="cancel" id="fCancel">취소</button>
+      <button class="save" id="fSave">청구</button>
+    </div>
+  </div>
+</div>
+
+<!-- 상세 · 처리 -->
+<div class="overlay" id="detailOv">
+  <div class="modal">
+    <h3 id="dTitle">청구 상세</h3>
+    <dl class="dl" id="dBody"></dl>
+    <div id="dMgr" style="display:none;">
+      <div class="sec-label">처리결과 변경 (담당자)</div>
+      <div class="st-btns" id="dStBtns"></div>
+    </div>
+    <div id="dOwn" style="display:none;">
+      <div class="sec-label" id="dOwnLabel">내 청구</div>
+      <div class="own-btns" id="dOwnBtns"></div>
+    </div>
+    <div class="modal-actions"><button class="cancel" id="dClose">닫기</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import {
+  getDatabase, ref, onValue, get, push, update, remove
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
+  authDomain: "board-sheet-metal.firebaseapp.com",
+  databaseURL: "https://board-sheet-metal-default-rtdb.firebaseio.com",
+  projectId: "board-sheet-metal",
+  storageBucket: "board-sheet-metal.firebasestorage.app",
+  messagingSenderId: "300454183349",
+  appId: "1:300454183349:web:7a5e681d9c6c1f7b5999fc"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const MR = "materialRequests/items";
+
+/* ---- 처리결과 5가지 ---- */
+const STATUS = [
+  { key:"requested",  label:"청구"   },
+  { key:"received",   label:"접수"   },
+  { key:"inProgress", label:"처리중" },
+  { key:"done",       label:"완료"   },
+  { key:"rejected",   label:"반려"   }
+];
+const LABEL = Object.fromEntries(STATUS.map(s => [s.key, s.label]));
+const OPEN = new Set(["requested","received","inProgress"]);   // 미처리
+
+/* ---- 로그인 강제 ---- */
+const username = localStorage.getItem("username");
+if (!username) { window.location.href = "auth.html"; }
+
+/* ---- 권한: 주관리자(admin) 또는 관리자가 지정한 자재청구 담당자 ---- */
+const isAdmin = username === "admin";
+let canManage = isAdmin;
+try {
+  const me = await get(ref(db, "users/" + username));
+  if (me.exists() && me.val().requestAdmin === true) canManage = true;
+} catch (e) { /* 읽기 실패 시 기본 권한 유지 */ }
+
+/* ---- 상태 ---- */
+let data = {};
+let filter = "open";      // open | all | 상태 key
+let month = "";
+let query = "";
+let editingId = null;
+let detailId = null;
+
+/* ---- 유틸 ---- */
+const $ = id => document.getElementById(id);
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmt(ts){ return ts ? new Date(ts).toLocaleString('ko-KR') : '-'; }
+function ym(ts){ const d = new Date(ts||0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
+function badge(st){ return `<span class="st st-${esc(st)}">${esc(LABEL[st]||st)}</span>`; }
+function tickClock(){ const d=new Date(),p=n=>String(n).padStart(2,"0");
+  $("clock").textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+setInterval(tickClock,1000); tickClock();
+
+async function recordLog(action, details){
+  try{
+    const t = Date.now() + Math.floor(Math.random()*100000);
+    await update(ref(db, "logs/" + t), { user: username, action, details: details||null, timestamp: Date.now() });
+  }catch(e){ console.error("로그 기록 오류:", e); }
+}
+
+/* ---- 목록 ---- */
+function list(){
+  return Object.entries(data).map(([id,v]) => ({ id, ...v }))
+    // 미처리가 위, 같은 묶음 안에서는 최근 청구가 위
+    .sort((a,b) => (OPEN.has(b.status)-OPEN.has(a.status)) || (b.createdAt||0)-(a.createdAt||0));
+}
+
+function renderChips(all){
+  const n = k => k==="all" ? all.length
+               : k==="open" ? all.filter(r=>OPEN.has(r.status)).length
+               : all.filter(r=>r.status===k).length;
+  const defs = [{key:"open",label:"미처리"},{key:"all",label:"전체"}, ...STATUS];
+  $("chips").innerHTML = defs.map(d =>
+    `<button class="chip${filter===d.key?' on':''}" data-f="${d.key}">${d.label} ${n(d.key)}</button>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+}
+
+function renderMonths(all){
+  const months = [...new Set(all.map(r => ym(r.createdAt)))].sort().reverse();
+  if (month && !months.includes(month)) month = "";
+  $("monthSel").innerHTML = `<option value="">전체 기간</option>` +
+    months.map(m => `<option value="${m}"${m===month?' selected':''}>${m.replace("-","년 ")}월</option>`).join("");
+}
+
+function renderSuggestions(all){
+  const uniq = key => [...new Set(all.map(r => (r[key]||"").trim()).filter(Boolean))].sort();
+  $("procList").innerHTML = uniq("process").map(v => `<option value="${esc(v)}">`).join("");
+  $("unitList").innerHTML = uniq("unit").map(v => `<option value="${esc(v)}">`).join("");
+}
+
+function render(){
+  $("sbUser").textContent = username;
+  $("roleTag").style.display = canManage ? "" : "none";
+
+  const all = list();
+  renderChips(all);
+  renderMonths(all);
+  renderSuggestions(all);
+
+  const q = query.trim().toLowerCase();
+  const rows = all.filter(r =>
+    (filter==="all" || (filter==="open" ? OPEN.has(r.status) : r.status===filter)) &&
+    (!month || ym(r.createdAt)===month) &&
+    (!q || [r.no, r.process, r.pn].some(v => String(v||"").toLowerCase().includes(q))));
+
+  const openCnt = all.filter(r=>OPEN.has(r.status)).length;
+  $("count").innerHTML = `${rows.length}건 · 미처리 <b>${openCnt}</b>`;
+
+  const tbody = $("tbody"), empty = $("empty");
+  if (!rows.length){
+    tbody.innerHTML = "";
+    empty.style.display = "block";
+    empty.innerHTML = all.length ? "조건에 맞는 청구가 없습니다."
+                                 : "아직 청구가 없습니다. <span>＋ 청구</span>로 시작하세요.";
+    return;
+  }
+  empty.style.display = "none";
+  tbody.innerHTML = rows.map(r => `
+    <tr data-id="${esc(r.id)}">
+      <td class="c-no">${esc(r.no)}<span class="who">${esc(r.requester)}</span></td>
+      <td>${esc(r.process)}</td>
+      <td class="c-pn">${esc(r.pn)}</td>
+      <td class="c-qty">${Number(r.qty)||0}<span class="unit">${esc(r.unit||"")}</span></td>
+      <td>${badge(r.status)}</td>
+    </tr>`).join("");
+  tbody.querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
+}
+
+$("monthSel").onchange = e => { month = e.target.value; render(); };
+$("searchIn").oninput = e => { query = e.target.value; render(); };
+
+/* ---- 청구 등록 · 수정 ---- */
+const formOv = $("formOv");
+function openForm(id){
+  editingId = id || null;
+  const r = id ? data[id] : null;
+  $("formTitle").textContent = r ? "청구 수정" : "자재 청구";
+  $("fSave").textContent = r ? "저장" : "청구";
+  $("fNo").value   = r ? r.no : "";
+  $("fProc").value = r ? r.process : "";
+  $("fPn").value   = r ? r.pn : "";
+  $("fQty").value  = r ? r.qty : "";
+  $("fUnit").value = r ? (r.unit||"") : "";
+  $("fNote").value = r ? (r.note||"") : "";
+  formOv.classList.add("open");
+  setTimeout(() => $("fNo").focus(), 50);
+}
+$("addBtn").onclick = () => openForm(null);
+$("fCancel").onclick = () => formOv.classList.remove("open");
+formOv.addEventListener("click", e => { if (e.target === formOv) formOv.classList.remove("open"); });
+
+$("fSave").onclick = async () => {
+  const no      = $("fNo").value.trim();
+  const process = $("fProc").value.trim();
+  const pn      = $("fPn").value.trim().toUpperCase().replace(/\s+/g, "");
+  const qty     = Number($("fQty").value);
+  const unit    = $("fUnit").value.trim();
+  const note    = $("fNote").value.trim();
+  if (!no)      { alert("넘버를 입력하세요."); return; }
+  if (!process) { alert("공정을 입력하세요."); return; }
+  if (!pn)      { alert("PN을 입력하세요."); return; }
+  if (!(qty > 0)) { alert("수량은 0보다 커야 합니다."); return; }
+  const fields = { no, process, pn, qty, unit, note, updatedAt: Date.now() };
+  try {
+    if (editingId) {
+      const cur = data[editingId];
+      if (!cur || cur.status !== "requested") { alert("‘청구’ 상태일 때만 수정할 수 있습니다."); return; }
+      await update(ref(db, `${MR}/${editingId}`), fields);
+      await recordLog("MATREQ_UPDATE", { id: editingId, no, pn, qty });
+    } else {
+      const now = Date.now();
+      const r = await push(ref(db, MR), { ...fields, status: "requested", requester: username, createdAt: now });
+      await recordLog("MATREQ_CREATE", { id: r.key, no, process, pn, qty, unit });
+    }
+    formOv.classList.remove("open");
+  } catch (e) { console.error("청구 저장 오류:", e); alert("저장 실패: " + e.message); }
+};
+
+/* ---- 상세 · 처리 ---- */
+const detailOv = $("detailOv");
+function openDetail(id){ detailId = id; fillDetail(); detailOv.classList.add("open"); }
+function closeDetail(){ detailId = null; detailOv.classList.remove("open"); }
+$("dClose").onclick = closeDetail;
+detailOv.addEventListener("click", e => { if (e.target === detailOv) closeDetail(); });
+
+function fillDetail(){
+  const r = detailId && data[detailId];
+  if (!r) { closeDetail(); return; }
+  $("dTitle").innerHTML = `${esc(r.no)} ${badge(r.status)}`;
+  const reason = r.status === "rejected" && r.note;
+  $("dBody").innerHTML = `
+    <dt>공정</dt><dd>${esc(r.process)}</dd>
+    <dt>PN</dt><dd>${esc(r.pn)}</dd>
+    <dt>수량</dt><dd>${Number(r.qty)||0} ${esc(r.unit||"")}</dd>
+    <dt>청구자</dt><dd>${esc(r.requester)}</dd>
+    <dt>청구일시</dt><dd>${fmt(r.createdAt)}</dd>
+    <dt>처리자</dt><dd>${esc(r.handler||"-")}</dd>
+    <dt>처리일시</dt><dd>${fmt(r.handledAt)}</dd>
+    <dt>${reason ? "반려 사유" : "비고"}</dt><dd class="${reason?'reason':''}">${esc(r.note||"-")}</dd>`;
+
+  // 담당자: 처리결과 변경
+  $("dMgr").style.display = canManage ? "" : "none";
+  if (canManage){
+    $("dStBtns").innerHTML = STATUS.map(s =>
+      `<button class="st st-${s.key}${s.key===r.status?' cur':''}" data-st="${s.key}">${s.label}</button>`).join("");
+    $("dStBtns").querySelectorAll("button").forEach(b => b.onclick = () => setStatus(detailId, b.dataset.st));
+  }
+
+  // 본인 청구: '청구' 상태일 때만 수정 · 취소 / admin 은 언제든 삭제
+  const mine = r.requester === username && r.status === "requested";
+  const btns = [];
+  if (mine) btns.push(`<button data-o="edit">수정</button>`, `<button class="del" data-o="cancel">청구 취소</button>`);
+  else if (isAdmin) btns.push(`<button class="del" data-o="delete">청구 삭제</button>`);
+  $("dOwn").style.display = btns.length ? "" : "none";
+  $("dOwnLabel").textContent = mine ? "내 청구" : "관리";
+  $("dOwnBtns").innerHTML = btns.join("");
+  $("dOwnBtns").querySelectorAll("button").forEach(b => b.onclick = () => {
+    const id = detailId;
+    if (b.dataset.o === "edit") { closeDetail(); openForm(id); }
+    else deleteReq(id, b.dataset.o);
+  });
+}
+
+async function setStatus(id, st){
+  if (!canManage) return;
+  const r = data[id]; if (!r || r.status === st) return;
+  const patch = { status: st, handler: username, handledAt: Date.now() };
+  if (st === "rejected") {
+    const why = prompt(`${r.no} / ${r.pn} 반려 사유를 입력하세요 (필수)`, "");
+    if (why === null) return;
+    if (!why.trim()) { alert("반려 사유를 입력해야 반려할 수 있습니다."); return; }
+    patch.note = why.trim().slice(0, 200);
+  }
+  try {
+    await update(ref(db, `${MR}/${id}`), patch);
+    await recordLog("MATREQ_UPDATE_STATUS", { id, no: r.no, pn: r.pn, from: r.status, to: st, note: patch.note || null });
+  } catch (e) { console.error("처리결과 변경 오류:", e); alert("변경 실패: " + e.message); }
+}
+
+async function deleteReq(id, mode){
+  const r = data[id]; if (!r) return;
+  const msg = mode === "cancel" ? `${r.no} / ${r.pn} 청구를 취소할까요?` : `${r.no} / ${r.pn} 청구를 삭제할까요?\n(되돌릴 수 없습니다)`;
+  if (!confirm(msg)) return;
+  try {
+    await remove(ref(db, `${MR}/${id}`));
+    await recordLog("MATREQ_DELETE", { id, no: r.no, pn: r.pn, mode });
+    closeDetail();
+  } catch (e) { console.error("삭제 오류:", e); alert("삭제 실패: " + e.message); }
+}
+
+/* ---- 실시간 ---- */
+onValue(ref(db, MR), snap => {
+  data = snap.val() || {};
+  render();
+  if (detailId) fillDetail();
+});
+</script>
+</body>
+</html>

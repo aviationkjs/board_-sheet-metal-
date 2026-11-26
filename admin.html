@@ -120,7 +120,8 @@
                     ? '<span class="role-main">주관리자</span>'
                     : `<button class="btn btn-sm role-btn ${u.dutyAdmin===true?'role-on':''}" data-role="duty" data-id="${safeId}" data-on="${u.dutyAdmin===true}">사역표</button>
                        <button class="btn btn-sm role-btn ${u.materialAdmin===true?'role-on':''}" data-role="material" data-id="${safeId}" data-on="${u.materialAdmin===true}">자재소모</button>
-                       <button class="btn btn-sm role-btn ${u.noticeAdmin===true?'role-on':''}" data-role="notice" data-id="${safeId}" data-on="${u.noticeAdmin===true}">공지</button>`;
+                       <button class="btn btn-sm role-btn ${u.noticeAdmin===true?'role-on':''}" data-role="notice" data-id="${safeId}" data-on="${u.noticeAdmin===true}">공지</button>
+                       <button class="btn btn-sm role-btn ${u.requestAdmin===true?'role-on':''}" data-role="request" data-id="${safeId}" data-on="${u.requestAdmin===true}">자재청구</button>`;
                 html += `<tr>
                     <td><strong>${id}</strong></td>
                     <td>${badge}</td>
@@ -195,8 +196,8 @@
         }
 
         async function setRole(id, area, on) {
-            const FIELDS = { duty: 'dutyAdmin', material: 'materialAdmin', notice: 'noticeAdmin' };
-            const LABELS = { duty: '사역표', material: '자재소모', notice: '공지' };
+            const FIELDS = { duty: 'dutyAdmin', material: 'materialAdmin', notice: 'noticeAdmin', request: 'requestAdmin' };
+            const LABELS = { duty: '사역표', material: '자재소모', notice: '공지', request: '자재청구' };
             const field = FIELDS[area];
             const areaLabel = LABELS[area];
             if (!field) return;

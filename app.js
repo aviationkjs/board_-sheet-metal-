@@ -402,4 +402,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const currentName = members[currentIndex]?.name || "미설정";
     if (dutyCurrentName) dutyCurrentName.textContent = currentName;
   });
+
+  // 자재청구 미처리(청구·접수·처리중) 건수 배지 (더보기 메뉴)
+  const matReqBadge = document.getElementById("matReqBadge");
+  onValue(ref(db, "materialRequests/items"), (snap) => {
+    const items = Object.values(snap.val() || {});
+    const open = items.filter(r => r && ["requested", "received", "inProgress"].includes(r.status)).length;
+    if (!matReqBadge) return;
+    matReqBadge.textContent = open;
+    matReqBadge.hidden = open === 0;
+  });
 });
