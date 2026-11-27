@@ -58,11 +58,11 @@
   .note{font-size:12px;color:var(--muted);margin-top:10px}
 
   /* 방식 */
-  .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .seg{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
   .seg button{height:44px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--muted);
     font-size:14px;cursor:pointer;white-space:nowrap}
   .seg button.on{border-color:var(--amber);background:var(--amber-dim);color:var(--amber-text);font-weight:600}
-  @media (max-width:400px){ .seg button{font-size:13px} }
+  @media (max-width:420px){ .seg{gap:4px} .seg button{font-size:12.5px;padding:0 2px} }
 
   /* 목록 */
   .list{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}
@@ -126,6 +126,7 @@
       <button data-mode="2">2명 걸림</button>
       <button data-mode="3">3명 걸림</button>
       <button data-mode="team">4명씩 조</button>
+      <button data-mode="half">반 나누기</button>
     </div>
     <button class="btn accent big" id="go">뽑기 시작</button>
   </div>
@@ -224,11 +225,12 @@ function setMode(m) {
 
 function updateGo() {
   const n = chosen().length;
-  const need = mode === "team" ? 2 : Number(mode) + 1;
+  const need = (mode === "team" || mode === "half") ? 2 : Number(mode) + 1;
   $("go").disabled = running || n < need;
   $("go").textContent = running ? "뽑는 중…" :
     n < need ? `참가자가 ${need}명 이상 필요해요` :
-    mode === "team" ? `${n}명 → ${teamSizes(n).length}개 조 짜기` : `${n}명 중 ${mode}명 뽑기`;
+    mode === "team" ? `${n}명 → ${teamSizes(n).length}개 조 짜기` :
+    mode === "half" ? `${n}명 → 반으로 나누기 (${halfSizes(n).join(" · ")}명)` : `${n}명 중 ${mode}명 뽑기`;
 }
 
 /* ── 공정한 섞기 (crypto 난수) ── */
@@ -251,12 +253,16 @@ function teamSizes(n) {
   return Array.from({ length: g }, (_, i) => base + (i < extra ? 1 : 0));
 }
 
+/* 반으로: 2팀, 홀수면 1팀이 1명 더 (9명 → 5·4) */
+function halfSizes(n) { return [Math.ceil(n / 2), Math.floor(n / 2)]; }
+
 /* ── 뽑기 ── */
 async function draw() {
   if (running) return;
   const people = shuffle(chosen());
   $("banner").closest(".panel").scrollIntoView({ behavior: "smooth", block: "start" });     // 목록 순서도 매번 섞습니다
   if (mode === "team") return makeTeams(people);
+  if (mode === "half") return makeTeams(people, true);
 
   const k = Number(mode);
   running = true; updateGo();
@@ -304,11 +310,12 @@ async function roulette(rows, candidates, target, dur) {
   rows[target].classList.remove("flash");
 }
 
-async function makeTeams(people) {
+async function makeTeams(people, half = false) {
   running = true; updateGo();
   $("copy").disabled = true;
-  const sizes = teamSizes(people.length);
-  $("banner").innerHTML = "조를 섞는 중…";
+  const sizes = half ? halfSizes(people.length) : teamSizes(people.length);
+  const unit = half ? "팀" : "조";
+  $("banner").innerHTML = half ? "반으로 나누는 중…" : "조를 섞는 중…";
   for (let t = 0; t < 10; t++) {                     // 잠깐 이름이 섞이는 모습
     $("out").innerHTML = `<div class="list">${shuffle(people).map(n =>
       `<div class="row flash"><span class="nm">${esc(n)}</span></div>`).join("")}</div>`;
@@ -320,14 +327,16 @@ async function makeTeams(people) {
 
   $("out").innerHTML = `<div class="teams">${teams.map((t, i) => `
     <div class="team" style="--c:var(${TEAM_COLORS[i % TEAM_COLORS.length]});animation-delay:${i * 120}ms">
-      <h4><b>${i + 1}조</b>${t.length}명</h4>
+      <h4><b>${i + 1}${unit}</b>${t.length}명</h4>
       <ul>${t.map(n => `<li>${esc(n)}</li>`).join("")}</ul>
     </div>`).join("")}</div>`;
-  $("banner").innerHTML = `${teams.length}개 조 완성<small>${people.length}명 · ${sizes.join("·")}명</small>`;
+  $("banner").innerHTML = half
+    ? `반으로 나눴어요<small>${people.length}명 · ${sizes.join(" · ")}명</small>`
+    : `${teams.length}개 조 완성<small>${people.length}명 · ${sizes.join("·")}명</small>`;
   fireworks(1800);
 
-  lastText = "[조짜기]\n" + teams.map((t, i) => `${i + 1}조: ${t.join(", ")}`).join("\n");
-  finish("DRAW_TEAM", { teams: teams.map((t, i) => `${i + 1}조:${t.join(",")}`).join(" / ") });
+  lastText = (half ? "[반 나누기]\n" : "[조짜기]\n") + teams.map((t, i) => `${i + 1}${unit}: ${t.join(", ")}`).join("\n");
+  finish(half ? "DRAW_HALF" : "DRAW_TEAM", { teams: teams.map((t, i) => `${i + 1}${unit}:${t.join(",")}`).join(" / ") });
 }
 
 function finish(action, details) {
