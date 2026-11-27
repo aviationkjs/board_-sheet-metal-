@@ -467,6 +467,33 @@ header {
   color: var(--color-text-primary);
 }
 
+/* 탭 줄 오른쪽: 다른 페이지로 바로 가는 버튼 (자재소모 · 자재청구) */
+.tabs-sep {
+  flex: none;
+  width: 1px;
+  height: 20px;
+  margin: 0 var(--spacing-2);
+  align-self: center;
+  background: var(--color-border-emphasized);
+}
+
+.tab-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  height: 44px;
+  padding: 0 var(--spacing-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.tab-go:hover {
+  color: var(--color-text-primary);
+}
+
 .tab.is-on {
   color: var(--color-text-accent);
   border-bottom-color: var(--color-accent);
@@ -1067,6 +1094,8 @@ header {
 @media (max-width: 600px) {
   .tabs { top: 53px; padding: 0 var(--spacing-3); }
   .tab { padding: 0 var(--spacing-3); }
+  .tab-go { padding: 0 var(--spacing-2); }
+  .tabs-sep { margin: 0 var(--spacing-1); }
 
   #noticeList,
   .day-panel { padding: var(--spacing-3) var(--spacing-3) var(--spacing-8); }
