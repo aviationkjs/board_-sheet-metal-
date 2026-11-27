@@ -9,6 +9,7 @@ import {
   set,
   get
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { watchNewRequests } from "./matreq-notify.js?v=20261127";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
@@ -403,13 +404,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (dutyCurrentName) dutyCurrentName.textContent = currentName;
   });
 
-  // 자재청구 미처리(청구·접수·처리중) 건수 배지 (더보기 메뉴)
+  // 자재청구 미처리 건수 배지 (탭 줄) — FMS · IR · B/S 로 처리되지 않은 청구
   const matReqBadge = document.getElementById("matReqBadge");
   onValue(ref(db, "materialRequests/items"), (snap) => {
     const items = Object.values(snap.val() || {});
-    const open = items.filter(r => r && ["requested", "received", "inProgress"].includes(r.status)).length;
+    const open = items.filter(r => r && !["FMS", "IR", "BS"].includes(r.status)).length;
     if (!matReqBadge) return;
     matReqBadge.textContent = open;
     matReqBadge.hidden = open === 0;
   });
+
+  // 자재청구 담당자에게 새 청구 폰 알림 (권한은 자재청구 페이지의 '알림 켜기'에서)
+  watchNewRequests(db, username);
 });

@@ -8,7 +8,7 @@
  *   - Firebase 실시간 데이터( *.firebaseio.com ) : 항상 실시간으로 주고받아야 함
  *   - FT-200 PDF (13MB) : 용량이 커서 제외
  */
-const VERSION = "v20261127-4";
+const VERSION = "v20261127-5";
 const CACHE = "board-" + VERSION;
 
 /* 처음 설치할 때 미리 받아 두는 화면들 (쿼리 ?v= 없이 적습니다) */
@@ -32,6 +32,7 @@ const SHELL = [
   "pages.css",
   "header.css",
   "app.js",
+  "matreq-notify.js",
   "notice.js",
   "pwa.js",
   "manifest.json",
@@ -105,5 +106,22 @@ self.addEventListener("fetch", e => {
     }).catch(() => null);
     return hit || (await net) ||
       new Response("", { status: 504, statusText: "오프라인" });
+  })());
+});
+
+/* 알림을 누르면 해당 화면(자재청구)으로 — 이미 열린 창이 있으면 그 창을 씁니다 */
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "./", self.registration.scope).href;
+  e.waitUntil((async () => {
+    const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const w of wins) {
+      if (w.url.startsWith(self.registration.scope) && "focus" in w) {
+        await w.focus();
+        if ("navigate" in w) return w.navigate(url);
+        return;
+      }
+    }
+    return self.clients.openWindow(url);
   })());
 });

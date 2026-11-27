@@ -51,7 +51,7 @@
   .filters input:focus,.filters select:focus{outline:none;border-color:var(--amber)}
 
   .table-wrap{background:var(--panel);border-radius:12px;overflow-x:auto;box-shadow:var(--shadow-low)}
-  table{width:100%;border-collapse:collapse;font-size:14px;min-width:680px}
+  table{width:100%;border-collapse:collapse;font-size:14px;min-width:760px}
   thead th{text-align:left;padding:12px 14px;font-size:12px;font-weight:500;color:var(--muted);
     border-bottom:1px solid var(--line-2);white-space:nowrap}
   tbody td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
@@ -65,11 +65,21 @@
   .c-date,.c-who{white-space:nowrap;color:var(--muted);font-size:13px}
 
   .st{display:inline-block;font-size:12px;font-weight:600;padding:3px 10px;border-radius:9999px;white-space:nowrap}
-  .st-requested{background:var(--color-neutral);color:var(--text)}
-  .st-received{background:var(--amber-dim);color:var(--amber-text)}
-  .st-inProgress{background:var(--warn-dim);color:var(--warn-text)}
-  .st-done{background:var(--ok-dim);color:var(--ok-text)}
-  .st-rejected{background:var(--danger-dim);color:var(--danger-text)}
+  .st-pending{background:var(--color-neutral);color:var(--muted)}
+  .st-FMS{background:var(--amber-dim);color:var(--amber-text)}
+  .st-IR{background:var(--warn-dim);color:var(--warn-text)}
+  .st-BS{background:var(--ok-dim);color:var(--ok-text)}
+  .cat{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;white-space:nowrap}
+  .cat-성능{background:var(--amber-dim);color:var(--amber-text)}
+  .cat-수명{background:var(--warn-dim);color:var(--warn-text)}
+  .notify-btn{background:var(--panel);border:1px solid var(--line-2);color:var(--text);font-size:13px;
+    padding:7px 12px;border-radius:9999px;cursor:pointer;font-family:inherit}
+  .notify-btn.on{background:var(--ok-dim);color:var(--ok-text);border-color:transparent;cursor:default}
+  .seg{display:flex;gap:8px}
+  .seg label{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border:1px solid var(--line-2);
+    border-radius:8px;cursor:pointer;font-size:15px;background:var(--bg)}
+  .seg input{accent-color:var(--amber)}
+  .seg label:has(input:checked){border-color:var(--amber);background:var(--amber-dim);color:var(--amber-text);font-weight:600}
 
   .empty{padding:56px 20px;text-align:center;color:var(--muted);font-size:14px}
   .empty span{color:var(--amber-text)}
@@ -116,7 +126,10 @@
     thead th:first-child,tbody td:first-child{padding-left:12px}
     thead th:last-child,tbody td:last-child{padding-right:12px}
     .c-date,.c-who{font-size:12px}
-    .c-pn{white-space:normal;word-break:break-all}
+    .c-pn{white-space:normal;word-break:break-all;font-size:12px;letter-spacing:-.2px}
+    .c-qty .unit{display:block;margin-left:0}
+    .cat{padding:2px 5px}
+    thead th,tbody td{padding-left:4px;padding-right:4px}
     .st{font-size:11px;padding:3px 8px}
   }
 </style>
@@ -133,18 +146,20 @@
   <div class="toolbar">
     <span class="count" id="count">0건</span>
     <span class="role-tag" id="roleTag" style="display:none;">담당자</span>
+    <button class="notify-btn" id="notifyBtn" style="display:none;">🔔 새 청구 알림 켜기</button>
     <button class="btn-add" id="addBtn">＋ 청구</button>
   </div>
 
   <div class="filters">
     <div id="chips" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <select id="catSel" aria-label="구분 선택"><option value="">성능·수명</option><option value="성능">성능</option><option value="수명">수명</option></select>
     <select id="monthSel" aria-label="월 선택"><option value="">전체 기간</option></select>
-    <input type="search" id="searchIn" placeholder="넘버 · 공정 · PN 검색">
+    <input type="search" id="searchIn" placeholder="넘버 · 공정 · PN · 신청자 검색">
   </div>
 
   <div class="table-wrap">
     <table>
-      <thead><tr><th>넘버</th><th>공정</th><th>PN</th><th>수량</th><th>처리결과</th><th>날짜</th><th>신청자</th></tr></thead>
+      <thead><tr><th>넘버</th><th>구분</th><th>공정</th><th>PN</th><th>수량</th><th>처리결과</th><th>날짜</th><th>신청자</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
     <div class="empty" id="empty" style="display:none;"></div>
@@ -159,14 +174,22 @@
       <div class="field"><label>넘버</label><input type="text" id="fNo" maxlength="30" placeholder="예: 30"></div>
       <div class="field"><label>공정</label><input type="text" id="fProc" maxlength="30" list="procList" placeholder="예: 040"></div>
     </div>
+    <div class="field"><label>구분</label>
+      <div class="seg">
+        <label><input type="radio" name="fCat" value="성능"> 성능</label>
+        <label><input type="radio" name="fCat" value="수명"> 수명</label>
+      </div>
+    </div>
     <div class="field"><label>PN</label><input type="text" id="fPn" maxlength="40" placeholder="예: MS20470AD4-5" autocapitalize="characters"></div>
     <div class="row2">
       <div class="field"><label>수량</label><input type="number" id="fQty" min="1" step="any" inputmode="decimal"></div>
       <div class="field"><label>단위</label><input type="text" id="fUnit" maxlength="30" list="unitList" placeholder="EA, ft, 장 …"></div>
     </div>
+    <div class="field"><label>신청자</label><input type="text" id="fReq" maxlength="40" list="reqList" placeholder="신청자 이름"></div>
     <div class="field"><label>비고 (선택)</label><textarea id="fNote" maxlength="200"></textarea></div>
     <datalist id="procList"></datalist>
     <datalist id="unitList"></datalist>
+    <datalist id="reqList"></datalist>
     <div class="modal-actions">
       <button class="cancel" id="fCancel">취소</button>
       <button class="save" id="fSave">청구</button>
@@ -194,8 +217,9 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getDatabase, ref, onValue, get, push, update, remove
+  getDatabase, ref, onValue, push, update, remove
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+import { isRequestManager, watchNewRequests, askNotifyPermission, notifySupported } from "./matreq-notify.js?v=20261127";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBsOQMj6GTx1GVJVqjurZGlk0c1v1MjNOk",
@@ -210,16 +234,17 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 const MR = "materialRequests/items";
 
-/* ---- 처리결과 5가지 ---- */
-const STATUS = [
-  { key:"requested",  label:"청구"   },
-  { key:"received",   label:"접수"   },
-  { key:"inProgress", label:"처리중" },
-  { key:"done",       label:"완료"   },
-  { key:"rejected",   label:"반려"   }
+/* ---- 처리결과: 미처리 → FMS / IR / B/S 중 하나 (담당자만 선택) ---- */
+const RESULTS = [
+  { key:"FMS", label:"FMS" },
+  { key:"IR",  label:"IR"  },
+  { key:"BS",  label:"B/S" }
 ];
-const LABEL = Object.fromEntries(STATUS.map(s => [s.key, s.label]));
-const OPEN = new Set(["requested","received","inProgress"]);   // 미처리
+const DONE = new Set(RESULTS.map(s => s.key));
+const LABEL = Object.fromEntries(RESULTS.map(s => [s.key, s.label]));
+const isOpen = r => !DONE.has(r.status);                 // 그 밖의 값(이전 데이터 포함)은 모두 미처리
+const stKey = r => DONE.has(r.status) ? r.status : "pending";
+const CATS = ["성능", "수명"];
 
 /* ---- 로그인 강제 ---- */
 const username = localStorage.getItem("username");
@@ -227,15 +252,12 @@ if (!username) { window.location.href = "auth.html"; }
 
 /* ---- 권한: 주관리자(admin) 또는 관리자가 지정한 자재청구 담당자 ---- */
 const isAdmin = username === "admin";
-let canManage = isAdmin;
-try {
-  const me = await get(ref(db, "users/" + username));
-  if (me.exists() && me.val().requestAdmin === true) canManage = true;
-} catch (e) { /* 읽기 실패 시 기본 권한 유지 */ }
+const canManage = await isRequestManager(db, username);
 
 /* ---- 상태 ---- */
 let data = {};
-let filter = "open";      // open | all | 상태 key
+let filter = "open";      // open | all | FMS | IR | BS
+let cat = "";
 let month = "";
 let query = "";
 let editingId = null;
@@ -247,7 +269,9 @@ function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c=>({'&':'&amp;
 function fmt(ts){ return ts ? new Date(ts).toLocaleString('ko-KR') : '-'; }
 function ym(ts){ const d = new Date(ts||0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; }
 function md(ts){ if(!ts) return "-"; const d=new Date(ts); return `${d.getMonth()+1}/${d.getDate()}`; }
-function badge(st){ return `<span class="st st-${esc(st)}">${esc(LABEL[st]||st)}</span>`; }
+function badge(r){ const k = stKey(r); return `<span class="st st-${k}">${k==="pending" ? "미처리" : LABEL[k]}</span>`; }
+function catTag(c){ return CATS.includes(c) ? `<span class="cat cat-${c}">${c}</span>` : `<span style="color:var(--muted)">-</span>`; }
+const ownerOf = r => r.createdBy || r.requester;        // 수정·취소 권한은 로그인한 등록자
 function tickClock(){ const d=new Date(),p=n=>String(n).padStart(2,"0");
   $("clock").textContent=`${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
 setInterval(tickClock,1000); tickClock();
@@ -259,18 +283,34 @@ async function recordLog(action, details){
   }catch(e){ console.error("로그 기록 오류:", e); }
 }
 
+/* ---- 새 청구 알림 (담당자만) ---- */
+function renderNotifyBtn(){
+  const b = $("notifyBtn");
+  if (!canManage || !notifySupported()) { b.style.display = "none"; return; }
+  b.style.display = "";
+  const p = Notification.permission;
+  b.classList.toggle("on", p === "granted");
+  b.textContent = p === "granted" ? "🔔 알림 켜짐"
+                : p === "denied"  ? "🔕 알림 차단됨"
+                : "🔔 새 청구 알림 켜기";
+}
+$("notifyBtn").onclick = async () => {
+  if (Notification.permission === "default") await askNotifyPermission();
+  else if (Notification.permission === "denied") alert("브라우저(또는 앱) 설정 › 사이트 설정 › 알림에서 성능보드판을 허용해 주세요.");
+  renderNotifyBtn();
+};
+if (canManage) watchNewRequests(db, username);
+
 /* ---- 목록 ---- */
 function list(){
   return Object.entries(data).map(([id,v]) => ({ id, ...v }))
     // 미처리가 위, 같은 묶음 안에서는 최근 청구가 위
-    .sort((a,b) => (OPEN.has(b.status)-OPEN.has(a.status)) || (b.createdAt||0)-(a.createdAt||0));
+    .sort((a,b) => (isOpen(b)-isOpen(a)) || (b.createdAt||0)-(a.createdAt||0));
 }
 
 function renderChips(all){
-  const n = k => k==="all" ? all.length
-               : k==="open" ? all.filter(r=>OPEN.has(r.status)).length
-               : all.filter(r=>r.status===k).length;
-  const defs = [{key:"open",label:"미처리"},{key:"all",label:"전체"}, ...STATUS];
+  const n = k => k==="all" ? all.length : k==="open" ? all.filter(isOpen).length : all.filter(r=>r.status===k).length;
+  const defs = [{key:"open",label:"미처리"},{key:"all",label:"전체"}, ...RESULTS];
   $("chips").innerHTML = defs.map(d =>
     `<button class="chip${filter===d.key?' on':''}" data-f="${d.key}">${d.label} ${n(d.key)}</button>`).join("");
   $("chips").querySelectorAll(".chip").forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
@@ -284,14 +324,16 @@ function renderMonths(all){
 }
 
 function renderSuggestions(all){
-  const uniq = key => [...new Set(all.map(r => (r[key]||"").trim()).filter(Boolean))].sort();
+  const uniq = key => [...new Set(all.map(r => String(r[key]||"").trim()).filter(Boolean))].sort();
   $("procList").innerHTML = uniq("process").map(v => `<option value="${esc(v)}">`).join("");
   $("unitList").innerHTML = uniq("unit").map(v => `<option value="${esc(v)}">`).join("");
+  $("reqList").innerHTML  = uniq("requester").map(v => `<option value="${esc(v)}">`).join("");
 }
 
 function render(){
   $("sbUser").textContent = username;
   $("roleTag").style.display = canManage ? "" : "none";
+  renderNotifyBtn();
 
   const all = list();
   renderChips(all);
@@ -300,11 +342,12 @@ function render(){
 
   const q = query.trim().toLowerCase();
   const rows = all.filter(r =>
-    (filter==="all" || (filter==="open" ? OPEN.has(r.status) : r.status===filter)) &&
+    (filter==="all" || (filter==="open" ? isOpen(r) : r.status===filter)) &&
+    (!cat || r.category===cat) &&
     (!month || ym(r.createdAt)===month) &&
-    (!q || [r.no, r.process, r.pn].some(v => String(v||"").toLowerCase().includes(q))));
+    (!q || [r.no, r.process, r.pn, r.requester].some(v => String(v||"").toLowerCase().includes(q))));
 
-  const openCnt = all.filter(r=>OPEN.has(r.status)).length;
+  const openCnt = all.filter(isOpen).length;
   $("count").innerHTML = `${rows.length}건 · 미처리 <b>${openCnt}</b>`;
 
   const tbody = $("tbody"), empty = $("empty");
@@ -319,21 +362,24 @@ function render(){
   tbody.innerHTML = rows.map(r => `
     <tr data-id="${esc(r.id)}">
       <td class="c-no">${esc(r.no)}</td>
+      <td>${catTag(r.category)}</td>
       <td>${esc(r.process)}</td>
       <td class="c-pn">${esc(r.pn)}</td>
       <td class="c-qty">${Number(r.qty)||0}<span class="unit">${esc(r.unit||"")}</span></td>
-      <td>${badge(r.status)}</td>
+      <td>${badge(r)}</td>
       <td class="c-date">${md(r.createdAt)}</td>
       <td class="c-who">${esc(r.requester)}</td>
     </tr>`).join("");
   tbody.querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
 }
 
+$("catSel").onchange = e => { cat = e.target.value; render(); };
 $("monthSel").onchange = e => { month = e.target.value; render(); };
 $("searchIn").oninput = e => { query = e.target.value; render(); };
 
 /* ---- 청구 등록 · 수정 ---- */
 const formOv = $("formOv");
+const catInputs = () => [...document.querySelectorAll('input[name="fCat"]')];
 function openForm(id){
   editingId = id || null;
   const r = id ? data[id] : null;
@@ -344,7 +390,9 @@ function openForm(id){
   $("fPn").value   = r ? r.pn : "";
   $("fQty").value  = r ? r.qty : "";
   $("fUnit").value = r ? (r.unit||"") : "";
+  $("fReq").value  = r ? (r.requester||"") : "";
   $("fNote").value = r ? (r.note||"") : "";
+  catInputs().forEach(i => i.checked = !!r && i.value === r.category);
   formOv.classList.add("open");
   setTimeout(() => $("fNo").focus(), 50);
 }
@@ -353,27 +401,30 @@ $("fCancel").onclick = () => formOv.classList.remove("open");
 formOv.addEventListener("click", e => { if (e.target === formOv) formOv.classList.remove("open"); });
 
 $("fSave").onclick = async () => {
-  const no      = $("fNo").value.trim();
-  const process = $("fProc").value.trim();
-  const pn      = $("fPn").value.trim().toUpperCase().replace(/\s+/g, "");
-  const qty     = Number($("fQty").value);
-  const unit    = $("fUnit").value.trim();
-  const note    = $("fNote").value.trim();
-  if (!no)      { alert("넘버를 입력하세요."); return; }
-  if (!process) { alert("공정을 입력하세요."); return; }
-  if (!pn)      { alert("PN을 입력하세요."); return; }
+  const no        = $("fNo").value.trim();
+  const category  = (catInputs().find(i => i.checked) || {}).value || "";
+  const process   = $("fProc").value.trim();
+  const pn        = $("fPn").value.trim().toUpperCase().replace(/\s+/g, "");
+  const qty       = Number($("fQty").value);
+  const unit      = $("fUnit").value.trim();
+  const requester = $("fReq").value.trim();
+  const note      = $("fNote").value.trim();
+  if (!no)        { alert("넘버를 입력하세요."); return; }
+  if (!category)  { alert("구분(성능 / 수명)을 고르세요."); return; }
+  if (!process)   { alert("공정을 입력하세요."); return; }
+  if (!pn)        { alert("PN을 입력하세요."); return; }
   if (!(qty > 0)) { alert("수량은 0보다 커야 합니다."); return; }
-  const fields = { no, process, pn, qty, unit, note, updatedAt: Date.now() };
+  if (!requester) { alert("신청자를 입력하세요."); return; }
+  const fields = { no, category, process, pn, qty, unit, requester, note, updatedAt: Date.now() };
   try {
     if (editingId) {
       const cur = data[editingId];
-      if (!cur || cur.status !== "requested") { alert("‘청구’ 상태일 때만 수정할 수 있습니다."); return; }
+      if (!cur || !isOpen(cur)) { alert("미처리 상태일 때만 수정할 수 있습니다."); return; }
       await update(ref(db, `${MR}/${editingId}`), fields);
-      await recordLog("MATREQ_UPDATE", { id: editingId, no, pn, qty });
+      await recordLog("MATREQ_UPDATE", { id: editingId, no, category, pn, qty, requester });
     } else {
-      const now = Date.now();
-      const r = await push(ref(db, MR), { ...fields, status: "requested", requester: username, createdAt: now });
-      await recordLog("MATREQ_CREATE", { id: r.key, no, process, pn, qty, unit });
+      const r = await push(ref(db, MR), { ...fields, status: "pending", createdBy: username, createdAt: Date.now() });
+      await recordLog("MATREQ_CREATE", { id: r.key, no, category, process, pn, qty, unit, requester });
     }
     formOv.classList.remove("open");
   } catch (e) { console.error("청구 저장 오류:", e); alert("저장 실패: " + e.message); }
@@ -389,31 +440,33 @@ detailOv.addEventListener("click", e => { if (e.target === detailOv) closeDetail
 function fillDetail(){
   const r = detailId && data[detailId];
   if (!r) { closeDetail(); return; }
-  $("dTitle").innerHTML = `${esc(r.no)} ${badge(r.status)}`;
-  const reason = r.status === "rejected" && r.note;
+  $("dTitle").innerHTML = `${esc(r.no)} ${badge(r)}`;
   $("dBody").innerHTML = `
+    <dt>구분</dt><dd>${catTag(r.category)}</dd>
     <dt>공정</dt><dd>${esc(r.process)}</dd>
     <dt>PN</dt><dd>${esc(r.pn)}</dd>
     <dt>수량</dt><dd>${Number(r.qty)||0} ${esc(r.unit||"")}</dd>
-    <dt>청구자</dt><dd>${esc(r.requester)}</dd>
+    <dt>신청자</dt><dd>${esc(r.requester)}</dd>
     <dt>청구일시</dt><dd>${fmt(r.createdAt)}</dd>
+    <dt>등록 계정</dt><dd>${esc(r.createdBy||"-")}</dd>
     <dt>처리자</dt><dd>${esc(r.handler||"-")}</dd>
     <dt>처리일시</dt><dd>${fmt(r.handledAt)}</dd>
-    <dt>${reason ? "반려 사유" : "비고"}</dt><dd class="${reason?'reason':''}">${esc(r.note||"-")}</dd>`;
+    <dt>비고</dt><dd>${esc(r.note||"-")}</dd>`;
 
-  // 담당자: 처리결과 변경
+  // 담당자: 처리결과 선택 (FMS / IR / B/S, 되돌리기는 미처리)
   $("dMgr").style.display = canManage ? "" : "none";
   if (canManage){
-    $("dStBtns").innerHTML = STATUS.map(s =>
-      `<button class="st st-${s.key}${s.key===r.status?' cur':''}" data-st="${s.key}">${s.label}</button>`).join("");
+    const cur = stKey(r);
+    $("dStBtns").innerHTML = [{key:"pending",label:"미처리"}, ...RESULTS].map(s =>
+      `<button class="st st-${s.key}${s.key===cur?' cur':''}" data-st="${s.key}">${s.label}</button>`).join("");
     $("dStBtns").querySelectorAll("button").forEach(b => b.onclick = () => setStatus(detailId, b.dataset.st));
   }
 
-  // 본인 청구: '청구' 상태일 때만 수정 · 취소 / admin 은 언제든 삭제
-  const mine = r.requester === username && r.status === "requested";
+  // 내가 등록한 청구: 미처리일 때만 수정 · 취소 / admin 은 언제든 삭제
+  const mine = ownerOf(r) === username && isOpen(r);
   const btns = [];
   if (mine) btns.push(`<button data-o="edit">수정</button>`, `<button class="del" data-o="cancel">청구 취소</button>`);
-  else if (isAdmin) btns.push(`<button class="del" data-o="delete">청구 삭제</button>`);
+  if (isAdmin && !mine) btns.push(`<button class="del" data-o="delete">청구 삭제</button>`);
   $("dOwn").style.display = btns.length ? "" : "none";
   $("dOwnLabel").textContent = mine ? "내 청구" : "관리";
   $("dOwnBtns").innerHTML = btns.join("");
@@ -426,17 +479,13 @@ function fillDetail(){
 
 async function setStatus(id, st){
   if (!canManage) return;
-  const r = data[id]; if (!r || r.status === st) return;
-  const patch = { status: st, handler: username, handledAt: Date.now() };
-  if (st === "rejected") {
-    const why = prompt(`${r.no} / ${r.pn} 반려 사유를 입력하세요 (필수)`, "");
-    if (why === null) return;
-    if (!why.trim()) { alert("반려 사유를 입력해야 반려할 수 있습니다."); return; }
-    patch.note = why.trim().slice(0, 200);
-  }
+  const r = data[id]; if (!r || stKey(r) === st) return;
+  const patch = st === "pending"
+    ? { status: "pending", handler: username, handledAt: Date.now() }
+    : { status: st, handler: username, handledAt: Date.now() };
   try {
     await update(ref(db, `${MR}/${id}`), patch);
-    await recordLog("MATREQ_UPDATE_STATUS", { id, no: r.no, pn: r.pn, from: r.status, to: st, note: patch.note || null });
+    await recordLog("MATREQ_UPDATE_STATUS", { id, no: r.no, pn: r.pn, from: stKey(r), to: st });
   } catch (e) { console.error("처리결과 변경 오류:", e); alert("변경 실패: " + e.message); }
 }
 
