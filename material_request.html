@@ -115,6 +115,18 @@
     padding:9px 14px;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit}
   .own-btns button.del{background:var(--danger-dim);color:var(--danger-text);border-color:transparent}
 
+  .purge-btn{background:var(--warn-dim);color:var(--warn-text);border:none;font-size:13px;font-weight:600;
+    padding:7px 12px;border-radius:9999px;cursor:pointer;font-family:inherit}
+  .purge-sum{font-size:14px;line-height:1.6;margin-bottom:6px}
+  .purge-sum b{color:var(--amber-text)}
+  .purge-steps{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .purge-steps button{padding:13px;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:inherit}
+  .purge-steps .step{background:var(--panel-2);color:var(--text);border:1px solid var(--line-2)}
+  .purge-steps .step.done{background:var(--ok-dim);color:var(--ok-text);border-color:transparent}
+  .purge-steps .danger{background:var(--danger);color:#fff}
+  .purge-steps .danger:disabled{opacity:.4;cursor:default}
+  .purge-hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
+
   @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:12px}}
 
   /* 폰: 5칸이 가로 스크롤 없이 한 화면에 들어오게 */
@@ -147,6 +159,7 @@
     <span class="count" id="count">0건</span>
     <span class="role-tag" id="roleTag" style="display:none;">담당자</span>
     <button class="notify-btn" id="notifyBtn" style="display:none;">🔔 새 청구 알림 켜기</button>
+    <button class="purge-btn" id="purgeBtn" style="display:none;"></button>
     <button class="btn-add" id="addBtn">＋ 청구</button>
   </div>
 
@@ -194,6 +207,22 @@
       <button class="cancel" id="fCancel">취소</button>
       <button class="save" id="fSave">청구</button>
     </div>
+  </div>
+</div>
+
+<!-- 30일 지난 처리건 정리 (admin) -->
+<div class="overlay" id="purgeOv">
+  <div class="modal">
+    <h3>처리 후 30일 지난 청구 정리</h3>
+    <div class="purge-sum" id="purgeSum"></div>
+    <div class="purge-steps">
+      <button class="step" id="purgeCsv">① CSV 파일 받기</button>
+      <button class="step" id="purgeShare">② 메일 등으로 보내기 (CSV 첨부)</button>
+      <button class="danger" id="purgeDel" disabled>③ 이 청구들 삭제</button>
+    </div>
+    <div class="purge-hint">①이나 ② 중 하나를 마쳐야 삭제할 수 있어요. 미처리 청구는 정리 대상이 아닙니다.
+      ②에서 공유 창이 뜨면 Gmail·메일 앱을 고르세요 (공유가 안 되는 기기는 메일 쓰기 창이 열리니 ①에서 받은 파일을 첨부하세요).</div>
+    <div class="modal-actions"><button class="cancel" id="purgeClose">닫기</button></div>
   </div>
 </div>
 
@@ -332,6 +361,7 @@ function renderSuggestions(all){
 
 function render(){
   $("sbUser").textContent = username;
+  renderPurgeBtn();
   $("roleTag").style.display = canManage ? "" : "none";
   renderNotifyBtn();
 
@@ -499,6 +529,103 @@ async function deleteReq(id, mode){
     closeDetail();
   } catch (e) { console.error("삭제 오류:", e); alert("삭제 실패: " + e.message); }
 }
+
+/* ---- 30일 지난 처리건 정리 (admin 만, 수동) ----
+   FMS · IR · B/S 로 처리하고 30일이 지난 청구만 대상. CSV 받기 또는 공유를 먼저 해야 삭제 가능. */
+const PURGE_DAYS = 30;
+let purgeIds = [];
+let purgeSaved = false;
+const purgeTargets = () => list().filter(r => !isOpen(r) && r.handledAt && (Date.now() - r.handledAt) >= PURGE_DAYS * 864e5)
+  .sort((a,b) => (a.handledAt||0) - (b.handledAt||0));
+function ymd(ts){ if(!ts) return ""; const d=new Date(ts),p=n=>String(n).padStart(2,"0"); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
+
+function renderPurgeBtn(){
+  const b = $("purgeBtn");
+  const n = isAdmin ? purgeTargets().length : 0;
+  b.style.display = n ? "" : "none";
+  b.textContent = `🗂 30일 지난 처리건 ${n}건 정리`;
+}
+
+function purgeCsv(rows){
+  const head = ["넘버","구분","공정","PN","수량","단위","처리결과","신청자","청구일","처리자","처리일","비고"];
+  const cell = v => { const t = String(v==null?"":v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
+  const lines = rows.map(r => [r.no, r.category||"", r.process, r.pn, Number(r.qty)||0, r.unit||"", LABEL[r.status]||r.status,
+    r.requester||"", ymd(r.createdAt), r.handler||"", ymd(r.handledAt), r.note||""].map(cell).join(","));
+  return "﻿" + [head.join(","), ...lines].join("\r\n");      // BOM: 엑셀에서 한글 안 깨지게
+}
+function purgeSummary(rows){
+  const by = (k, f) => { const m = {}; rows.forEach(r => { const key = f(r); m[key] = (m[key]||0) + 1; }); return Object.entries(m).map(([a,b])=>`${a} ${b}건`).join(", "); };
+  return { total: rows.length,
+           range: rows.length ? `${ymd(rows[0].handledAt)} ~ ${ymd(rows.at(-1).handledAt)}` : "",
+           result: by("status", r => LABEL[r.status]||r.status),
+           cat: by("category", r => r.category || "구분 없음") };
+}
+const purgeFileName = () => `자재청구_정리_${ymd(Date.now())}.csv`;
+
+function openPurge(){
+  if (!isAdmin) return;
+  const rows = purgeTargets();
+  purgeIds = rows.map(r => r.id);
+  purgeSaved = false;
+  const s = purgeSummary(rows);
+  $("purgeSum").innerHTML = rows.length
+    ? `<b>${s.total}건</b> · 처리일 ${esc(s.range)}<br>처리결과: ${esc(s.result)}<br>구분: ${esc(s.cat)}`
+    : "정리할 청구가 없습니다.";
+  ["purgeCsv","purgeShare"].forEach(id => $(id).classList.remove("done"));
+  $("purgeDel").disabled = true;
+  $("purgeDel").textContent = `③ 이 청구 ${rows.length}건 삭제`;
+  $("purgeOv").classList.add("open");
+}
+function purgeRows(){ return purgeIds.map(id => data[id] && { id, ...data[id] }).filter(Boolean); }
+function markSaved(id){ $(id).classList.add("done"); purgeSaved = true; $("purgeDel").disabled = !purgeIds.length; }
+
+$("purgeBtn").onclick = openPurge;
+$("purgeClose").onclick = () => $("purgeOv").classList.remove("open");
+$("purgeOv").addEventListener("click", e => { if (e.target.id === "purgeOv") $("purgeOv").classList.remove("open"); });
+
+$("purgeCsv").onclick = () => {
+  const blob = new Blob([purgeCsv(purgeRows())], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = purgeFileName();
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  markSaved("purgeCsv");
+};
+
+$("purgeShare").onclick = async () => {
+  const rows = purgeRows(), s = purgeSummary(rows);
+  const subject = `[성능보드판] 자재청구 정리 ${ymd(Date.now())} (${s.total}건)`;
+  const text = `처리 후 ${PURGE_DAYS}일 지난 자재청구 ${s.total}건을 정리합니다.\n처리일: ${s.range}\n처리결과: ${s.result}\n구분: ${s.cat}\n\n상세 내역은 첨부한 CSV 파일을 보세요.`;
+  const file = new File([purgeCsv(rows)], purgeFileName(), { type: "text/csv" });
+  try {
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ title: subject, text, files: [file] });
+      markSaved("purgeShare");
+      return;
+    }
+  } catch (e) {
+    if (e && e.name === "AbortError") return;           // 공유 창을 닫음
+    console.warn("공유 실패, 메일 쓰기로 전환:", e);
+  }
+  // 파일 공유가 안 되는 기기: 메일 쓰기 창 (첨부는 ①에서 받은 파일을 직접)
+  location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+  markSaved("purgeShare");
+};
+
+$("purgeDel").onclick = async () => {
+  if (!isAdmin || !purgeSaved) return;
+  const rows = purgeRows();
+  if (!rows.length) return;
+  if (!confirm(`처리 후 ${PURGE_DAYS}일 지난 청구 ${rows.length}건을 삭제할까요?\n되돌릴 수 없습니다.`)) return;
+  try {
+    const patch = {};
+    rows.forEach(r => { patch[r.id] = null; });
+    await update(ref(db, MR), patch);                     // 한 번에 삭제
+    await recordLog("MATREQ_DELETE_PURGE", { count: rows.length, range: purgeSummary(rows).range });
+    $("purgeOv").classList.remove("open");
+    alert(`${rows.length}건을 정리했습니다.`);
+  } catch (e) { console.error("정리 삭제 오류:", e); alert("삭제 실패: " + e.message); }
+};
 
 /* ---- 실시간 ---- */
 onValue(ref(db, MR), snap => {

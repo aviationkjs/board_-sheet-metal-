@@ -66,6 +66,12 @@ users/{id}/requestAdmin: true
 - 알림을 누르면 자재청구 페이지가 열린다 (`sw.js` notificationclick).
 - 앱을 완전히 끈 상태에서도 오게 하려면 Firebase Blaze 요금제 + Cloud Functions + FCM 이 필요하다 (다음 단계).
 
+## 5-2. 30일 지난 처리건 정리 (admin, 수동)
+
+- FMS · IR · B/S 로 처리하고 30일이 지난 청구가 있으면 admin 툴바에 `🗂 30일 지난 처리건 N건 정리`가 보인다.
+- 정리 창: 건수 · 처리일 범위 · 처리결과별 · 구분별 요약 → ① CSV 받기 ② 메일 등으로 공유(CSV 첨부, 안 되는 기기는 mailto) → ③ 삭제.
+- ①이나 ②를 마쳐야 ③이 켜진다. 미처리 청구는 대상이 아니다. 로그 `MATREQ_DELETE_PURGE`.
+
 ## 6. 배포 체크
 
 1. `database.rules.json`을 Firebase 콘솔 › Realtime Database › 규칙에 붙여넣고 **게시** (안 하면 저장은 되지만 값 검사가 빠짐)
