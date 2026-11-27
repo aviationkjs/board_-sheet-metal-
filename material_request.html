@@ -127,6 +127,16 @@
   .purge-steps .danger:disabled{opacity:.4;cursor:default}
   .purge-hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.5}
 
+  /* 담당자·admin 에게만: 청구자(등록 계정) 칸. 칸이 늘어 화면보다 넓으면 옆으로 밀어 보기, 넘버 칸은 고정 */
+  .mgr-col{display:none}
+  body.mgr .mgr-col{display:table-cell}
+  .c-claimer{white-space:nowrap;font-size:13px;color:var(--amber-text);font-weight:600}
+  body.mgr .table-wrap{-webkit-overflow-scrolling:touch}
+  body.mgr thead th:first-child, body.mgr tbody td:first-child{position:sticky;left:0;z-index:1;background:var(--panel)}
+  body.mgr tbody tr:hover td:first-child{background:var(--panel)}
+  .scroll-hint{display:none;font-size:12px;color:var(--muted);margin:-6px 0 8px;text-align:right}
+  .scroll-hint.on{display:block}
+
   @media(min-width:560px){.overlay{align-items:center}.modal{border-radius:12px}}
 
   /* 폰: 5칸이 가로 스크롤 없이 한 화면에 들어오게 */
@@ -143,6 +153,7 @@
     .cat{padding:2px 5px}
     thead th,tbody td{padding-left:4px;padding-right:4px}
     .st{font-size:11px;padding:3px 8px}
+    body.mgr table{min-width:620px}
   }
 </style>
 </head>
@@ -170,9 +181,10 @@
     <input type="search" id="searchIn" placeholder="넘버 · 공정 · PN · 신청자 검색">
   </div>
 
-  <div class="table-wrap">
+  <div class="scroll-hint" id="scrollHint">옆으로 밀면 청구자 칸이 보여요 →</div>
+  <div class="table-wrap" id="tableWrap">
     <table>
-      <thead><tr><th>넘버</th><th>구분</th><th>공정</th><th>PN</th><th>수량</th><th>처리결과</th><th>날짜</th><th>신청자</th></tr></thead>
+      <thead><tr><th>넘버</th><th>구분</th><th>공정</th><th>PN</th><th>수량</th><th>처리결과</th><th>날짜</th><th>신청자</th><th class="mgr-col">청구자</th></tr></thead>
       <tbody id="tbody"></tbody>
     </table>
     <div class="empty" id="empty" style="display:none;"></div>
@@ -246,7 +258,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getDatabase, ref, onValue, push, update, remove
+  getDatabase, ref, onValue, get, push, update, remove
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 import { isRequestManager, watchNewRequests, askNotifyPermission, notifySupported } from "./matreq-notify.js?v=20261127";
 
@@ -282,6 +294,25 @@ if (!username) { window.location.href = "auth.html"; }
 /* ---- 권한: 주관리자(admin) 또는 관리자가 지정한 자재청구 담당자 ---- */
 const isAdmin = username === "admin";
 const canManage = await isRequestManager(db, username);
+if (canManage) document.body.classList.add("mgr");
+
+/* ---- 청구자: 실제로 청구를 올린 로그인 계정 (담당자·admin 에게만 보임) ----
+   createdBy 가 있으면 그것, 없는 예전 청구는 로그(MATREQ_CREATE)에서 찾아 채웁니다. */
+const logClaimer = {};
+function claimer(r){ return r.createdBy || logClaimer[r.id] || "-"; }
+if (canManage) {
+  get(ref(db, "logs")).then(snap => {
+    Object.values(snap.val() || {}).forEach(l => {
+      if (l && l.action === "MATREQ_CREATE" && l.details && l.details.id) logClaimer[l.details.id] = l.user;
+    });
+    render();
+  }).catch(e => console.warn("청구 로그 읽기 실패:", e));
+}
+function updateScrollHint(){
+  const w = document.getElementById("tableWrap");
+  document.getElementById("scrollHint").classList.toggle("on", canManage && w.scrollWidth > w.clientWidth + 4);
+}
+window.addEventListener("resize", () => { if (canManage) updateScrollHint(); });
 
 /* ---- 상태 ---- */
 let data = {};
@@ -399,7 +430,9 @@ function render(){
       <td>${badge(r)}</td>
       <td class="c-date">${md(r.createdAt)}</td>
       <td class="c-who">${esc(r.requester)}</td>
+      <td class="c-claimer mgr-col">${esc(claimer(r))}</td>
     </tr>`).join("");
+  updateScrollHint();
   tbody.querySelectorAll("tr[data-id]").forEach(tr => tr.onclick = () => openDetail(tr.dataset.id));
 }
 
@@ -478,7 +511,7 @@ function fillDetail(){
     <dt>수량</dt><dd>${Number(r.qty)||0} ${esc(r.unit||"")}</dd>
     <dt>신청자</dt><dd>${esc(r.requester)}</dd>
     <dt>청구일시</dt><dd>${fmt(r.createdAt)}</dd>
-    <dt>등록 계정</dt><dd>${esc(r.createdBy||"-")}</dd>
+    ${canManage ? `<dt>청구자</dt><dd>${esc(claimer(r))} <span style="color:var(--muted);font-size:12px">(로그인 계정)</span></dd>` : ""}
     <dt>처리자</dt><dd>${esc(r.handler||"-")}</dd>
     <dt>처리일시</dt><dd>${fmt(r.handledAt)}</dd>
     <dt>비고</dt><dd>${esc(r.note||"-")}</dd>`;
@@ -547,10 +580,10 @@ function renderPurgeBtn(){
 }
 
 function purgeCsv(rows){
-  const head = ["넘버","구분","공정","PN","수량","단위","처리결과","신청자","청구일","처리자","처리일","비고"];
+  const head = ["넘버","구분","공정","PN","수량","단위","처리결과","신청자","청구자","청구일","처리자","처리일","비고"];
   const cell = v => { const t = String(v==null?"":v); return /[",\n\r]/.test(t) ? `"${t.replace(/"/g,'""')}"` : t; };
   const lines = rows.map(r => [r.no, r.category||"", r.process, r.pn, Number(r.qty)||0, r.unit||"", LABEL[r.status]||r.status,
-    r.requester||"", ymd(r.createdAt), r.handler||"", ymd(r.handledAt), r.note||""].map(cell).join(","));
+    r.requester||"", claimer(r)==="-" ? "" : claimer(r), ymd(r.createdAt), r.handler||"", ymd(r.handledAt), r.note||""].map(cell).join(","));
   return "﻿" + [head.join(","), ...lines].join("\r\n");      // BOM: 엑셀에서 한글 안 깨지게
 }
 function purgeSummary(rows){
