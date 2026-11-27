@@ -106,7 +106,6 @@
         }
       }
     },
-    "fighterjet_scores":   { ".read": true, ".write": true },
     "takryu_scores": {
       ".read": true,
       "$key": {
